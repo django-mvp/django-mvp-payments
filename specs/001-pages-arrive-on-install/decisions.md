@@ -501,3 +501,21 @@ edits against a design already settled by the precedent, with no design content 
 
 **ADR:** none — how one menu is arranged, recorded in the specification and the documentation where
 a reader meets it.
+
+## D20 — A stale lint cache made the local gate green while CI was red
+
+The pull request's Code Quality check failed on two import-ordering errors that every local run had
+called clean — `forge verify`, `pre-commit run --all-files` and a bare `ruff check .` all passed on
+the same commit that CI rejected.
+
+The cause is `.ruff_cache`. A cached verdict survived an edit that changed the answer, so every
+local invocation read the stale result and reported success. `ruff check --no-cache` finds both
+errors immediately, and a fresh checkout of the same commit — which is what CI has — finds them
+too.
+
+Worth stating plainly because of what it implies: a green lint step run in a working directory that
+has been edited all day is weaker evidence than it looks. The check that matters is the one run
+against a clean checkout, which is exactly what CI is for.
+
+**ADR:** none — a tooling gotcha, recorded for this organisation's own notes rather than as a rule
+this repository imposes on anyone.

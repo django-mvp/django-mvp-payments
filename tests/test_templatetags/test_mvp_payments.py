@@ -1,9 +1,9 @@
 """The template tag that renders each available contribution's card."""
 
 from django.urls import reverse
-from mvp_payments.templatetags.mvp_payments import payment_cards
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from mvp_payments.templatetags.mvp_payments import payment_cards
 
 
 class TestPaymentCards:
