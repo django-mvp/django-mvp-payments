@@ -7,7 +7,10 @@ import subprocess
 import sys
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
+
+from mvp_payments.namespaces.drf_stripe import drf_stripe
 
 _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE = """
 import json
@@ -116,3 +119,50 @@ class TestAccountCenterOverview:
         expected_url = reverse("payments:drf-stripe-subscription")
         assert cards.count(f'href="{expected_url}"') == 1
         assert cards.count('data-testid="other-app-card"') == 1
+
+
+class TestURLsNotMounted:
+    """A project that installed the backend but never added the one line
+    mounting this package's URL configuration still gets a working Account
+    Center, with nothing of this package on it (US-4, FR-009).
+
+    A dead navigation entry is already handled by django-flex-menus, which
+    drops a leaf whose URL will not reverse (D3) — the navigation half needs
+    no test of its own here beyond confirming it stays true. The card is not
+    covered by that: rendering its ``{% url %}`` would raise
+    ``NoReverseMatch`` and take the whole page down, which is worse than the
+    dead link FR-009 exists to prevent.
+
+    Both guards ask ``reverse()`` live, at render time — ``Contribution.
+    is_reachable()`` directly, django-flex-menus' own URL resolution the same
+    way — rather than anything built once at process start. That is unlike
+    D9's URL-configuration-built-at-import case and D10's template-loader
+    case, so this uses ``override_settings(ROOT_URLCONF=...)`` in-process
+    rather than a fresh subprocess: confirmed by hand first that Django's own
+    ``clear_url_caches()`` (triggered by the ``setting_changed`` signal on a
+    ``ROOT_URLCONF`` override) is enough to make every live ``reverse()``
+    call in this request see the substituted URL configuration.
+    """
+
+    def test_account_center_renders_with_nothing_from_the_unmounted_backend(
+        self, logged_in_client
+    ):
+        with override_settings(ROOT_URLCONF="tests.urls_without_payments"):
+            response = logged_in_client.get(reverse("account-center"))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+
+        # The page itself still renders, with its own navigation intact — an
+        # unmounted backend is not a broken page.
+        assert 'aria-label="Account navigation"' in content
+
+        # No navigation entry: covers every one of the backend's pages.
+        for page in drf_stripe.pages:
+            assert f"<span>{page.label}</span>" not in content
+
+        # No card: its link would need a URL name that cannot reverse here.
+        cards = _account_center_cards_region(content)
+        assert "<a href" not in cards
+        for page in drf_stripe.pages:
+            assert f">{page.label}<" not in cards
