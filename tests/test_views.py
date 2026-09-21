@@ -27,7 +27,7 @@ class TestPaymentPage:
         assert re.search(rf"<h1[^>]*>\s*{heading}\s*</h1>", content)
         assert 'aria-label="Account navigation"' in content
 
-    def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client):
+    def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
         response = client.get(reverse("payments:drf-stripe-subscription"))
 
         assert response.status_code == 302

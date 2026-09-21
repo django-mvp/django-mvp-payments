@@ -2,6 +2,7 @@
 
 from django.urls import reverse
 from django.utils.functional import Promise
+
 from mvp_payments.namespaces.drf_stripe import drf_stripe
 
 
@@ -25,5 +26,8 @@ class TestDrfStripeContribution:
         self, logged_in_client
     ):
         content = logged_in_client.get(reverse("account-center")).content.decode()
+        # mvp/account/base.html draws AccountCenterMenu twice — a collapsed
+        # mobile dropdown copy and a persistent desktop card — so one
+        # registered entry legitimately appears twice in the rendered page.
         for page in drf_stripe.pages:
-            assert content.count(f"<span>{page.label}</span>") == 1
+            assert content.count(f"<span>{page.label}</span>") == 2

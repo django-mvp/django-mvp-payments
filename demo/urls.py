@@ -10,4 +10,6 @@ urlpatterns = [
     # Every page this package contributes requires a signed-in person, so the
     # demo needs somewhere to sign in.
     path("accounts/", include("django.contrib.auth.urls")),
+    # The one line a project adds to mount this package's pages (FR-001).
+    path("payments/", include("mvp_payments.urls")),
 ]
