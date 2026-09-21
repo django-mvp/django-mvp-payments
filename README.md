@@ -92,11 +92,23 @@ one to copy into production without thinking about it.
 amount of JavaScript some components need, and just enough Python to put a page at a URL and an
 entry in a menu.
 
+Two ways of building a page are supported equally. A **native** component renders your backend's
+own data as daisyUI markup, so it themes with the rest of your site and can show a person their
+own state. A **provider embed** — Stripe's pricing table, for instance — is a thin wrapper around
+the drop-in the provider already publishes, which is the faster answer where there is no
+signed-in user to reflect. Neither is the fallback for the other.
+
+The standing directions this package works toward are in [GOALS.md](GOALS.md).
+
 **What this deliberately is not.**
 
 - **Not a payment integration.** No API calls from Python, no webhook handling, no card data,
   no secrets, no money moving anywhere. Those are the backend's job and they are genuinely hard
   to get right; a UI package has no business having an opinion about them.
+- **Not a way to run two backends at once.** Swapping one for another is a supported move and
+  the reason namespaces do not share anything. Running two side by side is not: whose
+  subscription a person is looking at stops being answerable, and nothing here is built to
+  arbitrate it.
 - **Not a backend abstraction.** There is no common interface that every payment library gets
   adapted onto. That abstraction is the classic trap in this domain: it fits the first library,
   bends for the second and is a liability by the third, because subscription models genuinely
