@@ -56,9 +56,9 @@ urlpatterns = [
 ```
 
 That line is the only wiring. From there, every backend you have installed contributes its own
-pages to the Account Center and its own card to the Account Center's overview, and a backend you
-have not installed contributes nothing. There is no settings block, no flag to turn on and no
-registry to populate — what is in `INSTALLED_APPS` decides what exists.
+section of the Account Center's navigation and its own card to the Account Center's overview, and a
+backend you have not installed contributes nothing. There is no settings block, no flag to turn on
+and no registry to populate — what is in `INSTALLED_APPS` decides what exists.
 
 ## Namespaces
 

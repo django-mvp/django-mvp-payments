@@ -37,6 +37,7 @@ def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
             ),
         ),
         card_template="mvp_payments/card.html",
+        group_label="Fixture payments",
     )
 
 
@@ -60,20 +61,29 @@ class TestContribution:
             "url-patterns-fixture-two",
         }
 
-    def test_register_adds_exactly_one_navigation_entry_per_page(
+    def test_register_adds_one_labelled_group_holding_every_page(
         self, account_center_menu
     ):
+        """One group per namespace, not one entry per page at the top level.
+
+        Grouping is what django-accounts-center does with its own section of
+        this menu, and it is what keeps a namespace's pages legible beside
+        whatever else an Account Center already carries.
+        """
         contribution = _make_contribution(namespace="register-count-fixture")
         before = len(account_center_menu.children)
 
         contribution.register()
 
         after = list(account_center_menu.children)
-        assert len(after) - before == len(contribution.pages)
-        assert {child.name for child in after[-2:]} == {
+        assert len(after) - before == 1
+        group = after[-1]
+        assert group.name == "register-count-fixture"
+        assert group.extra_context["label"] == "Fixture payments"
+        assert [child.name for child in group.children] == [
             "register-count-fixture-one",
             "register-count-fixture-two",
-        }
+        ]
 
 
 class TestRepeatedRegistration:
@@ -129,8 +139,12 @@ class TestSecondNamespaceFixture:
             second_namespace.register()
             after = list(account_center_menu.children)
 
-        assert len(after) - before == len(second_namespace.pages)
-        assert {child.name for child in after[-1:]} == {"second-namespace-overview"}
+        assert len(after) - before == 1
+        group = after[-1]
+        assert group.name == second_namespace.namespace
+        assert [child.name for child in group.children] == [
+            second_namespace.url_name(page) for page in second_namespace.pages
+        ]
 
 
 #: Boots a fresh Django process with the second namespace's fixture app added

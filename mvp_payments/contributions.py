@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from django.apps import apps
 from django.urls import NoReverseMatch, URLPattern, path, reverse
 from django.utils.functional import Promise
-from mvp.menus import AccountCenterMenu, MenuItem
+from mvp.menus import AccountCenterMenu, MenuGroup, MenuItem
 
 from .views import PaymentPageView
 
@@ -46,6 +46,7 @@ class Contribution:
     namespace: str
     pages: tuple[Page, ...]
     card_template: str
+    group_label: str | Promise
 
     def is_available(self) -> bool:
         """Whether this namespace's backend is installed.
@@ -89,22 +90,35 @@ class Contribution:
         ]
 
     def register(self) -> None:
-        """Add one navigation entry per page to the Account Center.
+        """Add this namespace's group, holding one entry per page.
 
-        Idempotent by entry name: ``ready()`` runs again on every
+        One labelled group rather than a run of entries at the top level: the
+        Account Center is shared with whatever else a project installed, and
+        django-accounts-center already sections its own part of this menu the
+        same way (D19).
+
+        A group whose pages cannot be reached disappears with them, because
+        django-flex-menus hides a container left with no visible children.
+
+        Idempotent by group name: ``ready()`` runs again on every
         development-server reload, and the menu tree survives it (D5).
         """
-        for page in self.pages:
-            entry_name = self.url_name(page)
-            if AccountCenterMenu.get(entry_name, maxlevel=1) is not None:
-                continue
-            AccountCenterMenu.append(
-                MenuItem(
-                    name=entry_name,
-                    view_name=self.view_name(page),
-                    extra_context={"label": page.label, "icon": page.icon},
-                )
+        if AccountCenterMenu.get(self.namespace, maxlevel=1) is not None:
+            return
+        AccountCenterMenu.append(
+            MenuGroup(
+                name=self.namespace,
+                extra_context={"label": self.group_label},
+                children=[
+                    MenuItem(
+                        name=self.url_name(page),
+                        view_name=self.view_name(page),
+                        extra_context={"label": page.label, "icon": page.icon},
+                    )
+                    for page in self.pages
+                ],
             )
+        )
 
     def url_name(self, page: Page) -> str:
         """This page's URL name, carrying the namespace so two cannot collide (D2)."""

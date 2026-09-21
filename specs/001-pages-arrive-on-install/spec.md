@@ -36,13 +36,15 @@ project's standards document and its README. Longer rationale is in `decisions.m
   this package holds no entitlement information and must not appear to be making an access
   decision. Recorded as FR-008.
 
-- **Q: Do a backend's entries sit directly in the Account Center navigation, or under a parent
-  entry naming the backend?**
-  A: Directly, alongside the Account Center's own entries. A parent entry would have to be labelled
-  with something, and the only honest label is the name of a Python library, which is not a word
-  the person reading the page has any use for. The case a grouping would solve — two backends
-  installed at once — is one this package already declines to support, because whose subscription a
-  person is looking at stops being answerable. Recorded as FR-005.
+- **Q: Do a backend's entries sit directly in the Account Center navigation, or under a group of
+  their own?**
+  A: Under a group, labelled for what the group contains rather than for the library behind it —
+  "Payments" for the first namespace. This was first settled the other way, on the reasoning that
+  the only honest label for a group was the name of a Python library. Using the running pages
+  answered it: the Account Center is shared with whatever else a project installed, and
+  django-accounts-center already sections its own part of the same menu under "Email &
+  Authentication". A namespace declares its own group label, so nothing here reaches across
+  namespaces. Recorded as FR-005.
 
 - **Q: How many cards does an installed backend put on the Account Center overview?**
   A: Exactly one, whatever number of pages it contributes. The overview is a summary and a way in,
@@ -77,7 +79,7 @@ each one leads to a page that renders.
 
 1. **Given** a project with this package and a payment backend installed, and this package's URL
    configuration mounted once, **When** a signed-in person opens the Account Center, **Then** the
-   backend's entries appear in its navigation.
+   backend's pages appear in its navigation, under one group labelled for that namespace.
 2. **Given** that same project, **When** the person follows one of those entries, **Then** the
    corresponding page renders inside the Account Center layout.
 3. **Given** that same project, **When** its source is examined, **Then** it contains no view,
@@ -151,8 +153,8 @@ sign in and open the Account Center.
 **Acceptance Scenarios**:
 
 1. **Given** a project with the package and backend installed and the URL configuration not
-   mounted, **When** a signed-in person opens the Account Center, **Then** the page renders, no
-   entry belonging to the backend appears, and no error is raised.
+   mounted, **When** a signed-in person opens the Account Center, **Then** the page renders, neither
+   the backend's group nor any entry in it appears, and no error is raised.
 2. **Given** that same project, **When** the URL configuration is mounted, **Then** the entries
    appear without any other change.
 
@@ -205,8 +207,9 @@ the first namespace's entries, card and pages before and after.
 - **FR-004**: The package MUST declare no payment backend among its dependencies and MUST import
   none. Where a page needs a backend's records, it MUST reach them through the application registry
   rather than by importing the backend.
-- **FR-005**: An installed backend's entries MUST appear directly in the Account Center's
-  navigation, alongside the entries already there.
+- **FR-005**: An installed backend's pages MUST appear in the Account Center's navigation as one
+  group, labelled by the namespace that declares them. A group whose pages cannot be reached MUST
+  NOT be shown.
 - **FR-006**: An installed backend MUST contribute exactly one card to the Account Center's
   overview, leading to that backend's pages.
 - **FR-007**: The drf-stripe namespace MUST contribute three pages — the person's subscription, the

@@ -7,7 +7,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
-from tests.markup import account_center_cards_region
+from tests.markup import account_center_cards_region, account_navigation_regions
 from tests.probes import run_probe
 
 _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE = """
@@ -133,6 +133,12 @@ class TestURLsNotMounted:
         # No navigation entry: covers every one of the backend's pages.
         for page in drf_stripe.pages:
             assert f"<span>{page.label}</span>" not in content
+
+        # The group goes with its pages. django-flex-menus hides a container
+        # left with no visible children, so the label cannot outlive the
+        # entries it was heading.
+        for region in account_navigation_regions(content):
+            assert ">Payments<" not in region
 
         # No card: its link would need a URL name that cannot reverse here.
         cards = account_center_cards_region(content)

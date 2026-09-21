@@ -3,7 +3,7 @@
   "feature": "001-pages-arrive-on-install",
   "branch": "feat/001-pages-arrive-on-install",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "REVIEW",
+  "state": "PR_READY",
   "state_history": [
     {
       "state": "DESIGN_REVIEW",
@@ -24,6 +24,11 @@
       "state": "REVIEW",
       "at": "2026-09-21T16:09:49Z",
       "note": "Convergence complete: cleanup applied, ADRs graduated, gates green"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-09-21T16:23:32Z",
+      "note": "Review applied; walkthrough pending Sam"
     }
   ],
   "gates": {

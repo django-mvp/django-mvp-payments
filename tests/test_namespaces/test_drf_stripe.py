@@ -37,3 +37,18 @@ class TestDrfStripeContribution:
         for region in regions:
             for page in drf_stripe.pages:
                 assert region.count(f">{page.label}</span>") == 1
+
+    def test_the_pages_sit_under_one_labelled_group(self, logged_in_client):
+        """A reader sees a named section, not three loose entries.
+
+        The Account Center is shared with whatever else a project installed,
+        so a namespace's pages are grouped under a label of their own the way
+        django-accounts-center groups its section of the same menu.
+        """
+        content = logged_in_client.get(reverse("account-center")).content.decode()
+
+        for region in account_navigation_regions(content):
+            assert region.count(">Payments<") == 1
+            group_at = region.index(">Payments<")
+            for page in drf_stripe.pages:
+                assert region.index(f">{page.label}</span>") > group_at

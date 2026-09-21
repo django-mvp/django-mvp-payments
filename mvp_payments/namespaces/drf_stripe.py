@@ -33,4 +33,5 @@ drf_stripe = Contribution(
         ),
     ),
     card_template="mvp_payments/card.html",
+    group_label=_("Payments"),
 )

@@ -30,6 +30,7 @@ acme_payments = Contribution(
         ),
     ),
     card_template="mvp_payments/card.html",
+    group_label=_("Payments"),
 )
 ```
 
@@ -44,6 +45,11 @@ acme_payments = Contribution(
   and must be translatable, its `icon` is a name from the project's icon set, and its
   `template_name` is the template the page renders.
 - **`card_template`** renders this namespace's card on the Account Center's overview.
+- **`group_label`** heads the section this namespace's pages sit under in the Account Center's
+  navigation, and must be translatable. Label it for what a reader will find there, not for the
+  library behind it — django-accounts-center heads its own section of the same menu
+  "Email & Authentication", and nobody reading their own subscription page has a use for the name
+  of a Python package.
 
 The shipped namespace follows exactly that shape: `drf_stripe`, in
 `mvp_payments/namespaces/drf_stripe.py`, declaring the subscription, plans and billing pages
@@ -51,7 +57,7 @@ against the `drf_stripe` application name.
 
 Register a new contribution by adding it to `CONTRIBUTIONS` in
 `mvp_payments/namespaces/__init__.py`. Everything else follows from that: the URL configuration
-mounts its pages, `ready()` adds its navigation entries, and the overview renders its card.
+mounts its pages, `ready()` adds its navigation group, and the overview renders its card.
 
 ## The two questions a contribution answers
 
@@ -62,8 +68,9 @@ reverse a URL at the point it runs.
 `Contribution.is_reachable()` asks a second question on top of that one: whether the namespace's
 pages actually reverse, which answers whether the project has mounted this package's URLs. Only
 something rendering a page may ask, because reversing needs the URL configuration already loaded.
-The card uses it: a card whose link cannot resolve would take the whole overview down with it. Navigation entries do not
-need it: django-flex-menus already hides an entry whose URL will not reverse.
+The card uses it: a card whose link cannot resolve would take the whole overview down with it.
+Navigation entries do not need it. django-flex-menus already hides an entry whose URL will not
+reverse, and a group left with no visible children goes with them.
 
 `available_contributions()` in `mvp_payments/namespaces` returns the installed ones. Read it rather
 than asking the application registry yourself, so that the entries, the pages and the card cannot

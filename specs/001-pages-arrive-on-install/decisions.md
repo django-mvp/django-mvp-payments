@@ -475,3 +475,29 @@ than a free function in the tag module. It is a single function with no sibling 
 subject, so the cohesion article does not ask for it.
 
 **ADR:** none — a record of this run's review, not a standing rule.
+
+## D19 — The pages sit under a labelled group, reversing an earlier ruling
+
+At the walkthrough the maintainer asked for the three pages to appear under a common group, the way
+django-accounts-center groups its own section of the same menu. This reverses the clarification
+recorded above, which settled the question the other way at specification time.
+
+The earlier reasoning was that a group would have to be labelled with something and the only honest
+label was the name of a Python library. The precedent answers that directly: django-accounts-center
+heads its section "Email & Authentication" — a phrase for what a reader finds there, not the name
+of the package behind it. Ours is "Payments". The label is declared by the contribution, so it
+stays a per-namespace decision and nothing reaches across namespaces.
+
+`register()` now appends one `MenuGroup` per namespace holding one entry per page, and is
+idempotent by group name rather than by entry name. The unreachability guarantee survives without
+new code: django-flex-menus hides a container left with no visible children, so a group cannot
+outlive the entries it heads. A test asserts exactly that.
+
+`spec.md`'s clarification and FR-005 were rewritten to say what is now true, rather than annotated
+with what they used to say.
+
+This was implemented directly rather than dispatched: one field, one method body and four test
+edits against a design already settled by the precedent, with no design content left to delegate.
+
+**ADR:** none — how one menu is arranged, recorded in the specification and the documentation where
+a reader meets it.

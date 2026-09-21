@@ -29,4 +29,5 @@ second_namespace = Contribution(
         ),
     ),
     card_template="mvp_payments/card.html",
+    group_label="Second payments",
 )
