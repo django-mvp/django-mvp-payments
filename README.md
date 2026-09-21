@@ -79,7 +79,8 @@ Shipped today: `drf-stripe`, built against
 webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
 contributes three pages — subscription, plans and billing — which are routed and reachable but do
 not show anything yet. Namespaces for other backends are welcome and do not need this one's
-agreement about anything.
+agreement about anything: adding one is adding it beside the ones already installed, and changes
+nothing about their navigation entries, their card or their pages.
 
 [docs/namespaces.md](docs/namespaces.md) is how you add one: what a namespace declares, the two
 questions it answers about itself, and what it may not do.

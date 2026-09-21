@@ -15,3 +15,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Center navigation when the backend is installed.
 - A card for each installed backend on the Account Center's overview, leading into that backend's
   first page.
+- A test suite guarantee that a second namespace leaves the first one's navigation entries, card
+  and page addresses unchanged, and that no two declared namespaces can share a URL name.
