@@ -449,3 +449,29 @@ stopped saying in this feature's first commit.
 
 **ADR:** none — a record of this run's cleanup. The two decisions worth keeping were graduated to
 `docs/adr/`.
+
+## D18 — Code review outcome
+
+One reviewer, correctness and specification compliance first, then simplification. Verdict
+`approve`, two findings, both low, both applied because both were real and cheap.
+
+**TST-001 — the guard omitted the module it existed to pin.** A test lists the modules this feature
+added and asserts the import-safety scan reaches all of them, so that a future narrowing of that
+walk is caught rather than silently reducing what is checked. Its list left out the template tag
+module, which is the last one added and the one a narrowed walk would drop first. Added, and the
+guard was then proved against the defect: narrowing the walk makes it fail and name the missing
+directory.
+
+**SIM-001 — the same subprocess boilerplate stood in three test files.** Three stories each needed
+to run a probe in a process started with the settings under test, and each wrote the runner again.
+Extracted to `tests/probes.py`, which also carries the explanation of why a fresh process is needed
+at all and the one case where an in-process override is correct instead.
+
+The reviewer raised nothing under correctness, specification compliance or documentation. It read
+the two ADRs, the constitution's bearing articles and the public documentation against the branch.
+
+Its one judgement call, left alone: the card's context could be a method on `Contribution` rather
+than a free function in the tag module. It is a single function with no sibling sharing its
+subject, so the cohesion article does not ask for it.
+
+**ADR:** none — a record of this run's review, not a standing rule.

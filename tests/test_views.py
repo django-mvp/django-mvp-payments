@@ -1,10 +1,6 @@
 """Rendering a contributed page inside the Account Center layout."""
 
-import json
-import os
 import re
-import subprocess
-import sys
 
 import pytest
 from django.test import override_settings
@@ -12,6 +8,7 @@ from django.urls import reverse
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
 from tests.markup import account_center_cards_region
+from tests.probes import run_probe
 
 _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE = """
 import json
@@ -81,17 +78,10 @@ class TestAccountCenterOverview:
 
     def _open_the_account_center_with_another_card(self) -> dict:
         # sys.executable and a module-level string constant, no untrusted input.
-        completed = subprocess.run(  # noqa: S603
-            [sys.executable, "-c", _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE],
-            env={
-                **os.environ,
-                "DJANGO_SETTINGS_MODULE": "tests.settings_with_another_card",
-            },
-            capture_output=True,
-            text=True,
+        return run_probe(
+            _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE,
+            "tests.settings_with_another_card",
         )
-        assert completed.returncode == 0, completed.stderr
-        return json.loads(completed.stdout.strip().splitlines()[-1])
 
     def test_shows_the_installed_backends_card_and_keeps_other_apps_cards(self):
         result = self._open_the_account_center_with_another_card()

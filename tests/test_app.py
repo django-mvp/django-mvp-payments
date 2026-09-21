@@ -1,15 +1,12 @@
 """The package installs and exposes what a consuming project needs from it."""
 
-import json
-import os
-import subprocess
-import sys
 from pathlib import Path
 
 from django.apps import apps
 
 import mvp_payments
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from tests.probes import run_probe
 
 #: Boots a fresh Django process, signs a person in, opens the Account Center,
 #: and reports whether each of the backend's page names reverses. Run as a
@@ -150,6 +147,8 @@ class TestPackagedApp:
             Path("views.py"),
             Path("namespaces/__init__.py"),
             Path("namespaces/drf_stripe.py"),
+            Path("templatetags/__init__.py"),
+            Path("templatetags/mvp_payments.py"),
         }
         assert added_by_this_feature <= scanned
 
@@ -167,17 +166,10 @@ class TestNothingWithoutABackend:
 
     def _open_the_account_center_without_the_backend(self) -> dict:
         # sys.executable and a module-level string constant, no untrusted input.
-        completed = subprocess.run(  # noqa: S603
-            [sys.executable, "-c", _ACCOUNT_CENTER_WITHOUT_THE_BACKEND_PROBE],
-            env={
-                **os.environ,
-                "DJANGO_SETTINGS_MODULE": "tests.settings_without_backend",
-            },
-            capture_output=True,
-            text=True,
+        return run_probe(
+            _ACCOUNT_CENTER_WITHOUT_THE_BACKEND_PROBE,
+            "tests.settings_without_backend",
         )
-        assert completed.returncode == 0, completed.stderr
-        return json.loads(completed.stdout.strip().splitlines()[-1])
 
     def test_account_center_shows_nothing_from_the_absent_backend(self) -> None:
         result = self._open_the_account_center_without_the_backend()

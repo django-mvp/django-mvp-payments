@@ -1,10 +1,5 @@
 """``Contribution``: what one namespace puts into the Account Center."""
 
-import json
-import os
-import subprocess
-import sys
-
 import pytest
 from django.conf import settings
 from django.test import override_settings
@@ -13,6 +8,7 @@ from django.urls import reverse
 from mvp_payments.contributions import Contribution, Page
 from mvp_payments.namespaces.drf_stripe import drf_stripe
 from tests.markup import account_navigation_regions
+from tests.probes import run_probe
 from tests.second_namespace.contribution import second_namespace
 
 
@@ -208,14 +204,7 @@ class TestNamespaceIndependence:
 
     def _open_the_account_center(self, settings_module: str) -> dict:
         # sys.executable and a module-level string constant, no untrusted input.
-        completed = subprocess.run(  # noqa: S603
-            [sys.executable, "-c", _NAMESPACE_INDEPENDENCE_PROBE],
-            env={**os.environ, "DJANGO_SETTINGS_MODULE": settings_module},
-            capture_output=True,
-            text=True,
-        )
-        assert completed.returncode == 0, completed.stderr
-        return json.loads(completed.stdout.strip().splitlines()[-1])
+        return run_probe(_NAMESPACE_INDEPENDENCE_PROBE, settings_module)
 
     def test_the_first_namespaces_entries_card_and_pages_are_unchanged(self) -> None:
         alone = self._open_the_account_center("tests.settings")
