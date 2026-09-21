@@ -132,6 +132,27 @@ class TestPackagedApp:
         names = {r.split()[0].split("[")[0].split(";")[0].lower() for r in requires}
         assert names == {"django", "django-mvp"}
 
+    def test_the_import_scan_reaches_every_module_this_feature_added(self) -> None:
+        """`test_no_module_reaches_a_database_or_a_provider` walks the whole
+        package with `rglob`, but a `rglob` call that missed a subdirectory
+        would still exit clean — it would just never look there. This pins
+        the modules that scan actually visits against the modules this
+        feature added, `namespaces/` included, so a future change that
+        narrows the walk (a `glob` in place of `rglob`, an early filter) is
+        caught here rather than by an import that quietly went unchecked.
+        """
+        package = Path(mvp_payments.__file__).parent
+        scanned = {path.relative_to(package) for path in package.rglob("*.py")}
+        added_by_this_feature = {
+            Path("apps.py"),
+            Path("contributions.py"),
+            Path("urls.py"),
+            Path("views.py"),
+            Path("namespaces/__init__.py"),
+            Path("namespaces/drf_stripe.py"),
+        }
+        assert added_by_this_feature <= scanned
+
 
 class TestNothingWithoutABackend:
     """A backend that is not installed costs a project nothing (US-2).
