@@ -9,8 +9,10 @@ an endpoint that starts a checkout, and leaves the plan grid, the subscribe butt
 panel and the "your card expires next month" notice to be built from raw utility classes — in
 every project, every time.
 
-This package is that layer and nothing else. It ships no models, no views, no URLs and no
-migrations, and it depends on no payment backend.
+This package is that layer and nothing else. It owns no data and runs no payment logic, and it
+depends on no payment backend. What it does do is bring its own pages with it: install it
+alongside a backend and the pages for that backend turn up in django-mvp's Account Center, rather
+than leaving you to build and route them.
 
 ## Status
 
@@ -40,8 +42,19 @@ INSTALLED_APPS = [
 ]
 ```
 
-There is no settings block and nothing to configure. Installing the package makes a set of
-components available and changes nothing else.
+Then mount its URLs wherever you like:
+
+```python
+urlpatterns = [
+    ...,
+    path("payments/", include("mvp_payments.urls")),
+]
+```
+
+That line is the only wiring. From there, every backend you have installed contributes its own
+pages to the Account Center and its own card to the Account Center's overview, and a backend you
+have not installed contributes nothing. There is no settings block, no flag to turn on and no
+registry to populate — what is in `INSTALLED_APPS` decides what exists.
 
 ## Namespaces
 
@@ -76,7 +89,8 @@ one to copy into production without thinking about it.
 ## Scope & philosophy
 
 **What this is.** A presentation layer for payment and subscription state. Templates, the small
-amount of JavaScript some components need, and nothing that runs on the server.
+amount of JavaScript some components need, and just enough Python to put a page at a URL and an
+entry in a menu.
 
 **What this deliberately is not.**
 
@@ -88,14 +102,15 @@ amount of JavaScript some components need, and nothing that runs on the server.
   bends for the second and is a liability by the third, because subscription models genuinely
   differ. A namespace per backend costs some duplication and buys the freedom to match each one
   exactly.
-- **Not an account centre.** Where these components go in a site, what the URLs are and who is
-  allowed to see them are the project's decisions.
+- **Not an owner of data.** No models, no migrations, no forms, no admin, no serializers. The
+  pages it ships are `TemplateView`s that render markup and nothing more; every value on them was
+  decided by the backend or by your project.
 - **Not a CSS framework.** Components render the daisyUI classes django-mvp already ships. No
   stylesheet, no build step, no theme of its own.
 
 **Tie-breaks.** When two of these pull against each other: match the backend rather than
-generalise; stay out of Python rather than add a view for convenience; render less rather than
-assume how a page is laid out.
+generalise; route and render rather than compute; render less rather than assume how a page is
+laid out.
 
 ## Licence
 

@@ -8,11 +8,18 @@ Each payment backend gets its own component namespace and speaks that backend's 
 component that renders through a swappable backend, and adding one is a constitutional change
 rather than a feature. `CONTEXT.md` defines the terms; use them.
 
-Presentation only. The package's entire Python surface is one `AppConfig`: no models, no views,
-no forms, no URLs, no migrations, and no payment logic in any language. A component gets its data
-from the backend's own HTTP endpoints, called from the browser, and shows the answer someone else
-decided. `CONSTITUTION.md` Article XII is the rule and `tests/test_app.py` is the gate — if a
-change seems to need a view here, it belongs in the host project or the backend.
+Presentation only, but not view-less. The package routes and renders the pages it ships; it holds
+no state and decides nothing about money. No models, no migrations, no forms, no admin, no
+serializers, and no module here imports `django.db` or a provider SDK. A view is a `TemplateView`
+and stays one — a component gets its data from the backend's own HTTP endpoints, called from the
+browser, and shows the answer someone else decided. `CONSTITUTION.md` Article XII is the rule and
+`tests/test_app.py` is the gate.
+
+Installing this package alone changes nothing a person can see. Installing it alongside a backend
+makes that backend's pages appear in django-mvp's Account Center on their own, gated on
+`apps.is_installed`, never on a settings flag (Article XIV). The one manual step is mounting this
+package's URLs once, because Django gives an installed app no way to add routes to a project's
+root URLconf.
 
 No payment backend is a dependency of this package and none may become one. Nothing here imports
 one, nothing here holds an API key, and no card details pass through it. `tests/test_app.py`

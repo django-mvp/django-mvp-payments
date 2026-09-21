@@ -169,10 +169,17 @@ and the boundary is absolute rather than a matter of current scope.
 - **No models, and no migrations.** The package defines no Django model and ships no migration.
   It owns no table, stores nothing and is not a place data lives. Installing it changes nothing
   about a project's schema, and `manage.py migrate` has nothing here to apply.
-- **No views, no URLs, no forms, no admin, no serializers.** Nothing in this package is mounted,
-  routed to or requested. Its Python is one `AppConfig`, which exists so Django can find the
-  templates and static files. `tests/test_app.py` asserts this, because the rule is worth more as
-  a failing test than as a sentence someone has to remember.
+- **Python that routes and presents, never Python that decides.** A page the package ships is
+  allowed to have a view, a URLconf and a menu registration, because a project should be able to
+  install this alongside a backend and get a working page rather than assemble one. What that
+  Python may do is hand a template to the renderer and say where it lives. What it may not do is
+  hold state, compute anything about money, or reach a provider. A view here is a `TemplateView`
+  and stays one.
+- **No forms, no admin, no serializers.** Nothing in this package accepts a submission, exposes a
+  record for editing or defines a wire format. Those all imply owning data, and this package owns
+  none. `tests/test_app.py` asserts their absence, along with the absence of any import of
+  `django.db` or a provider SDK, because the rule is worth more as a failing test than as a
+  sentence someone has to remember.
 - **No payment logic anywhere.** What a subscription costs, who is entitled to what, when a trial
   ends, whether a card is about to expire — every one of those is decided by the backend or by the
   host project, and this package only shows the answer. A calculation that would change what a
@@ -196,9 +203,9 @@ The consequence worth stating plainly: a defect here can make a page wrong. It c
 leak a key, expose a card or corrupt a record, because there is no record and no money to reach.
 Any change that would alter that sentence is a change to this constitution.
 
-Where a component seems to need server-side work, the answer is that the host project does it and
-passes the result in, or the backend exposes it and the component reads it. "It would be easier
-with a small view here" is the exact argument this article exists to refuse.
+Where a component seems to need server-side *work*, the answer is that the host project does it
+and passes the result in, or the backend exposes it and the component reads it. Routing a page and
+computing something on it are different requests, and only the second one is refused here.
 
 ### Article XIII — No payment backend is a dependency, and no provider script is emitted
 
@@ -223,7 +230,35 @@ no build step and no bundler. Components state which global or module they requi
 visibly when it is absent. The demo project's CDN tag is a demonstration convenience and is
 labelled as one.
 
-### Article XIV — One namespace per backend, and no interface across them
+### Article XIV — A page appears because two apps are installed, never because someone wired it up
+
+Installing this package on its own changes nothing a person can see. Installing it alongside a
+backend makes that backend's pages appear where they belong — an entry in the Account Center, a
+card on its overview — with no further code in the project.
+
+- **Gate on installation, never on configuration.** A contribution is made when
+  `apps.is_installed("<backend>")` is true and never otherwise. There is no settings flag to set
+  and no registry to populate, so a project carries only the dependencies of the backends it
+  actually installed, and turning one on is one line in `INSTALLED_APPS`.
+- **Register in `ready()`, and do nothing else at import time.** A module in this package that is
+  imported must not touch the app registry, reverse a URL or read settings while Django is still
+  starting.
+- **Use the host framework's extension points rather than inventing one.** django-mvp already
+  exposes what is needed: `AccountCenterMenu.append()` for the navigation, and the Account
+  Center's overview template for a card, contributed by shipping a same-named template and adding
+  to its block through `{{ block.super }}`. Where an extension point is missing, that is raised
+  upstream as a request rather than worked around with a fork of someone else's markup.
+- **A page that cannot resolve is not a broken page.** django-mvp drops a menu entry whose URL
+  will not reverse, so a project that has not mounted this package's URLs sees nothing rather than
+  a dead link.
+
+One step is not automatic and cannot be made so: Django has no mechanism for an installed app to
+add routes to a project's root URLconf, so a project includes this package's URLs once, the same
+way it already includes django-mvp's Account Center. Everything after that line is automatic. A
+change that tries to route around this — import-time patching of a project's URLconf, or anything
+else that mounts a URL a project did not ask for — is refused.
+
+### Article XV — One namespace per backend, and no interface across them
 
 A backend is chosen by the template author, per component, by picking a namespace.
 `<c-drf-stripe.plan-grid>` speaks drf-stripe-subscription's endpoints and vocabulary. A second
@@ -244,7 +279,7 @@ implement the same *view of a subscription*, it is not.
 Duplication between namespaces is the accepted cost of this article, and is not a finding at
 review.
 
-### Article XV — Rendered output is a contract, and an amount is not a number
+### Article XVI — Rendered output is a contract, and an amount is not a number
 
 Components render valid, semantic HTML. Every packaged component has a test proving it renders,
 and a change to its output updates or adds a test asserting the part of the contract it changed.
@@ -271,7 +306,7 @@ that starts a checkout announces that it leads off-site. Colour comes from the d
 palette supplied by django-mvp, never a literal value, and status is never conveyed by colour
 alone.
 
-### Article XVI — Compatibility
+### Article XVII — Compatibility
 
 The package is pre-1.0 and the README says so. Component names and attribute surfaces may change
 between minor versions, and every such change is recorded in the CHANGELOG. Default behaviour
