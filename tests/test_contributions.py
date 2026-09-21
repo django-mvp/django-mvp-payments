@@ -1,9 +1,12 @@
 """``Contribution``: what one namespace puts into the Account Center."""
 
 import pytest
+from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 
 from mvp_payments.contributions import Contribution, Page
+from tests.second_namespace.contribution import second_namespace
 
 
 def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
@@ -87,3 +90,31 @@ class TestRepeatedRegistration:
         # as four or more.
         for page in drf_stripe.pages:
             assert content.count(f"<span>{page.label}</span>") == 2
+
+
+class TestSecondNamespaceFixture:
+    """The fixture that stands in for a second payment backend (US-5).
+
+    Proves `tests/second_namespace/` registers through exactly the same
+    public mechanism every real namespace uses — `is_available()` and
+    `register()`, called the same way `TestContribution` above calls them on
+    a throwaway contribution — with no special case anywhere in
+    `mvp_payments/`.
+    """
+
+    def test_reports_unavailable_before_its_app_is_installed(self):
+        assert second_namespace.is_available() is False
+
+    def test_registers_through_the_same_mechanism_as_the_shipped_namespace(
+        self, account_center_menu
+    ):
+        with override_settings(
+            INSTALLED_APPS=[*settings.INSTALLED_APPS, "tests.second_namespace"]
+        ):
+            assert second_namespace.is_available() is True
+            before = len(account_center_menu.children)
+            second_namespace.register()
+            after = list(account_center_menu.children)
+
+        assert len(after) - before == len(second_namespace.pages)
+        assert {child.name for child in after[-1:]} == {"second-namespace-overview"}
