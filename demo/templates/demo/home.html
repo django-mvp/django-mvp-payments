@@ -1,0 +1,79 @@
+{% extends "page_view.html" %}
+{% block page.content %}
+  <c-section title="What this is" icon="info">
+    <c-text>
+      Django has no shortage of packages that talk to a payment provider. What none of them
+      give you is the part your users look at. A package hands you a subscription record, a
+      list of prices and an endpoint that starts a checkout, and leaves the plan grid, the
+      subscribe button, the billing panel and the card-expiring notice to be built from raw
+      utility classes — in every project, every time.
+    </c-text>
+    <c-text>
+      This package is that layer and nothing else. It owns no data and runs no payment logic,
+      and it depends on no payment backend. What it does do is bring its own pages with it:
+      install it alongside a backend and the pages for that backend turn up in django-mvp's
+      Account Center, rather than leaving you to build and route them.
+    </c-text>
+  </c-section>
+  <c-section title="One namespace per backend" icon="payments">
+    <c-text>
+      A component names the backend it speaks to.
+      <code>&lt;c-drf-stripe.plan-grid&gt;</code> is
+      <a href="https://github.com/oscarychen/drf-stripe-subscription"
+         class="link">drf-stripe-subscription</a>
+      and speaks that library's own vocabulary, and a second backend would get a namespace of
+      its own beside it rather than underneath it.
+    </c-text>
+    <c-text>
+      There is no neutral component that renders through a swappable backend. An interface
+      across payment libraries can only offer what they have in common, and subscription
+      models genuinely differ — it fits the first library, bends for the second and is a
+      liability by the third. A namespace per backend costs some duplication and buys the
+      freedom to match each one exactly.
+    </c-text>
+  </c-section>
+  <c-section title="Two ways to build a page" icon="grid-view">
+    <c-grid md="2" gap="4">
+      <c-card title="Native" icon="plan">
+        <c-text tight>
+          Your backend's own records, rendered as daisyUI markup. It themes with the rest of
+          the site and can show a person their own state — which plan they are already on,
+          what they cannot buy, what happens at the end of the period.
+        </c-text>
+      </c-card>
+      <c-card title="Provider embed" icon="subscription">
+        <c-text tight>
+          A thin wrapper around the drop-in the provider already publishes, such as Stripe's
+          pricing table. Faster where there is no signed-in person to reflect, and configured
+          in the provider's dashboard rather than here.
+        </c-text>
+      </c-card>
+    </c-grid>
+    <c-text muted>Neither is the fallback for the other.</c-text>
+  </c-section>
+  <c-section title="What it stays out of" icon="document">
+    <c-text>
+      No API calls from Python, no webhook handling, no card data, no secrets and no money
+      moving anywhere. Those belong to the payment backend, they are genuinely hard to get
+      right, and a presentation layer has no business having an opinion about them.
+    </c-text>
+    <c-text>
+      There are no models, no migrations, no forms, no admin and no serializers either. Every
+      page here is a template view that renders markup, and every value on it was decided by
+      the backend or by the project installing this.
+    </c-text>
+  </c-section>
+  <c-section title="Where the components will appear" icon="overview">
+    <c-alert variant="info" soft>
+      <span>
+        No components exist yet. As each one lands it gets a page of its own in the sidebar,
+        under the namespace of the backend it speaks to.
+      </span>
+    </c-alert>
+    <c-text muted>
+      This page runs on the demo project in the repository. It is a demonstration target and
+      is never deployed — the theme switcher in the sidebar is here so a component can be
+      looked at under more than one theme as it is built.
+    </c-text>
+  </c-section>
+{% endblock page.content %}

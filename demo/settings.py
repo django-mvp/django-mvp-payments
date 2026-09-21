@@ -23,12 +23,23 @@ ALLOWED_HOSTS = ["*"]
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
+# Django's app template loader takes the first copy of a template name it finds,
+# so this project's own apps come above `mvp` — that is what lets the demo
+# supply `base.html`, the name django-mvp's packaged page templates extend.
+# `mvp` in turn comes above `crispy_tailwind`, whose help-text template it
+# overrides.
+#
+# No payment backend appears here, and none should. The components speak to a
+# backend over HTTP from the browser, so nothing in this package imports one.
 INSTALLED_APPS = [
+    "demo",
+    "mvp_payments",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sites",
     "django.contrib.staticfiles",
     "mvp",
     "easy_icons",
@@ -36,14 +47,18 @@ INSTALLED_APPS = [
     "crispy_tailwind",
     "flex_menu",
     "django_cotton",
-    "mvp_payments",
-    "demo",
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    # The shell puts the site's name in every page title and in the navbar,
+    # reading it from request.site. This middleware is what puts it there;
+    # without it the name renders empty and nothing raises.
+    "django.contrib.sites.middleware.CurrentSiteMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -80,6 +95,50 @@ DATABASES = {
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
 CRISPY_TEMPLATE_PACK = "tailwind"
+
+# Which class draws the sidebar tree declared in demo/menus.py, and which draws
+# the dock shown below the sidebar breakpoint. Neither key is checked at
+# startup: a missing one fails when a page first renders a menu.
+FLEX_MENUS = {
+    "renderers": {
+        "sidebar": "mvp.renderers.SidebarRenderer",
+        "dock": "mvp.renderers.MobileFooterNavRenderer",
+    },
+}
+
+# Icons are referenced by name. django-mvp's pack covers the names the shell
+# uses for itself; anything this project names goes on top of it. Leave the
+# setting unset and the first icon on the page raises.
+EASY_ICONS = {
+    "default": {
+        "renderer": "easy_icons.renderers.ProviderRenderer",
+        "config": {"tag": "i"},
+        "packs": ["mvp.utils.BS5_ICONS"],
+        "icons": {
+            "payments": "bi bi-credit-card",
+            "plan": "bi bi-collection",
+            "subscription": "bi bi-arrow-repeat",
+        },
+    },
+}
+
+# Deep-merged over django-mvp's defaults, so only the differences appear here.
+MVP_CONFIG = {
+    "layout": {
+        "sidebar": {
+            "title": "django-mvp-payments",
+            # Narrow to an icon rail rather than sliding away, so a pricing
+            # page can be given the full width without losing its navigation.
+            "collapse": "icons",
+        },
+    },
+    "theme": {
+        # A component renders semantic daisyUI classes rather than literal
+        # colours, so a pricing page follows the site when the theme changes.
+        # Offering several here is how that claim gets looked at.
+        "choices": ["light", "dark", "corporate", "dracula"],
+    },
+}
 
 STATIC_URL = "/static/"
 
