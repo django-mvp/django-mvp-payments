@@ -18,7 +18,7 @@ second_namespace = Contribution(
     # happens to be installed at the top level, where the two coincide; this
     # fixture is nested under `tests.`, where they do not, which is what
     # exposes the mismatch.
-    backend_app_label="tests.second_namespace",
+    backend_app_name="tests.second_namespace",
     namespace="second-namespace",
     pages=(
         Page(

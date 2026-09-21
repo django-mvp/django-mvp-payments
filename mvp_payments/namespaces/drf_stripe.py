@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from mvp_payments.contributions import Contribution, Page
 
 drf_stripe = Contribution(
-    backend_app_label="drf_stripe",
+    backend_app_name="drf_stripe",
     namespace="drf-stripe",
     pages=(
         Page(

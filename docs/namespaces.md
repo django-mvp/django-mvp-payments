@@ -19,7 +19,7 @@ from django.utils.translation import gettext_lazy as _
 from mvp_payments.contributions import Contribution, Page
 
 acme_payments = Contribution(
-    backend_app_label="acme_payments",
+    backend_app_name="acme_payments",
     namespace="acme",
     pages=(
         Page(
@@ -33,8 +33,10 @@ acme_payments = Contribution(
 )
 ```
 
-- **`backend_app_label`** is the backend's Django application label, as a string. It is never
-  imported — the package declares no payment backend as a dependency and must not gain one.
+- **`backend_app_name`** is the backend's full dotted application name — `"drf_stripe"` for a
+  package installed at the top level, `"some.vendor.app"` for one installed as a sub-package. It is
+  the string Django's application registry matches, and it is never imported: the package declares
+  no payment backend as a dependency and must not gain one.
 - **`namespace`** is the backend's short name. It prefixes every URL name the contribution
   declares, which is what keeps two namespaces from colliding.
 - **`pages`** are the pages this namespace contributes, in the order they should appear in the
@@ -45,7 +47,7 @@ acme_payments = Contribution(
 
 The shipped namespace follows exactly that shape: `drf_stripe`, in
 `mvp_payments/namespaces/drf_stripe.py`, declaring the subscription, plans and billing pages
-against the `drf_stripe` application label.
+against the `drf_stripe` application name.
 
 Register a new contribution by adding it to `CONTRIBUTIONS` in
 `mvp_payments/namespaces/__init__.py`. Everything else follows from that: the URL configuration
@@ -59,9 +61,8 @@ reverse a URL at the point it runs.
 
 `Contribution.is_reachable()` asks a second question on top of that one: whether the namespace's
 pages actually reverse, which answers whether the project has mounted this package's URLs. Only
-something rendering a page
-may ask — reversing needs the URL configuration already loaded. The card uses it, because a card
-whose link cannot resolve would take the whole overview down with it. Navigation entries do not
+something rendering a page may ask, because reversing needs the URL configuration already loaded.
+The card uses it: a card whose link cannot resolve would take the whole overview down with it. Navigation entries do not
 need it: django-flex-menus already hides an entry whose URL will not reverse.
 
 `available_contributions()` in `mvp_payments/namespaces` returns the installed ones. Read it rather

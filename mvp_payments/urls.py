@@ -9,9 +9,13 @@ from one include line::
     ]
 """
 
+from mvp_payments.contributions import APP_NAMESPACE
 from mvp_payments.namespaces import available_contributions
 
-app_name = "payments"
+# One source for the namespace. Contribution.view_name() builds every name
+# against APP_NAMESPACE, so a second copy of the string here could silently
+# stop every one of them reversing.
+app_name = APP_NAMESPACE
 
 urlpatterns = [
     pattern

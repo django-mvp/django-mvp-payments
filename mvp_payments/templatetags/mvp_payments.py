@@ -9,7 +9,7 @@ from django import template
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
-from mvp_payments.contributions import APP_NAMESPACE, Contribution
+from mvp_payments.contributions import Contribution
 from mvp_payments.namespaces import available_contributions
 
 register = template.Library()
@@ -39,5 +39,6 @@ def _card_context(contribution: Contribution) -> dict:
     first_page = contribution.pages[0]
     return {
         "heading": first_page.label,
-        "page_view_name": f"{APP_NAMESPACE}:{contribution.namespace}-{first_page.slug}",
+        "icon": first_page.icon,
+        "page_view_name": contribution.view_name(first_page),
     }

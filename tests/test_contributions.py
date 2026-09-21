@@ -12,6 +12,7 @@ from django.urls import reverse
 
 from mvp_payments.contributions import Contribution, Page
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from tests.markup import account_navigation_regions
 from tests.second_namespace.contribution import second_namespace
 
 
@@ -23,7 +24,7 @@ def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
     to answer against without this package importing it.
     """
     return Contribution(
-        backend_app_label=app_label,
+        backend_app_name=app_label,
         namespace=namespace,
         pages=(
             Page(
@@ -90,12 +91,22 @@ class TestRepeatedRegistration:
         drf_stripe.register()
 
         content = logged_in_client.get(reverse("account-center")).content.decode()
-        # mvp/account/base.html draws AccountCenterMenu twice — a collapsed
-        # mobile dropdown copy and a persistent desktop card — so a single
-        # registered entry legitimately appears twice; duplication would show
-        # as four or more.
-        for page in drf_stripe.pages:
-            assert content.count(f"<span>{page.label}</span>") == 2
+        # django-mvp draws the Account Center's navigation twice — a collapsed
+        # copy above the content and a persistent one beside it — so one
+        # registered entry renders once in each region and nowhere else in
+        # them. Counting inside the navigation rather than across the page
+        # keeps this about registration: the same label also appears on the
+        # overview card, which is a different surface with its own tests.
+        regions = account_navigation_regions(content)
+        assert len(regions) == 2
+        for region in regions:
+            for page in drf_stripe.pages:
+                assert (
+                    region.count(
+                        f'href="{reverse(f"payments:drf-stripe-{page.slug}")}"'
+                    )
+                    == 1
+                )
 
 
 class TestSecondNamespaceFixture:

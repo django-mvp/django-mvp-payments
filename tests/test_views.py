@@ -11,6 +11,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from tests.markup import account_center_cards_region
 
 _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE = """
 import json
@@ -36,24 +37,6 @@ print(json.dumps({
     "content": response.content.decode(),
 }))
 """
-
-
-def _account_center_cards_region(content: str) -> str:
-    """The ``account-center-cards`` div's full content, nested divs and all."""
-    marker = content.index('id="account-center-cards"')
-    pos = content.rindex("<div", 0, marker)
-    depth = 1
-    while True:
-        next_open = content.find("<div", pos + 1)
-        next_close = content.index("</div>", pos + 1)
-        if next_open != -1 and next_open < next_close:
-            depth += 1
-            pos = next_open
-        else:
-            pos = next_close
-            depth -= 1
-            if depth == 0:
-                return content[marker : pos + len("</div>")]
 
 
 class TestPaymentPage:
@@ -114,7 +97,7 @@ class TestAccountCenterOverview:
         result = self._open_the_account_center_with_another_card()
 
         assert result["status_code"] == 200
-        cards = _account_center_cards_region(result["content"])
+        cards = account_center_cards_region(result["content"])
 
         expected_url = reverse("payments:drf-stripe-subscription")
         assert cards.count(f'href="{expected_url}"') == 1
@@ -162,7 +145,7 @@ class TestURLsNotMounted:
             assert f"<span>{page.label}</span>" not in content
 
         # No card: its link would need a URL name that cannot reverse here.
-        cards = _account_center_cards_region(content)
+        cards = account_center_cards_region(content)
         assert "<a href" not in cards
         for page in drf_stripe.pages:
             assert f">{page.label}<" not in cards

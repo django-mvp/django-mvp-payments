@@ -103,7 +103,7 @@ and the template tag all read the same function for the available ones. The spec
 names *contribution* as a concept in its own glossary, so the class is the domain's vocabulary
 rather than an invented layer. It is not a base class and nothing subclasses it.
 
-**ADR:** to be decided at convergence.
+**ADR:** docs/adr/0001-a-namespace-declares-one-contribution.md
 
 ## D2 — URL names are grouped under one application namespace, `payments`
 
@@ -115,7 +115,7 @@ A Django URL namespace per backend was rejected: a namespace named after the bac
 label can be claimed by a project mounting the backend's own URL configuration under that name, and
 then `reverse` is ambiguous between two live instances.
 
-**ADR:** to be decided at convergence.
+**ADR:** docs/adr/0002-url-names-carry-their-namespace.md
 
 ## D3 — The card needs the same unreachability guard as the entry
 
@@ -127,7 +127,7 @@ than the dead link the requirement was written to prevent.
 The availability check therefore has a second half — the namespace's pages reverse — and it lives
 on `Contribution` beside `is_available()` so both surfaces read one answer.
 
-**ADR:** to be decided at convergence.
+**ADR:** docs/adr/0001-a-namespace-declares-one-contribution.md — the two-part availability check is recorded there, because it is one half of the same decision rather than a separate one.
 
 ## D4 — `mvp_payments` must precede `mvp` in a project's installed applications
 
@@ -139,7 +139,7 @@ The README currently instructs the opposite, which would leave a project with na
 and no card and nothing to explain why. It is corrected on this branch, and the requirement is
 documented as a requirement rather than a suggestion.
 
-**ADR:** to be decided at convergence.
+**ADR:** none — a consequence of Django's template loader rather than a choice of ours, and it is stated where a consumer meets it: the README's install step and docs/namespaces.md.
 
 ## D5 — Registration is idempotent by entry name
 
@@ -150,7 +150,7 @@ which is invisible in a test suite that builds the tree once and obvious to anyo
 `register()` skips an entry whose name is already on the menu, and a test asserts that registering
 twice renders the navigation once.
 
-**ADR:** to be decided at convergence.
+**ADR:** none — an implementation property of one method, held by a test that fails if it is removed. Nothing downstream inherits it.
 
 ## D6 — Design review outcome
 
@@ -175,7 +175,7 @@ question cannot be the same method. They are two methods with one home.
 The reviewer spot-checked the research premises against the resolved packages and found no
 discrepancy. It raised nothing under the security or architecture lenses.
 
-**ADR:** to be decided at convergence.
+**ADR:** none — a record of this run's design review, not a standing rule.
 
 ## D7 — US-1 implementation notes
 
@@ -220,6 +220,8 @@ mechanism end to end (T016); the tests were written expecting 1 and corrected on
 was observed.
 **Revisit if:** `mvp/account/base.html` changes to draw the menu once, or conditionally.
 
+**ADR:** none — implementation-order and tooling notes local to one story.
+
 ## D8 — The documentation gate caught a page nobody had written
 
 US-1 updated the README, the glossary and the changelog, and the documentation check still came
@@ -231,7 +233,7 @@ prose about code that already existed and was already verified, and a fresh work
 to read the whole story to write it. It documents what a namespace declares, the two questions a
 contribution answers about itself, and the boundaries a namespace inherits.
 
-**ADR:** to be decided at convergence.
+**ADR:** none — a record of a gate doing its job. The page it produced is the durable artefact.
 
 ## D9 — US-2's "backend absent" tests boot a fresh subprocess, not `override_settings`
 
@@ -254,6 +256,8 @@ had the backend in `INSTALLED_APPS` is the only way to observe what a project wi
 does update per-request (there `settings`/`override_settings` would be simpler and should be
 preferred) — the subprocess is specifically for surfaces built once at import/startup.
 
+**ADR:** none — a test-mechanics finding; the reasoning that matters is in the test's own docstring.
+
 ## D10 — Proving `{{ block.super }}` was kept also needs a fresh process, not `override_settings`
 
 **Decision:** `TestAccountCenterOverview` (T023) opens the Account Center inside a subprocess
@@ -272,6 +276,8 @@ way D9's does, and stays consistent with the one mechanism this story already re
 **Revisit if:** django-cotton starts responding to `INSTALLED_APPS` overrides itself, or this
 package drops its dependency on `<c-card>` for this template.
 
+**ADR:** none — same class as D9, recorded so the next story did not rediscover it.
+
 ## D11 — The card's heading is the first page's label, not a new field on `Contribution`
 
 **Decision:** the card's heading is `contribution.pages[0].label` — the first declared page's
@@ -284,6 +290,8 @@ translatable copy for the same namespace, and keeps the card's link and its head
 same thing — the namespace's first page.
 **Revisit if:** a namespace ever needs a card heading that differs from its first page's name —
 that would be the point to add a dedicated field to `Contribution`, brief permitting.
+
+**ADR:** none — superseded by the convergence pass, which gave the card the packaged component's title.
 
 ## D12 — The card's `<h2>` skips `<c-card>`'s `title` prop
 
@@ -298,6 +306,8 @@ coincidental text collision rather than a real duplication. That test predates t
 records real intent, so scope stayed on this package's own template.
 **Revisit if:** `<c-card>` changes its `title` prop's markup so it no longer collides, or the
 navigation's own rendering changes what it counts.
+
+**ADR:** none — the collision it worked around was an over-broad assertion, corrected at convergence; the workaround is gone.
 
 ## D14 — US-4's "URLs not mounted" test uses `override_settings(ROOT_URLCONF=...)`, not a subprocess
 
@@ -332,6 +342,8 @@ after leaving the `with` block.
 `ROOT_URLCONF` (or anything downstream of it) once, at import or startup, rather than live per
 request — that is D9/D10's case, and the subprocess is the right tool there, not this one.
 
+**ADR:** none — a test-mechanics finding, and the one case where an in-process override is correct.
+
 ## D13 — Two items held for the convergence pass
 
 Both came out of story reports and neither belongs to a story that could fix it.
@@ -350,7 +362,7 @@ Cotton components only. Article XII was amended in this feature's foundational p
 separate story reports have now flagged the contradiction. It was outside every story's named
 scope, which is correct — it is repository-level documentation, not a story's surface.
 
-**ADR:** to be decided at convergence.
+**ADR:** none — a work list for this run's convergence pass, discharged below.
 
 ## D15 — A builder marked its own story accepted
 
@@ -407,3 +419,33 @@ just the value the existing mechanism already needs.
 rather than a top-level `app`) — `docs/namespaces.md`'s "application label" wording would then
 actively mislead a namespace author, which is the point to fix the docstring/docs wording (out of
 this story's scope; this package's own `mvp_payments/` was not touched).
+
+**ADR:** none — the naming error it found is corrected in the code and the documentation rather than recorded as a rule.
+
+
+## D17 — What the convergence pass changed
+
+Four things, all inside the feature's own diff.
+
+**The card uses the packaged card component.** The assertion that blocked it counted a label across
+the whole rendered page, which answered a question nobody asked — the same label appears in the
+navigation and on the card, so the count could not distinguish a duplicated registration from a
+second surface doing its job. The assertions are now scoped to the navigation, through one place
+that extracts a region of rendered markup, and the card passes its heading and icon to the
+component instead of writing its own heading markup with a literal class name.
+
+**A contribution's backend is named by its application name, not its label.** The field said label
+and the documentation agreed, and the registry call behind it matches the full dotted name. They
+coincide for a backend installed at the top level, which is why nothing caught it. Renamed through
+the code, the tests, the fixture and the documentation.
+
+**The application namespace has one source.** The URL configuration declared the string a second
+time, beside the constant every URL name is already built from. A divergence there would have
+stopped every name reversing, silently.
+
+**`AGENTS.md` describes the package as it now is.** Two story reports flagged that it still
+restricted every view to one that hands a template to the renderer, which the standards document
+stopped saying in this feature's first commit.
+
+**ADR:** none — a record of this run's cleanup. The two decisions worth keeping were graduated to
+`docs/adr/`.

@@ -139,7 +139,7 @@ Article XIV forbids at import time. Entries are built inside `register()`.
 
 Four methods, one condition for the three surfaces and a second one the card alone needs:
 
-- `is_available()` — `apps.is_installed(self.backend_app_label)`, and nothing else. `ready()` and
+- `is_available()` — `apps.is_installed(self.backend_app_name)`, and nothing else. `ready()` and
   the URL configuration both call it, and neither may reverse a URL.
 - `is_reachable()` — this namespace's pages reverse. Only a render-time caller may ask, and the
   card is the one that has to (D3).

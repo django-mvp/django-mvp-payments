@@ -1,0 +1,102 @@
+{
+  "story": "US5",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 13,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T029",
+    "T030",
+    "T031",
+    "T032"
+  ],
+  "context": {
+    "why": "This package's whole design rests on one namespace never affecting another. Payment libraries model subscriptions genuinely differently, so there is deliberately no common interface across them and no neutral component \u2014 a second backend gets a namespace beside the first rather than underneath it. That separation is currently an intention expressed in the structure of the code. This story makes it a guarantee a test holds. There is only one real payment backend, so the second namespace is a fixture inside the test suite: the property under test is that two contributions are independent of each other, and that needs two contributions and nothing else.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root. Tests: 'poetry run pytest'. The full verify command is '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo .' \u2014 run it once, at your report.",
+    "spec_sections": [
+      "User Story 5 - A second backend leaves the first alone",
+      "Requirements: FR-010",
+      "Success Criteria: SC-005",
+      "Assumptions"
+    ],
+    "plan_sections": [
+      "Design",
+      "Project Structure"
+    ],
+    "prior_decisions": [
+      "D2 \u2014 URL names are grouped under one application namespace, app_name = 'payments', and every name carries its own namespace slug. Collision is meant to be impossible by construction; this story is the test that says so.",
+      "D1 \u2014 every surface reads available_contributions(). A second contribution is added to CONTRIBUTIONS for the duration of a test, not by editing the shipped tuple.",
+      "Three earlier stories hit real limits with in-process setting overrides and each recorded what it found (D9, D10, D14). Read those entries in decisions.md before choosing your mechanism, and say which you chose and why."
+    ],
+    "glossary_terms": [
+      "Namespace",
+      "Contribution",
+      "Backend"
+    ],
+    "conventions": "CONSTITUTION.md Article X \u2014 a test fixture application inside tests/ has no source module to mirror, so if it needs declaring, declare it under [tool.forge.conformance] non-mirror-paths in pyproject.toml rather than leaving the structure check to guess. Article XVI \u2014 assert rendered output, never the presence of a class name.",
+    "acceptance": [
+      {
+        "task": "T029",
+        "given_when_then": "Given the test suite, when a second namespace is defined in it \u2014 a minimal installed application to gate on, and a contribution declared against it \u2014 then it registers through exactly the same mechanism as the shipped one, with no special case anywhere in mvp_payments/."
+      },
+      {
+        "task": "T030",
+        "given_when_then": "Given only the first namespace's backend installed, when its navigation entries, its card and its page addresses are captured, and then the second namespace is added alongside it, then all three are identical to what they were. Assert against the rendered navigation and the rendered card region, not against the menu objects."
+      },
+      {
+        "task": "T031",
+        "given_when_then": "Given both namespaces available, when each namespace's page addresses are resolved, then neither resolves to the other's page, and no two declared contributions share a URL name. The naming scheme already carries the namespace slug, so this is expected to pass without production change."
+      },
+      {
+        "task": "T032",
+        "given_when_then": "Given the README's namespaces section, when it is read, then it says that a second namespace is added beside the first and changes nothing about it. docs/namespaces.md already documents how one is added; keep it true."
+      }
+    ],
+    "verified_base": {
+      "commit": "4922dd2a2058a90916b43efe2f018d6a15085c86",
+      "verified_at": "2026-09-21T15:49:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "Green on this exact commit: 41 tests passed, pre-commit clean, docs and structure checks clean, build ok. If your first test run shows a failure outside your own new tests, stop and report it rather than fixing it."
+    }
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Update the documentation this story changes the truth of, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story. Four previous stories' tests are in tests/ and they are evidence about intent.",
+    "Do not add the second namespace to mvp_payments/. It is a test fixture; the shipped CONTRIBUTIONS tuple keeps exactly one entry.",
+    "Do not add a special case to mvp_payments/ for the fixture namespace. If the mechanism does not accommodate a second contribution without one, that is the finding \u2014 report it rather than working around it.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence. NOT your story's status, NOT the top-level state, NOT any gate. The previous story's builder marked its own story accepted and it had to be reset; acceptance is not the builder's to write.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development.",
+    "Do not import a payment backend or a payment provider library anywhere in mvp_payments/.",
+    "Do not weaken an assertion, add a skip or an xfail, or special-case code to make a test pass."
+  ]
+}

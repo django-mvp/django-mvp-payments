@@ -3,7 +3,7 @@
   "feature": "001-pages-arrive-on-install",
   "branch": "feat/001-pages-arrive-on-install",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "IMPLEMENT",
+  "state": "CONVERGE",
   "state_history": [
     {
       "state": "DESIGN_REVIEW",
@@ -14,6 +14,11 @@
       "state": "IMPLEMENT",
       "at": "2026-09-21T14:36:30Z",
       "note": "Foundational phase committed; US-1 dispatched"
+    },
+    {
+      "state": "CONVERGE",
+      "at": "2026-09-21T16:04:02Z",
+      "note": "All five stories accepted; starting the cleanup and reconciliation pass"
     }
   ],
   "gates": {
@@ -514,7 +519,7 @@
       "priority": "P3",
       "issue": 13,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -578,7 +583,7 @@
   ],
   "budgets": {
     "converge_cycles": {
-      "used": 0,
+      "used": 1,
       "max": 2
     },
     "review_cycles": {

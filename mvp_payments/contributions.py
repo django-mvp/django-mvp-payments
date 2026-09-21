@@ -42,7 +42,7 @@ class Page:
 class Contribution:
     """Everything one namespace puts into the Account Center."""
 
-    backend_app_label: str
+    backend_app_name: str
     namespace: str
     pages: tuple[Page, ...]
     card_template: str
@@ -50,10 +50,16 @@ class Contribution:
     def is_available(self) -> bool:
         """Whether this namespace's backend is installed.
 
+        ``backend_app_name`` is the application's full dotted name, which is
+        what the registry matches — not its short label. The two are the same
+        string for an application installed at the top level, which is exactly
+        why naming it a label would go unnoticed until a backend shipped as a
+        sub-package (D16).
+
         Asks the application registry only: ``ready()`` and the URL
         configuration both call this, and neither may reverse a URL (D3).
         """
-        return apps.is_installed(self.backend_app_label)
+        return apps.is_installed(self.backend_app_name)
 
     def is_reachable(self) -> bool:
         """Whether this namespace's pages actually reverse.
@@ -66,7 +72,7 @@ class Contribution:
             return False
         try:
             for page in self.pages:
-                reverse(self._view_name(page))
+                reverse(self.view_name(page))
         except NoReverseMatch:
             return False
         return True
@@ -77,7 +83,7 @@ class Contribution:
             path(
                 f"{self.namespace}/{page.slug}/",
                 PaymentPageView.as_view(page=page),
-                name=self._url_name(page),
+                name=self.url_name(page),
             )
             for page in self.pages
         ]
@@ -89,19 +95,21 @@ class Contribution:
         development-server reload, and the menu tree survives it (D5).
         """
         for page in self.pages:
-            entry_name = self._url_name(page)
+            entry_name = self.url_name(page)
             if AccountCenterMenu.get(entry_name, maxlevel=1) is not None:
                 continue
             AccountCenterMenu.append(
                 MenuItem(
                     name=entry_name,
-                    view_name=self._view_name(page),
+                    view_name=self.view_name(page),
                     extra_context={"label": page.label, "icon": page.icon},
                 )
             )
 
-    def _url_name(self, page: Page) -> str:
+    def url_name(self, page: Page) -> str:
+        """This page's URL name, carrying the namespace so two cannot collide (D2)."""
         return f"{self.namespace}-{page.slug}"
 
-    def _view_name(self, page: Page) -> str:
-        return f"{APP_NAMESPACE}:{self._url_name(page)}"
+    def view_name(self, page: Page) -> str:
+        """This page's URL name qualified by the application namespace."""
+        return f"{APP_NAMESPACE}:{self.url_name(page)}"
