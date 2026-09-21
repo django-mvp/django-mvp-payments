@@ -56,6 +56,17 @@ mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.4.1",
     "dev",
     "test",
 ] }
+# The first backend, for the demo project and the test suite only. The rule
+# above is about what a project installing this package inherits, and a
+# development dependency is inherited by nobody. The demo needs the real
+# backend because what it demonstrates is a real backend's pages arriving.
+#
+# `stripe` is held below 8 because drf_stripe/serializers.py imports
+# `stripe.error.StripeError`, removed at version 8, so mounting the backend's
+# URL configuration raises without the bound. The backend's own metadata
+# declares no upper bound on anything, so nothing else needs pinning.
+drf-stripe-subscription = "^1.2.2"
+stripe = "<8"
 
 [build-system]
 requires = ['poetry-core (>=2.0,<3.0)']

@@ -118,8 +118,3 @@ check that is filtered out never reports, and a check that never reports blocks 
 Feature work follows a spec-driven process: spec → plan → tasks → implement → review → pull
 request, with `specs/NNN-slug/` directories generated per feature. Project standards and the
 quality bar live in `CONSTITUTION.md`.
-
-`docs/brainstorm.md` holds the working notes the package was founded on: the prior-art survey, why
-the first backend was chosen and what it constrains, and why there is no interface across
-backends. Those are conclusions, not ratified decisions. Anything that hardens goes to
-`CONSTITUTION.md` or an ADR.

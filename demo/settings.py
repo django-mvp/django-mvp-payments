@@ -29,8 +29,13 @@ CSRF_COOKIE_SECURE = False
 # `mvp` in turn comes above `crispy_tailwind`, whose help-text template it
 # overrides.
 #
-# No payment backend appears here, and none should. The components speak to a
-# backend over HTTP from the browser, so nothing in this package imports one.
+# `mvp_payments` above `mvp` is load-bearing for the same reason: it ships its
+# own copy of `mvp/account/overview.html` and extends the name from inside it,
+# which only resolves when this application is found first.
+#
+# `drf_stripe` is here because this demo demonstrates a payment backend's pages
+# arriving, which needs the backend installed. It is a development dependency of
+# this repository and reaches no project that installs the package.
 INSTALLED_APPS = [
     "demo",
     "mvp_payments",
@@ -47,7 +52,19 @@ INSTALLED_APPS = [
     "crispy_tailwind",
     "flex_menu",
     "django_cotton",
+    "rest_framework",
+    "drf_stripe",
 ]
+
+# The backend reads every one of its settings through defaults, so nothing here
+# is required to make it start. What is set is what the demo would get wrong by
+# accident: keys that are obviously not real, and a return address on this site
+# rather than the backend's default of a frontend on port 3000.
+DRF_STRIPE = {
+    "STRIPE_API_SECRET": "sk_test_not_a_real_key",
+    "STRIPE_WEBHOOK_SECRET": "whsec_not_a_real_secret",
+    "FRONT_END_BASE_URL": "http://localhost:8020",
+}
 
 SITE_ID = 1
 
@@ -95,6 +112,14 @@ DATABASES = {
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
 CRISPY_TEMPLATE_PACK = "tailwind"
+
+# Where a view that requires a signed-in person sends everyone else, and where
+# signing in returns to. Django's default for the first is /accounts/login/,
+# which is where demo/urls.py mounts it, but stating it keeps the demo honest
+# about the contract a host project is expected to have.
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "account-center"
+LOGOUT_REDIRECT_URL = "home"
 
 # Which class draws the sidebar tree declared in demo/menus.py, and which draws
 # the dock shown below the sidebar breakpoint. Neither key is checked at

@@ -27,10 +27,16 @@ convergence.
   `stripe.error.StripeError`, removed at version 8, so mounting its URL configuration raises
   without it (`research.md`). Confirm `poetry check` and a clean install, and confirm the runtime
   dependency list is untouched.
-- **T002** `demo/settings.py`, `demo/urls.py` — install `rest_framework` and `drf_stripe`, mount the
-  backend's URL configuration, and add the `DRF_STRIPE` block the demo needs. Leave `mvp_payments`
-  where it is, above `mvp`: the template override in US-3 depends on that order. Apply the
-  backend's migrations to the demo database.
+- **T002** `demo/` — install `rest_framework` and `drf_stripe`, mount the backend's URL
+  configuration, and add the `DRF_STRIPE` block the demo needs. Leave `mvp_payments` where it is,
+  above `mvp`: the template override in US-3 depends on that order. Apply the backend's migrations
+  to the demo database.
+
+  The demo also has no Account Center and no way to sign in, which this feature's whole surface
+  needs, so T002 adds them: mount django-mvp's Account Center URLs, mount the framework's
+  authentication URLs with a sign-in template, set the sign-in location and where it returns to,
+  and add a development-only management command seeding the standard demo accounts. None of it is
+  package code; it all lives under `demo/`.
 - **T003** `CONSTITUTION.md` — amend Article XII. The sentence restricting a view to one that hands
   a template to the renderer goes, and the paragraph around it is rewritten to say that a page may
   have whatever view it needs, built on django-mvp's view classes. Everything else the article
