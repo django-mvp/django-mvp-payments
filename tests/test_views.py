@@ -3,6 +3,7 @@
 import re
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
 
@@ -32,3 +33,29 @@ class TestPaymentPage:
 
         assert response.status_code == 302
         assert response.url.startswith(reverse("login"))
+
+
+class TestAccountCenterOverview:
+    """The overview carries the installed backend's card, and keeps whatever
+    django-mvp or another application already put there through
+    ``{{ block.super }}`` (FR-006, FR-009)."""
+
+    def test_shows_the_installed_backends_card_and_keeps_other_apps_cards(
+        self, logged_in_client, settings
+    ):
+        apps_with_another_card = list(settings.INSTALLED_APPS)
+        apps_with_another_card.insert(
+            apps_with_another_card.index("mvp"), "tests.other_app"
+        )
+
+        with override_settings(INSTALLED_APPS=apps_with_another_card):
+            response = logged_in_client.get(reverse("account-center"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        start = content.index('id="account-center-cards"')
+        cards = content[start : content.index("</div>", start)]
+
+        expected_url = reverse("payments:drf-stripe-subscription")
+        assert cards.count(f'href="{expected_url}"') == 1
+        assert cards.count('data-testid="other-app-card"') == 1
