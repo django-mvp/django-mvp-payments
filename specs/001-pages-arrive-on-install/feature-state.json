@@ -321,28 +321,63 @@
       "priority": "P1",
       "issue": 10,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T018",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/settings_without_backend.py:1"
+            ],
+            "commands": [
+              "DJANGO_SETTINGS_MODULE=tests.settings_without_backend poetry run python -c \"import django; django.setup(); from django.core.management import call_command; call_command('check')\""
+            ]
+          }
         },
         {
           "id": "T019",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/test_app.py:157"
+            ],
+            "tests": [
+              "tests/test_app.py::TestNothingWithoutABackend"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -v"
+            ]
+          }
         },
         {
           "id": "T020",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/test_app.py:135"
+            ],
+            "tests": [
+              "tests/test_app.py::TestPackagedApp::test_the_import_scan_reaches_every_module_this_feature_added"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -v"
+            ]
+          }
         },
         {
           "id": "T021",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
         }
       ]
     },
