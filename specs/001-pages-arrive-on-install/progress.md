@@ -120,3 +120,68 @@ Watch: `AGENTS.md` still describes every view here as a `TemplateView` and the p
 Cotton-components-only, contradicting `CONSTITUTION.md`'s amended Article XII — out of this
 story's named scope (T017 named README, CONTEXT.md and the changelog only), flagged in
 `concerns` for the completion report.
+
+## 2026-09-21T17:15:00Z · Implementer US2 · T018 (`tests/settings_without_backend.py`)
+
+Did: added the settings module, inheriting `tests.settings` and filtering `drf_stripe` out of
+`INSTALLED_APPS`.
+Verified: `DJANGO_SETTINGS_MODULE=tests.settings_without_backend poetry run python -c "..."` —
+`django.setup()` then `call_command('check')` prints "System check identified no issues", confirming
+"Django starts cleanly". Also checked `apps.is_installed('drf_stripe')` is `False` and
+`mvp_payments.urls.urlpatterns` is empty in that fresh process. Before settling on a settings module,
+tried `override_settings(INSTALLED_APPS=...)` in-process and confirmed it does *not* work for this
+story: `apps.is_installed` correctly flips, but `mvp_payments.urls.urlpatterns` was already built at
+import time and `reverse("payments:drf-stripe-subscription")` kept succeeding after the override —
+recorded as D9.
+Next: T019.
+Watch: the design consequence of D9 — anything reading `available_contributions()` at import time
+(the URLconf) or once at startup (menu registration) can only be tested "as if absent" from a fresh
+process, not from a settings override.
+
+## 2026-09-21T17:20:00Z · Implementer US2 · T019 (`tests/test_app.py::TestNothingWithoutABackend`)
+
+Did: added `TestNothingWithoutABackend`, which boots a subprocess under
+`tests.settings_without_backend`, signs a person in, opens the Account Center, and asserts:
+status 200, `aria-label="Account navigation"` still present (the page isn't broken), no
+`<span>{label}</span>` for any of `drf_stripe`'s three page labels (covers both the nav entry and
+where a future card would render its label — there's no card template yet, US-3's), and none of the
+three page names reverse.
+Verified: `poetry run pytest tests/test_app.py -v` — 8 passed (0.9-1.1s). Negative-test proof:
+temporarily edited `tests/settings_without_backend.py` to *not* filter `drf_stripe` out (simulating
+a leak), reran the standalone probe script directly — the three labels appeared (count 4 each, not
+0) and all three page names reversed (`True`), confirming the assertions have teeth. Reverted before
+committing; `git diff --stat` showed the settings file byte-identical to its committed T018 state
+afterward.
+Next: T020.
+Watch: `ruff` flagged `S603` on the `subprocess.run` call — suppressed inline with `# noqa: S603` and
+a comment, since both arguments (`sys.executable`, a module-level string constant) are fully
+controlled, no untrusted input.
+
+## 2026-09-21T17:25:00Z · Implementer US2 · T020 (import/dependency scan reach)
+
+Did: added `test_the_import_scan_reaches_every_module_this_feature_added` to `TestPackagedApp`,
+pinning that `test_no_module_reaches_a_database_or_a_provider`'s `rglob("*.py")` walk visits every
+module this feature added — `apps.py`, `contributions.py`, `urls.py`, `views.py`,
+`namespaces/__init__.py`, `namespaces/drf_stripe.py`. Did not touch
+`test_no_payment_backend_is_a_dependency` (already exactly what SC-002/acceptance scenario 2 needs,
+reads package metadata rather than scanning modules).
+Verified: `poetry run pytest tests/test_app.py -v` — 8 passed. Negative-test proof: temporarily added
+`import stripe  # LEAK-SIMULATION` to `mvp_payments/namespaces/drf_stripe.py`, reran
+`test_no_module_reaches_a_database_or_a_provider` alone — it failed, naming that exact line as the
+offender, confirming the pre-existing scan genuinely reaches `namespaces/`. Reverted; `git diff
+--stat mvp_payments/namespaces/drf_stripe.py` showed no output (byte-identical).
+Next: T021.
+Watch: none.
+
+## 2026-09-21T17:28:00Z · Implementer US2 · T021 (implementation — expectation was nothing)
+
+Did: nothing. Every test T019 and T020 added passed against the existing implementation on first
+run (after the negative-test proofs confirmed they weren't trivially green) — `Contribution`'s
+`is_available()`/`is_reachable()` and `available_contributions()` (D1, D3) already route every
+surface (`ready()`, `mvp_payments/urls.py`) through one place, and no surface was found asking
+`apps.is_installed()` for itself. Committed an empty commit (`git commit --allow-empty`) to keep the
+task-per-commit ledger, per the ritual.
+Verified: `poetry run pytest -q` (full suite) — 36 passed (base 34 + T019's 1 + T020's 1), no
+regression.
+Next: story-level `forge verify`.
+Watch: none.

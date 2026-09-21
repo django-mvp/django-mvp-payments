@@ -232,3 +232,24 @@ to read the whole story to write it. It documents what a namespace declares, the
 contribution answers about itself, and the boundaries a namespace inherits.
 
 **ADR:** to be decided at convergence.
+
+## D9 — US-2's "backend absent" tests boot a fresh subprocess, not `override_settings`
+
+**Decision:** `TestNothingWithoutABackend` (T019) opens the Account Center inside a subprocess
+booted under `tests.settings_without_backend`, rather than using pytest-django's `settings` fixture
+to override `INSTALLED_APPS` mid-test.
+**Why:** confirmed by hand before writing the test — `mvp_payments/urls.py` builds `urlpatterns`
+once, at first import, from `available_contributions()`; `MvpPaymentsConfig.ready()` registers
+`AccountCenterMenu` entries once, at Django startup. Overriding `INSTALLED_APPS` afterwards
+correctly flips `apps.is_installed("drf_stripe")` to `False` (Django's `setting_changed` signal
+repopulates the app registry), but the already-built `urlpatterns` list and the already-registered
+menu entries do not re-evaluate: `reverse("payments:drf-stripe-subscription")` kept succeeding
+after the override in a manual check. A sibling package (`django-accounts-center`) uses
+`override_settings` for exactly this shape of test, but only to render one component directly —
+it never routes through an already-mounted URLconf, so it doesn't hit this. A process that never
+had the backend in `INSTALLED_APPS` is the only way to observe what a project without it gets, so
+`tests/settings_without_backend.py` (T018) exists to be a fresh process's settings module, and
+`TestNothingWithoutABackend` boots one via `subprocess.run([sys.executable, "-c", ...])`.
+**Revisit if:** a future story needs the same "as if never installed" guarantee for something that
+does update per-request (there `settings`/`override_settings` would be simpler and should be
+preferred) — the subprocess is specifically for surfaces built once at import/startup.
