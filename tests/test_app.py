@@ -199,3 +199,13 @@ class TestNothingWithoutABackend:
             "drf-stripe-plans": False,
             "drf-stripe-billing": False,
         }
+
+    def test_account_center_shows_no_card_from_the_absent_backend(self) -> None:
+        # US-3's carried-forward item: the check above predates the card
+        # template (mvp_payments/templates/mvp_payments/card.html), so it
+        # could only ever assert against navigation markup. Now that the
+        # template exists, re-prove the absence against its own markup — the
+        # link a card would carry into the backend's first page.
+        result = self._open_the_account_center_without_the_backend()
+
+        assert 'href="/payments/drf-stripe/subscription/"' not in result["content"]
