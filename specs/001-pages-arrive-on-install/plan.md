@@ -11,7 +11,8 @@ and its card — as one object. The application's `ready()` registers the entrie
 contribution whose backend is in `INSTALLED_APPS`, the package's URL configuration mounts the same
 set's pages, and an overridden overview template renders the same set's cards through a template
 tag. One condition, `apps.is_installed(...)`, decides all three, so the three surfaces cannot drift
-apart.
+apart. The card carries a second condition of its own, because a link it renders must resolve or
+the page it sits on fails.
 
 The drf-stripe namespace declares three pages — subscription, plans and billing — each a
 login-required view over django-mvp's page classes, rendering a heading inside the Account Center
@@ -115,7 +116,8 @@ tests/
 ├── test_namespaces/
 │   └── test_drf_stripe.py
 ├── second_namespace/                        # a second contribution, for User Story 5
-└── settings_without_backend.py              # the same settings with the backend removed
+├── settings_without_backend.py              # the same settings with the backend removed
+└── urls_without_payments.py                 # the project's URLs without this package's include
 
 demo/
 └── settings.py                              # installs the backend and mounts its URLs
@@ -135,9 +137,12 @@ its pages and its card. `Page` holds a slug, a URL name, a label, an icon and a 
 constructs a `MenuItem`: building one attaches it to the global menu tree immediately, which
 Article XIV forbids at import time. Entries are built inside `register()`.
 
-Three methods, one condition:
+Four methods, one condition for the three surfaces and a second one the card alone needs:
 
-- `is_available()` — `apps.is_installed(self.backend_app_label)`.
+- `is_available()` — `apps.is_installed(self.backend_app_label)`, and nothing else. `ready()` and
+  the URL configuration both call it, and neither may reverse a URL.
+- `is_reachable()` — this namespace's pages reverse. Only a render-time caller may ask, and the
+  card is the one that has to (D3).
 - `register()` — extends `AccountCenterMenu` with one `MenuItem` per page.
 - `url_patterns()` — one `path()` per page, named `<namespace slug>-<page slug>`.
 
@@ -172,8 +177,10 @@ registering twice renders the navigation once.
 its URLs mounted in the demo; the standards document's Article XII amended; the superseded working
 notes and the reference to them removed.
 
-Then the stories, in priority order: US-1, US-2, US-3, US-4, US-5. US-1 builds every surface; US-2
-through US-5 are largely the tests that hold the guarantees, with the code each one needs.
+Then the stories, in priority order: US-1, US-2, US-3, US-4, US-5, dispatched one at a time into a
+single worktree rather than in parallel. US-1 builds the mechanism, the pages and the navigation;
+US-3 builds the card; US-2, US-4 and US-5 are largely the tests that hold the guarantees, with
+whatever code each one turns out to need.
 
 ## Complexity Tracking
 

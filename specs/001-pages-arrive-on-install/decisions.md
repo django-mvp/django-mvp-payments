@@ -151,3 +151,28 @@ which is invisible in a test suite that builds the tree once and obvious to anyo
 twice renders the navigation once.
 
 **ADR:** to be decided at convergence.
+
+## D6 — Design review outcome
+
+One reviewer, three lenses, one round. Two findings, neither of them blocking, and both applied
+because both were cheap and correct.
+
+**SPC-001 (medium, verified) — the task graph made a later story edit an earlier story's files.**
+The card's unreachability guard sat in US-4 and would have had to reopen the class US-1 writes and
+the template tag US-3 writes. Applied by moving the guard into the class where it belongs, in
+US-1's own task, and by having US-3's tag ask for it from the start. US-4 is now the test that
+makes it a guarantee and adds no code. The independence claim in `tasks.md` was also overstated and
+now says what is true: stories run one at a time, in order, and no story edits a file an earlier
+story created.
+
+**SPC-002 (low, likely) — the unmounted-URLs state had no fixture named.** Every other test-support
+file in the plan was named explicitly and this one was not. Applied by naming it.
+
+Both halves of availability now live on `Contribution` for one reason worth recording: `ready()`
+and the URL configuration may not reverse a URL, so the registry question and the reachability
+question cannot be the same method. They are two methods with one home.
+
+The reviewer spot-checked the research premises against the resolved packages and found no
+discrepancy. It raised nothing under the security or architecture lenses.
+
+**ADR:** to be decided at convergence.

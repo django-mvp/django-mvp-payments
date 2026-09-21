@@ -3,8 +3,14 @@
   "feature": "001-pages-arrive-on-install",
   "branch": "feat/001-pages-arrive-on-install",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "PLAN",
-  "state_history": [],
+  "state": "DESIGN_REVIEW",
+  "state_history": [
+    {
+      "state": "DESIGN_REVIEW",
+      "at": "2026-09-21T14:30:12Z",
+      "note": "S3R complete: two non-blocking findings applied as plan edits"
+    }
+  ],
   "gates": {
     "spec": {
       "approved_by": "SamuelJennings",
@@ -24,6 +30,17 @@
     "merge": {
       "approved_by": null,
       "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-09-21T14:30:00Z",
+      "self_resolved": [
+        "SPC-001 cross-story file edits removed: the card's reachability guard moved into US-1's Contribution (T010) and asked for by US-3's tag (T024); US-4's T028 now adds no code",
+        "SPC-001 tasks.md's story-independence claim corrected to say stories run one at a time, in order",
+        "SPC-002 the unmounted-URLs fixture named in T027 and listed in plan.md's structure",
+        "reviewer note: CONTEXT.md glossary entry for contribution folded into T017",
+        "reviewer note: stale plan phrasing about US-1 building every surface corrected"
+      ]
     }
   },
   "stories": [
@@ -248,7 +265,7 @@
       "max": 1
     },
     "design_review_cycles": {
-      "used": 0,
+      "used": 2,
       "max": 1
     },
     "tokens": {
@@ -257,7 +274,7 @@
     }
   },
   "pr": {
-    "number": null,
+    "number": 14,
     "draft": true
   },
   "escalations": []
