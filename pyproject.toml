@@ -1,0 +1,145 @@
+[project]
+name = "django-mvp-payments"
+version = "0.0.1"
+description = "Payment and subscription UI as Cotton components for django-mvp projects, one namespace per payment backend"
+authors = [
+    { name = "Samuel Jennings", email = "samuel.scott.jennings@gmail.com" },
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+# django-mvp is a hard dependency, not an integration. Every component here is
+# markup over the daisyUI classes django-mvp's stylesheet ships, and the
+# components sit inside its layout primitives. Without it they render into an
+# unstyled page against a palette that does not exist.
+dependencies = ["django>=5.2", "django-mvp>=0.23.0"]
+keywords = ["django", "payments", "subscriptions", "stripe", "components", "cotton"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Office/Business :: Financial",
+]
+
+[project.urls]
+Homepage = "https://github.com/django-mvp/django-mvp-payments"
+Repository = "https://github.com/django-mvp/django-mvp-payments"
+Issues = "https://github.com/django-mvp/django-mvp-payments/issues"
+
+[tool.poetry]
+packages = [{ include = "mvp_payments" }]
+requires-poetry = '>=2.0,<3.0'
+
+# No payment backend is declared as a dependency, and none ever will be. A
+# namespace is templates and static files that speak to one backend's HTTP
+# endpoints; installing this package pulls in nothing, and the project decides
+# which backend it runs. That is also what keeps the UI layer alive when a
+# backend is replaced.
+#
+# django-cotton is deliberately absent for a different reason: django-mvp pins
+# it exactly, a second constraint here could only ever fight that one, and this
+# package has no say in which version a project runs.
+
+[tool.poetry.group.dev.dependencies]
+# Shared toolchain bundle from django-mvp/shared, pinned to a release tag so
+# every package in this organisation runs one version of each tool. Ships ruff,
+# mypy, deptry, pre-commit, pytest, pytest-django, coverage and django-stubs.
+mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.4.1", extras = [
+    "dev",
+    "test",
+] }
+
+[build-system]
+requires = ['poetry-core (>=2.0,<3.0)']
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = [".", "tests"]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--tb=short",
+    "-ra",
+]
+
+[tool.coverage.report]
+skip_empty = true
+show_missing = true
+
+[tool.coverage.run]
+branch = true
+source = ["mvp_payments"]
+
+[tool.djlint]
+profile = "django"
+indent = 2
+preserve_leading_space = true
+preserve_blank_lines = true
+format_attribute_template_tags = true
+format_css = true
+format_js = true
+max_line_length = 120
+max_attribute_length = 70
+include = "H006,H013,H020,H021,H023,H025,H030,H031"
+ignore = "H017"
+extension = "html"
+
+# Lint and format are both ruff's: it replaces black (formatting), isort (the I
+# rules) and pyupgrade (the UP rules), so those three no longer appear here.
+# The shared rule set lives in ruff-base.toml, copied in from django-mvp/shared
+# rather than referenced remotely — `extend` only accepts a local path.
+[tool.ruff]
+extend = "ruff-base.toml"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106", "B017", "A001", "RUF059"]
+# The demo project is a demonstration target, never deployed: its settings carry
+# a literal SECRET_KEY on purpose.
+"demo/*" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+files = ["mvp_payments"]
+disallow_untyped_defs = "False"
+disallow_any_unimported = "False"
+ignore_missing_imports = "True"
+no_implicit_optional = "True"
+check_untyped_defs = "False"
+warn_return_any = "True"
+warn_unused_ignores = "True"
+show_error_codes = "True"
+exclude = ["docs/", "migrations/", "tests/settings.py"]
+mypy_path = "mvp_payments/"
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+ignore_missing_model_attributes = "True"
+
+[tool.forge.conformance]
+# test_app.py has no source module to mirror and should not have one. Its
+# subject is the Django app registry and the on-disk layout of the installed
+# package, so conforming to the mirror rule would mean inventing
+# mvp_payments/app.py purely to give the test file something to point at.
+non-mirror-paths = ["tests/test_app.py"]
+
+[tool.deptry]
+extend_exclude = ["tests/", "demo/", "docs/"]
+
+[tool.deptry.per_rule_ignores]
+# django-mvp is a real runtime dependency that no Python module here imports.
+# This package depends on it at the template and theme level: components render
+# inside django-mvp's layout and take their appearance from the daisyUI theme it
+# supplies. Dropping the dependency would leave every component unstyled while
+# every import still resolved.
+DEP002 = ["django-mvp"]

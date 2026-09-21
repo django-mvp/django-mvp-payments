@@ -1,0 +1,102 @@
+# django-mvp-payments
+
+Pricing, checkout and subscription UI for [django-mvp](https://github.com/django-mvp/django-mvp)
+projects, as Cotton components — one namespace per payment backend.
+
+Django has no shortage of packages that talk to a payment provider. What none of them give you
+is the part your users look at. A package hands you a subscription record, a list of prices and
+an endpoint that starts a checkout, and leaves the plan grid, the subscribe button, the billing
+panel and the "your card expires next month" notice to be built from raw utility classes — in
+every project, every time.
+
+This package is that layer and nothing else. It ships no models, no views, no URLs and no
+migrations, and it depends on no payment backend.
+
+## Status
+
+Version 0.0.1. The build pipeline, the test harness and the demo project are in place; no
+components are written yet. Nothing here is stable.
+
+## Requirements
+
+- Python 3.12+
+- Django 5.2 or 6.0
+- django-mvp 0.23.0+
+- A payment backend of your choosing, installed and configured separately
+
+## Install
+
+```bash
+pip install django-mvp-payments
+```
+
+Add it to `INSTALLED_APPS`, after `mvp`:
+
+```python
+INSTALLED_APPS = [
+    ...,
+    "mvp",
+    "mvp_payments",
+]
+```
+
+There is no settings block and nothing to configure. Installing the package makes a set of
+components available and changes nothing else.
+
+## Namespaces
+
+Components are grouped by the backend they speak to, and the namespace is that backend's name:
+
+```html
+<c-drf-stripe.plan-grid />
+<c-drf-stripe.subscribe-button price-id="price_123" />
+```
+
+Each namespace assumes one backend's HTTP endpoints and nothing else. Two namespaces never
+share markup or a data shape, because the things they are describing are not the same thing
+wearing different names — a subscription in one library is a different record with different
+fields from a subscription in the next.
+
+Shipped today: none. `drf-stripe` is the first, built against
+[drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
+webhooks locally and hands checkout and billing management to Stripe's hosted pages. Namespaces
+for other backends are welcome and do not need this one's agreement about anything.
+
+## JavaScript
+
+A component that starts a checkout needs the provider's own script, and Stripe in particular
+forbids self-hosting `stripe.js`. This package does not emit a script tag for it.
+
+Loading the libraries your components need is your project's decision — a CDN tag, a bundler
+entry point, an import map, whatever you already use. Where a component needs logic of its own
+beyond that, it arrives as a small static file you include the same way. The demo project loads
+Stripe from their CDN, which is the right trade for looking at something locally and the wrong
+one to copy into production without thinking about it.
+
+## Scope & philosophy
+
+**What this is.** A presentation layer for payment and subscription state. Templates, the small
+amount of JavaScript some components need, and nothing that runs on the server.
+
+**What this deliberately is not.**
+
+- **Not a payment integration.** No API calls from Python, no webhook handling, no card data,
+  no secrets, no money moving anywhere. Those are the backend's job and they are genuinely hard
+  to get right; a UI package has no business having an opinion about them.
+- **Not a backend abstraction.** There is no common interface that every payment library gets
+  adapted onto. That abstraction is the classic trap in this domain: it fits the first library,
+  bends for the second and is a liability by the third, because subscription models genuinely
+  differ. A namespace per backend costs some duplication and buys the freedom to match each one
+  exactly.
+- **Not an account centre.** Where these components go in a site, what the URLs are and who is
+  allowed to see them are the project's decisions.
+- **Not a CSS framework.** Components render the daisyUI classes django-mvp already ships. No
+  stylesheet, no build step, no theme of its own.
+
+**Tie-breaks.** When two of these pull against each other: match the backend rather than
+generalise; stay out of Python rather than add a view for convenience; render less rather than
+assume how a page is laid out.
+
+## Licence
+
+MIT.
