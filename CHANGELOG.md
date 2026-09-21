@@ -7,5 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Initial scaffold: build pipeline, test harness and demo project. No components
-yet, and nothing released.
+### Added
+
+- Build pipeline, test harness and demo project.
+- The URL configuration a project includes once (`mvp_payments.urls`), and the drf-stripe
+  namespace's three pages — subscription, plans and billing — arriving in django-mvp's Account
+  Center navigation when the backend is installed.

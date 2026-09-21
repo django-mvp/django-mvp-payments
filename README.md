@@ -32,15 +32,19 @@ components are written yet. Nothing here is stable.
 pip install django-mvp-payments
 ```
 
-Add it to `INSTALLED_APPS`, after `mvp`:
+Add it to `INSTALLED_APPS`, before `mvp`:
 
 ```python
 INSTALLED_APPS = [
     ...,
-    "mvp",
     "mvp_payments",
+    "mvp",
 ]
 ```
+
+That order is load-bearing, not a style choice: this package ships its own copy of
+`mvp/account/overview.html` and extends the name from inside it, which only resolves when this
+application is found first.
 
 Then mount its URLs wherever you like:
 
@@ -114,8 +118,8 @@ The standing directions this package works toward are in [GOALS.md](GOALS.md).
   bends for the second and is a liability by the third, because subscription models genuinely
   differ. A namespace per backend costs some duplication and buys the freedom to match each one
   exactly.
-- **Not an owner of data.** No models, no migrations, no forms, no admin, no serializers. The
-  pages it ships are `TemplateView`s that render markup and nothing more; every value on them was
+- **Not an owner of data.** No models, no migrations, no forms, no admin, no serializers. A page
+  here has whatever view it needs, built on django-mvp's own view classes; every value on it was
   decided by the backend or by your project.
 - **Not a CSS framework.** Components render the daisyUI classes django-mvp already ships. No
   stylesheet, no build step, no theme of its own.
