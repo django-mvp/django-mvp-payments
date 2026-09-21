@@ -386,33 +386,92 @@
       "priority": "P2",
       "issue": 11,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T022",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/test_templatetags/test_mvp_payments.py:1"
+            ],
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestPaymentCards"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_templatetags/test_mvp_payments.py -v"
+            ]
+          }
         },
         {
           "id": "T023",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "code": [
+              "tests/test_views.py::TestAccountCenterOverview",
+              "tests/other_app/templates/mvp/account/overview.html",
+              "tests/settings_with_another_card.py",
+              "tests/test_app.py::TestNothingWithoutABackend::test_account_center_shows_no_card_from_the_absent_backend"
+            ],
+            "tests": [
+              "tests/test_views.py::TestAccountCenterOverview",
+              "tests/test_app.py::TestNothingWithoutABackend"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestAccountCenterOverview -v",
+              "poetry run pytest tests/test_app.py::TestNothingWithoutABackend -v"
+            ]
+          }
         },
         {
           "id": "T024",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/templatetags/mvp_payments.py:1"
+            ],
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestPaymentCards"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_templatetags/test_mvp_payments.py -v"
+            ]
+          }
         },
         {
           "id": "T025",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "code": [
+              "mvp_payments/templates/mvp/account/overview.html:1",
+              "mvp_payments/templates/mvp_payments/card.html:1"
+            ],
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestPaymentCards",
+              "tests/test_views.py::TestAccountCenterOverview"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_templatetags/ tests/test_views.py tests/test_app.py tests/test_contributions.py -q"
+            ]
+          }
         },
         {
           "id": "T026",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "CHANGELOG.md"
+            ],
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
         }
       ]
     },
