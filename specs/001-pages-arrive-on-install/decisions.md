@@ -176,3 +176,46 @@ The reviewer spot-checked the research premises against the resolved packages an
 discrepancy. It raised nothing under the security or architecture lenses.
 
 **ADR:** to be decided at convergence.
+
+## D7 — US-1 implementation notes
+
+**Decision:** `mvp_payments/views.py` (T012) was built before `mvp_payments/contributions.py`
+(T010), out of `tasks.md`'s listed order.
+**Why:** `Contribution.url_patterns()` needs a real view callable to build routes from, so
+`contributions.py` imports `PaymentPageView` at module level. Built in numeric order, `views.py`'s
+`TYPE_CHECKING` import of `Page` (for `PaymentPageView.get_page() -> Page`) had nothing to resolve
+against yet, and mypy correctly flagged the return type as `Any`. Building the view first, with no
+dependency back on `contributions.py` at runtime, lets both files type-check cleanly at every
+commit.
+**Revisit if:** a future story needs to build a view before its contribution exists for a different
+reason — the same reordering applies.
+
+**Decision:** `mvp_payments/contributions.py` imports `MenuItem` from `mvp.menus`, not `flex_menu`
+directly.
+**Why:** `deptry` flags `flex_menu` as DEP003 (used but not declared — it's a transitive dependency
+of `django-mvp`) the moment it's imported directly, and this package's dependency list must stay
+exactly `django` and `django-mvp`. `mvp.menus` already re-exports `MenuItem` (it's how django-mvp's
+own docstring teaches a consuming project to extend `AppMenu`), so importing from there satisfies
+both the lint gate and the no-added-dependency rule without a workaround.
+**Revisit if:** a future module here needs another `flex_menu` symbol `mvp.menus` doesn't
+re-export — check whether `mvp.menus` or another `mvp` module already re-exports it before adding a
+direct `flex_menu` import.
+
+**Decision:** `PaymentPageView.page` is typed `Page | None = None`, with a `get_page()` method that
+raises `ImproperlyConfigured` if it's still `None`, rather than asserting or leaving it unguarded.
+**Why:** mirrors `BaseTemplateNameMixin.base_template_name`'s own idiom in django-mvp (a required
+attribute set through `as_view(...)`, documented to raise `ImproperlyConfigured` at render time if
+a subclass forgets it) rather than inventing a different pattern. A bare `assert` was rejected: `S101`
+is a selected ruff rule for `mvp_payments/` (only relaxed for `tests/` and `demo/`), so it would
+have failed lint.
+**Revisit if:** a second required-attribute-via-`as_view` case appears here — factor the guard into
+a shared mixin rather than duplicating the raise a third time.
+
+**Decision:** `TestRepeatedRegistration` and `TestDrfStripeContribution` assert a registered entry's
+`<span>{label}</span>` appears **twice** in the rendered Account Center page, not once.
+**Why:** `mvp/account/base.html` (django-mvp, not this package) draws `AccountCenterMenu` at two
+sites unconditionally — a collapsed mobile dropdown and a persistent desktop card — so every entry
+legitimately renders twice regardless of viewport. This only became visible running the completed
+mechanism end to end (T016); the tests were written expecting 1 and corrected once the real render
+was observed.
+**Revisit if:** `mvp/account/base.html` changes to draw the menu once, or conditionally.
