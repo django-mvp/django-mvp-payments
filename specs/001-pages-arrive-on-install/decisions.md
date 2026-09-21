@@ -219,3 +219,16 @@ legitimately renders twice regardless of viewport. This only became visible runn
 mechanism end to end (T016); the tests were written expecting 1 and corrected once the real render
 was observed.
 **Revisit if:** `mvp/account/base.html` changes to draw the menu once, or conditionally.
+
+## D8 — The documentation gate caught a page nobody had written
+
+US-1 updated the README, the glossary and the changelog, and the documentation check still came
+back red on five new public names. A changelog entry is not documentation and neither is a
+docstring, which is exactly what the gate is there to say.
+
+`docs/namespaces.md` was written at acceptance rather than re-dispatched for: it is one page of
+prose about code that already existed and was already verified, and a fresh worker would have had
+to read the whole story to write it. It documents what a namespace declares, the two questions a
+contribution answers about itself, and the boundaries a namespace inherits.
+
+**ADR:** to be decided at convergence.
