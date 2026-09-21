@@ -299,6 +299,39 @@ records real intent, so scope stayed on this package's own template.
 **Revisit if:** `<c-card>` changes its `title` prop's markup so it no longer collides, or the
 navigation's own rendering changes what it counts.
 
+## D14 — US-4's "URLs not mounted" test uses `override_settings(ROOT_URLCONF=...)`, not a subprocess
+
+**Decision:** `TestURLsNotMounted` (T027) opens the Account Center inside the same process, using
+`override_settings(ROOT_URLCONF="tests.urls_without_payments")`, rather than booting a fresh
+subprocess the way D9 and D10 do.
+
+**Why:** confirmed by hand before writing the test — this story's state is different in kind from
+D9's and D10's. D9's problem was `mvp_payments/urls.py` building `urlpatterns` once, at first
+import, from `available_contributions()`, and `ready()` registering menu entries once, at startup;
+overriding `INSTALLED_APPS` afterwards left both exactly as built. D10's was `django_cotton`'s own
+template resolution not observing Django's `INSTALLED_APPS`-change reset. Neither `mvp_payments.urls`
+nor `INSTALLED_APPS` changes here — what changes is whether the *root* URL configuration mounts that
+already-built, unaffected module at all, and both guards that answer "is this reachable" call
+`reverse()` live, at render time, against whatever `ROOT_URLCONF` is active: `Contribution.
+is_reachable()` (`contributions.py`) directly, and `flex_menu`'s own `MenuItem.resolve_url()`
+(confirmed by reading `flex_menu/menu.py`) the same way — its one cache (`_cached_url`, keyed on a
+call with no args/kwargs) lives on a fresh, per-request copy built by `_create_request_copy()`
+(`self.__class__(...)`, not `copy.copy`), so it cannot leak a stale resolution across requests or
+across tests either.
+
+`override_settings(ROOT_URLCONF=...)` is specifically built to make a live `reverse()` see the
+substitute: it fires the `setting_changed` signal, which calls Django's own
+`django.test.signals.clear_url_caches()`. Verified directly before trusting it: under
+`override_settings(ROOT_URLCONF="tests.urls_without_payments")`,
+`reverse("payments:drf-stripe-subscription")` raised `NoReverseMatch` ("'payments' is not a
+registered namespace"), a request to the Account Center rendered 200 with no nav entry, no card
+href and no payments-prefixed link, and `reverse()` for the same name succeeded again immediately
+after leaving the `with` block.
+
+**Revisit if:** a future story needs "as if this route were never mounted" for something that reads
+`ROOT_URLCONF` (or anything downstream of it) once, at import or startup, rather than live per
+request — that is D9/D10's case, and the subprocess is the right tool there, not this one.
+
 ## D13 — Two items held for the convergence pass
 
 Both came out of story reports and neither belongs to a story that could fix it.

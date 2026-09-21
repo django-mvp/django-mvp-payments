@@ -282,3 +282,36 @@ Verified: read `README.md` and `docs/namespaces.md` in full; no gap against the 
 found.
 Next: story-level `forge verify`.
 Watch: none.
+
+## 2026-09-21T18:35:00Z · Implementer US4 · T027 (`tests/test_views.py::TestURLsNotMounted`)
+
+Did: `tests/urls_without_payments.py` — `demo/urls.py`'s routes with the one line mounting
+`mvp_payments.urls` removed, named exactly as `tasks.md` specifies. `TestURLsNotMounted` opens the
+Account Center under it via `override_settings(ROOT_URLCONF="tests.urls_without_payments")` and
+asserts status 200, the navigation still renders (`aria-label="Account navigation"`), none of
+`drf_stripe`'s three page labels appear as a nav `<span>`, and the cards region has no `<a href`
+and none of the three labels — plus that the request itself doesn't raise (the test client
+re-raises a view exception rather than swallowing it into a 500, so a bare `assert status == 200`
+already proves nothing raised).
+Verified: `poetry run pytest tests/test_views.py::TestURLsNotMounted -v` — 1 passed, first try, no
+production code touched.
+Negative-test proof: temporarily added `path("payments/", include("mvp_payments.urls"))` back into
+`tests/urls_without_payments.py` (marked `# LEAK-SIMULATION`) and reran the same test alone — failed
+on `assert '<span>Subscription</span>' not in ...`, the right reason (the include being back is
+exactly what the test exists to catch). Reverted; `cat` and `git status --short` confirmed the file
+matched its committed state before the next commit.
+Next: T028.
+Watch: chose `override_settings(ROOT_URLCONF=...)` over a fresh subprocess, unlike D9/D10 — see D14
+for why, confirmed by hand before writing the test rather than assumed from the prior stories'
+pattern.
+
+## 2026-09-21T18:40:00Z · Implementer US4 · T028 (implementation — expectation was nothing)
+
+Did: nothing. T027 passed against the existing implementation on its first run (after the
+negative-test proof confirmed it wasn't vacuously green) — `Contribution.is_reachable()` (T010) and
+django-flex-menus' own unreachable-leaf handling already answer both halves of FR-009, and T027
+found no gap in either. Committed an empty commit (`git commit --allow-empty`) to keep the
+task-per-commit ledger, per the ritual (same as T021's precedent).
+Verified: `poetry run pytest -q` (full suite) — 41 passed (base 40 + T027's 1), no regression.
+Next: story-level `forge verify`.
+Watch: none.
