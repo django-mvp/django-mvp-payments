@@ -1,66 +1,26 @@
-"""Django settings for testing django-mvp-payments."""
+"""Django settings for testing django-mvp-payments.
 
-from pathlib import Path
+The application configuration — INSTALLED_APPS, MIDDLEWARE, TEMPLATES,
+EASY_ICONS, FLEX_MENUS, MVP_CONFIG — lives in ``demo/settings.py`` and is
+inherited here rather than restated.
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+Restating it would mean two descriptions of one application shell, and the
+failure that produces is the quiet one: the suite stays green against its own
+copy while the project a reader actually opens is broken. Cotton resolves a
+component it cannot find to empty output, so that break leaves no error
+anywhere.
+
+Only what a test run needs differently is set below.
+"""
+
+from demo.settings import *  # noqa: F403
 
 SECRET_KEY = "django-insecure-test-key-for-mvp-payments-tests-only"
 
-DEBUG = True
-
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
 
-# django-mvp and the apps it composes. Nothing here is optional: the components
-# in this package render daisyUI markup that django-mvp's stylesheet and
-# templates supply, and django-mvp itself depends on the rest.
-#
-# No payment backend appears here, and none should. The components speak to a
-# backend over HTTP from the browser, so nothing in this package imports one.
-INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "mvp",
-    "easy_icons",
-    "crispy_forms",
-    "crispy_tailwind",
-    "flex_menu",
-    "django_cotton",
-    "mvp_payments",
-]
-
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]
-
-ROOT_URLCONF = "tests.urls"
-
-TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-                "mvp.context_processors.mvp_config",
-            ],
-        },
-    },
-]
-
+# The demo keeps a file on disk so its data survives a restart. A test run
+# wants neither the file nor the history.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -68,13 +28,6 @@ DATABASES = {
     }
 }
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
-CRISPY_TEMPLATE_PACK = "tailwind"
-
-STATIC_URL = "/static/"
-
-USE_TZ = True
-USE_I18N = True
-LANGUAGE_CODE = "en-us"
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# The demo's routes, behind a urlconf of the suite's own so a route that exists
+# only to exercise a component has somewhere to go.
+ROOT_URLCONF = "tests.urls"

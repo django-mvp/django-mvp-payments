@@ -127,11 +127,13 @@ django_settings_module = "tests.settings"
 ignore_missing_model_attributes = "True"
 
 [tool.forge.conformance]
-# test_app.py has no source module to mirror and should not have one. Its
-# subject is the Django app registry and the on-disk layout of the installed
-# package, so conforming to the mirror rule would mean inventing
+# Neither file has a source module to mirror, and neither should have one.
+# test_app.py's subject is the Django app registry and the on-disk layout of
+# the installed package, so conforming to the mirror rule would mean inventing
 # mvp_payments/app.py purely to give the test file something to point at.
-non-mirror-paths = ["tests/test_app.py"]
+# test_demo.py's subject is the demo project's rendered pages, which are
+# templates and settings rather than a module.
+non-mirror-paths = ["tests/test_app.py", "tests/test_demo.py"]
 
 [tool.deptry]
 extend_exclude = ["tests/", "demo/", "docs/"]
