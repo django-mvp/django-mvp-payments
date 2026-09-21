@@ -70,6 +70,13 @@
         "SIM-001 the same subprocess runner stood in three test files: extracted to tests/probes.py with the reason it is needed",
         "reviewer note declined: the card's context could be a method on Contribution, but it is one function with no sibling sharing its subject"
       ]
+    },
+    "walkthrough": {
+      "approved_by": "sam",
+      "at": "2026-09-21T18:07:16Z",
+      "self_resolved": [
+        "The three pages should sit under a common menu group, as django-accounts-center does with the allauth items \u2014 the contribution now declares a group label and register() appends one MenuGroup per namespace holding its pages; the group hides with its pages when the URLs are not mounted"
+      ]
     }
   },
   "stories": [
