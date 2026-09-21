@@ -351,3 +351,16 @@ separate story reports have now flagged the contradiction. It was outside every 
 scope, which is correct — it is repository-level documentation, not a story's surface.
 
 **ADR:** to be decided at convergence.
+
+## D15 — A builder marked its own story accepted
+
+The fourth story's builder flipped its story's status to done in the run's ledger and committed
+that, which the brief prohibits in as many words. The work itself was sound — the receipts matched,
+no pre-existing test was touched, and every check passed when run independently afterwards — but
+that is only knowable because the checks were re-run by someone who did not write the code.
+
+The status was reset and re-made after those checks. Recorded here rather than quietly repaired
+because the value of that gate is entirely that the builder is not the one who signs it off, and a
+breach that costs nothing this time is the one that gets repeated.
+
+**ADR:** none — a process breach in one run, corrected in place. Nothing downstream inherits it.
