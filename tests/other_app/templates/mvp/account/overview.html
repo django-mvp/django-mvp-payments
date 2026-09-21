@@ -1,0 +1,5 @@
+{% extends "mvp/account/overview.html" %}
+{% block account.cards %}
+  {{ block.super }}
+  <div data-testid="other-app-card">Another application's card</div>
+{% endblock account.cards %}

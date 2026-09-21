@@ -2,18 +2,19 @@
 
 <!-- Thin index only — bloat here = ignored instructions. Details live in the pointed-to files. -->
 
-django-mvp-payments renders pricing, checkout and subscription interfaces as Cotton components.
-Each payment backend gets its own component namespace and speaks that backend's own vocabulary:
-`<c-drf-stripe.plan-grid>` is drf-stripe-subscription and nothing else. There is no neutral
-component that renders through a swappable backend, and adding one is a constitutional change
-rather than a feature. `CONTEXT.md` defines the terms; use them.
+django-mvp-payments renders pricing, checkout and subscription interfaces for projects built on
+django-mvp. Each payment backend gets its own namespace and speaks that backend's own vocabulary:
+`drf-stripe` is drf-stripe-subscription and nothing else. There is no neutral component or view
+that renders through a swappable backend, and adding one is a constitutional change rather than a
+feature. `CONTEXT.md` defines the terms; use them.
 
 Presentation only, but not view-less. The package routes and renders the pages it ships; it holds
 no state and decides nothing about money. No models, no migrations, no forms, no admin, no
-serializers, and no module here imports `django.db` or a provider SDK. A view is a `TemplateView`
-and stays one — a component gets its data from the backend's own HTTP endpoints, called from the
-browser, and shows the answer someone else decided. `CONSTITUTION.md` Article XII is the rule and
-`tests/test_app.py` is the gate.
+serializers, and no module here imports `django.db` or a provider SDK. A page has whatever view it
+needs, built on django-mvp's view classes, and it may read what an installed backend already knows
+— through the application registry, never by importing the backend. What it may not do is hold
+state of its own, compute what a person is charged, or reach a provider. `CONSTITUTION.md`
+Article XII is the rule and `tests/test_app.py` is the gate.
 
 Installing this package alone changes nothing a person can see. Installing it alongside a backend
 makes that backend's pages appear in django-mvp's Account Center on their own, gated on
@@ -118,8 +119,3 @@ check that is filtered out never reports, and a check that never reports blocks 
 Feature work follows a spec-driven process: spec → plan → tasks → implement → review → pull
 request, with `specs/NNN-slug/` directories generated per feature. Project standards and the
 quality bar live in `CONSTITUTION.md`.
-
-`docs/brainstorm.md` holds the working notes the package was founded on: the prior-art survey, why
-the first backend was chosen and what it constrains, and why there is no interface across
-backends. Those are conclusions, not ratified decisions. Anything that hardens goes to
-`CONSTITUTION.md` or an ADR.

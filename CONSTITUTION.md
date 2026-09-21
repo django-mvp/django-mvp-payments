@@ -169,12 +169,14 @@ and the boundary is absolute rather than a matter of current scope.
 - **No models, and no migrations.** The package defines no Django model and ships no migration.
   It owns no table, stores nothing and is not a place data lives. Installing it changes nothing
   about a project's schema, and `manage.py migrate` has nothing here to apply.
-- **Python that routes and presents, never Python that decides.** A page the package ships is
-  allowed to have a view, a URLconf and a menu registration, because a project should be able to
-  install this alongside a backend and get a working page rather than assemble one. What that
-  Python may do is hand a template to the renderer and say where it lives. What it may not do is
-  hold state, compute anything about money, or reach a provider. A view here is a `TemplateView`
-  and stays one.
+- **A page has whatever view it needs.** A page the package ships is allowed to have a view, a
+  URLconf and a menu registration, because a project should be able to install this alongside a
+  backend and get a working page rather than assemble one. Views are built on django-mvp's view
+  classes, which is where the page layout, the heading and the list behaviour already live; a view
+  written from Django's generic classes instead is reinventing something the project already
+  depends on. A view may read the records an installed backend keeps and put them in a template's
+  context. What it may not do is any of the things the rest of this article forbids — hold state of
+  its own, compute what a person is charged, or reach a provider.
 - **No forms, no admin, no serializers.** Nothing in this package accepts a submission, exposes a
   record for editing or defines a wire format. Those all imply owning data, and this package owns
   none. `tests/test_app.py` asserts their absence, along with the absence of any import of
@@ -205,9 +207,10 @@ The consequence worth stating plainly: a defect here can make a page wrong. It c
 leak a key, expose a card or corrupt a record, because there is no record and no money to reach.
 Any change that would alter that sentence is a change to this constitution.
 
-Where a component seems to need server-side *work*, the answer is that the host project does it
-and passes the result in, or the backend exposes it and the component reads it. Routing a page and
-computing something on it are different requests, and only the second one is refused here.
+Where a component seems to need server-side *work* — as opposed to reading what a backend already
+knows — the answer is that the host project does it and passes the result in, or the backend
+exposes it. Reading a record and deciding something about money are different requests, and only
+the second one is refused here.
 
 ### Article XIII — No payment backend is a dependency, and no provider script is emitted
 
@@ -358,4 +361,4 @@ first. Do not cite it as an enforced standard until it runs in CI.
 
 ---
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
+**Version**: 1.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21

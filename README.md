@@ -32,15 +32,19 @@ components are written yet. Nothing here is stable.
 pip install django-mvp-payments
 ```
 
-Add it to `INSTALLED_APPS`, after `mvp`:
+Add it to `INSTALLED_APPS`, before `mvp`:
 
 ```python
 INSTALLED_APPS = [
     ...,
-    "mvp",
     "mvp_payments",
+    "mvp",
 ]
 ```
+
+That order is load-bearing, not a style choice: this package ships its own copy of
+`mvp/account/overview.html` and extends the name from inside it, which only resolves when this
+application is found first.
 
 Then mount its URLs wherever you like:
 
@@ -52,9 +56,9 @@ urlpatterns = [
 ```
 
 That line is the only wiring. From there, every backend you have installed contributes its own
-pages to the Account Center and its own card to the Account Center's overview, and a backend you
-have not installed contributes nothing. There is no settings block, no flag to turn on and no
-registry to populate — what is in `INSTALLED_APPS` decides what exists.
+section of the Account Center's navigation and its own card to the Account Center's overview, and a
+backend you have not installed contributes nothing. There is no settings block, no flag to turn on
+and no registry to populate — what is in `INSTALLED_APPS` decides what exists.
 
 ## Namespaces
 
@@ -70,10 +74,16 @@ share markup or a data shape, because the things they are describing are not the
 wearing different names — a subscription in one library is a different record with different
 fields from a subscription in the next.
 
-Shipped today: none. `drf-stripe` is the first, built against
+Shipped today: `drf-stripe`, built against
 [drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
-webhooks locally and hands checkout and billing management to Stripe's hosted pages. Namespaces
-for other backends are welcome and do not need this one's agreement about anything.
+webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
+contributes three pages — subscription, plans and billing — which are routed and reachable but do
+not show anything yet. Namespaces for other backends are welcome and do not need this one's
+agreement about anything: adding one is adding it beside the ones already installed, and changes
+nothing about their navigation entries, their card or their pages.
+
+[docs/namespaces.md](docs/namespaces.md) is how you add one: what a namespace declares, the two
+questions it answers about itself, and what it may not do.
 
 ## JavaScript
 
@@ -114,8 +124,8 @@ The standing directions this package works toward are in [GOALS.md](GOALS.md).
   bends for the second and is a liability by the third, because subscription models genuinely
   differ. A namespace per backend costs some duplication and buys the freedom to match each one
   exactly.
-- **Not an owner of data.** No models, no migrations, no forms, no admin, no serializers. The
-  pages it ships are `TemplateView`s that render markup and nothing more; every value on them was
+- **Not an owner of data.** No models, no migrations, no forms, no admin, no serializers. A page
+  here has whatever view it needs, built on django-mvp's own view classes; every value on it was
   decided by the backend or by your project.
 - **Not a CSS framework.** Components render the daisyUI classes django-mvp already ships. No
   stylesheet, no build step, no theme of its own.

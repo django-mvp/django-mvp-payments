@@ -1,0 +1,6 @@
+{% extends "mvp/account/overview.html" %}
+{% load mvp_payments %}
+{% block account.cards %}
+  {{ block.super }}
+  {% payment_cards %}
+{% endblock account.cards %}

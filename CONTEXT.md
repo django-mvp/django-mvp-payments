@@ -28,6 +28,13 @@ author per component, by picking a namespace, and is never swapped by configurat
 _Avoid_: integration (this package integrates with nothing — the backend does), adapter, driver,
 provider (that is the company, above).
 
+**Contribution**:
+Everything one namespace puts into the Account Center when its backend is installed — its
+navigation entries, its overview card and its pages. Made or not made as a whole, on one
+condition, so the three cannot drift apart from one another.
+_Avoid_: integration (see Backend, above), registration (the mechanism that adds a contribution,
+not the contribution itself).
+
 **Namespace**:
 The first segment of a component tag, naming the backend: `drf-stripe` in
 `<c-drf-stripe.plan-grid>`. Cotton resolves it to a directory, so

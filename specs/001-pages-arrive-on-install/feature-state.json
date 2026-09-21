@@ -1,0 +1,633 @@
+{
+  "$schema": "../../../../.openclaw/workspaces/forge/engineering-org/kit/schemas/feature-state.schema.json",
+  "feature": "001-pages-arrive-on-install",
+  "branch": "feat/001-pages-arrive-on-install",
+  "repo": "django-mvp/django-mvp-payments",
+  "state": "PR_READY",
+  "state_history": [
+    {
+      "state": "DESIGN_REVIEW",
+      "at": "2026-09-21T14:30:12Z",
+      "note": "S3R complete: two non-blocking findings applied as plan edits"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-09-21T14:36:30Z",
+      "note": "Foundational phase committed; US-1 dispatched"
+    },
+    {
+      "state": "CONVERGE",
+      "at": "2026-09-21T16:04:02Z",
+      "note": "All five stories accepted; starting the cleanup and reconciliation pass"
+    },
+    {
+      "state": "REVIEW",
+      "at": "2026-09-21T16:09:49Z",
+      "note": "Convergence complete: cleanup applied, ADRs graduated, gates green"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-09-21T16:23:32Z",
+      "note": "Review applied; walkthrough pending Sam"
+    }
+  ],
+  "gates": {
+    "spec": {
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-21T13:59:46Z",
+      "self_resolved": [
+        "a contributed page renders its heading and nothing else until the feature that fills it lands",
+        "a contributed page requires a signed-in person and makes no finer access decision",
+        "a backend's entries sit directly in the Account Center navigation, not under a parent entry",
+        "an installed backend puts exactly one card on the overview whatever number of pages it has",
+        "the second-namespace guarantee is established with a second namespace defined in the test suite"
+      ]
+    },
+    "plan": {
+      "approved_by": null,
+      "at": null
+    },
+    "merge": {
+      "approved_by": null,
+      "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-09-21T14:30:00Z",
+      "self_resolved": [
+        "SPC-001 cross-story file edits removed: the card's reachability guard moved into US-1's Contribution (T010) and asked for by US-3's tag (T024); US-4's T028 now adds no code",
+        "SPC-001 tasks.md's story-independence claim corrected to say stories run one at a time, in order",
+        "SPC-002 the unmounted-URLs fixture named in T027 and listed in plan.md's structure",
+        "reviewer note: CONTEXT.md glossary entry for contribution folded into T017",
+        "reviewer note: stale plan phrasing about US-1 building every surface corrected"
+      ]
+    },
+    "review": {
+      "approved_by": "code-review",
+      "at": "2026-09-21T16:20:00Z",
+      "self_resolved": [
+        "TST-001 the import-safety guard omitted the template tag module it exists to pin: added, and proved against a narrowed walk",
+        "SIM-001 the same subprocess runner stood in three test files: extracted to tests/probes.py with the reason it is needed",
+        "reviewer note declined: the card's context could be a method on Contribution, but it is one function with no sibling sharing its subject"
+      ]
+    },
+    "walkthrough": {
+      "approved_by": "sam",
+      "at": "2026-09-21T18:07:16Z",
+      "self_resolved": [
+        "The three pages should sit under a common menu group, as django-accounts-center does with the allauth items \u2014 the contribution now declares a group label and register() appends one MenuGroup per namespace holding its pages; the group hides with its pages when the URLs are not mounted"
+      ]
+    }
+  },
+  "stories": [
+    {
+      "id": "US1",
+      "priority": "P1",
+      "issue": 9,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T001",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry add --group dev drf-stripe-subscription 'stripe@<8'",
+              "poetry check",
+              "poetry run python -c \"import drf_stripe, stripe\""
+            ],
+            "code": [
+              "pyproject.toml:59"
+            ]
+          }
+        },
+        {
+          "id": "T002",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run python manage.py migrate --noinput",
+              "poetry run python manage.py seed_demo",
+              "curl -o /dev/null -w '%{http_code}' http://127.0.0.1:8020/accounts/login/"
+            ],
+            "code": [
+              "demo/settings.py:34",
+              "demo/urls.py:5"
+            ]
+          }
+        },
+        {
+          "id": "T003",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "CONSTITUTION.md:172"
+            ]
+          }
+        },
+        {
+          "id": "T004",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "git rm docs/brainstorm.md",
+              "grep -rn brainstorm --include='*.md' ."
+            ],
+            "code": [
+              "AGENTS.md:116"
+            ]
+          }
+        },
+        {
+          "id": "T005",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_contributions.py::TestContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py::TestContribution -q"
+            ]
+          }
+        },
+        {
+          "id": "T006",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_contributions.py::TestRepeatedRegistration"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py::TestRepeatedRegistration -q"
+            ]
+          }
+        },
+        {
+          "id": "T007",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_urls.py::TestPaymentURLs"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_urls.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T008",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPaymentPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T009",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe.py::TestDrfStripeContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T010",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/contributions.py:1"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py::TestContribution -q"
+            ]
+          }
+        },
+        {
+          "id": "T011",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/namespaces/drf_stripe.py:1",
+              "mvp_payments/namespaces/__init__.py:1"
+            ],
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe.py::TestDrfStripeContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T012",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/views.py:1"
+            ],
+            "tests": [
+              "tests/test_urls.py::TestPaymentURLs",
+              "tests/test_views.py::TestPaymentPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_urls.py tests/test_views.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T013",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/urls.py:1"
+            ],
+            "tests": [
+              "tests/test_urls.py::TestPaymentURLs"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_urls.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T014",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1",
+              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html:1",
+              "mvp_payments/templates/mvp_payments/drf_stripe/billing.html:1"
+            ],
+            "tests": [
+              "tests/test_views.py::TestPaymentPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T015",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/apps.py:10"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestRepeatedRegistration",
+              "tests/test_namespaces/test_drf_stripe.py::TestDrfStripeContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py tests/test_namespaces/ -q"
+            ]
+          }
+        },
+        {
+          "id": "T016",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "demo/urls.py:14"
+            ],
+            "tests": [
+              "tests/test_contributions.py",
+              "tests/test_urls.py",
+              "tests/test_views.py",
+              "tests/test_namespaces/test_drf_stripe.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py tests/test_urls.py tests/test_views.py tests/test_namespaces/ -q",
+              "poetry run pytest -q"
+            ]
+          }
+        },
+        {
+          "id": "T017",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "README.md:35",
+              "CONTEXT.md:31",
+              "CHANGELOG.md:8",
+              "demo/templates/demo/home.html:60"
+            ],
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US2",
+      "priority": "P1",
+      "issue": 10,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T018",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/settings_without_backend.py:1"
+            ],
+            "commands": [
+              "DJANGO_SETTINGS_MODULE=tests.settings_without_backend poetry run python -c \"import django; django.setup(); from django.core.management import call_command; call_command('check')\""
+            ]
+          }
+        },
+        {
+          "id": "T019",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/test_app.py:157"
+            ],
+            "tests": [
+              "tests/test_app.py::TestNothingWithoutABackend"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -v"
+            ]
+          }
+        },
+        {
+          "id": "T020",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/test_app.py:135"
+            ],
+            "tests": [
+              "tests/test_app.py::TestPackagedApp::test_the_import_scan_reaches_every_module_this_feature_added"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -v"
+            ]
+          }
+        },
+        {
+          "id": "T021",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US3",
+      "priority": "P2",
+      "issue": 11,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T022",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/test_templatetags/test_mvp_payments.py:1"
+            ],
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestPaymentCards"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_templatetags/test_mvp_payments.py -v"
+            ]
+          }
+        },
+        {
+          "id": "T023",
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestAccountCenterOverview",
+              "tests/test_app.py::TestNothingWithoutABackend",
+              "tests/other_app/templates/mvp/account/overview.html",
+              "tests/settings_with_another_card.py",
+              "tests/test_app.py::TestNothingWithoutABackend::test_account_center_shows_no_card_from_the_absent_backend"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestAccountCenterOverview -v",
+              "poetry run pytest tests/test_app.py::TestNothingWithoutABackend -v"
+            ]
+          }
+        },
+        {
+          "id": "T024",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/templatetags/mvp_payments.py:1"
+            ],
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestPaymentCards"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_templatetags/test_mvp_payments.py -v"
+            ]
+          }
+        },
+        {
+          "id": "T025",
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "code": [
+              "mvp_payments/templates/mvp/account/overview.html:1",
+              "mvp_payments/templates/mvp_payments/card.html:1"
+            ],
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestPaymentCards",
+              "tests/test_views.py::TestAccountCenterOverview"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_templatetags/ tests/test_views.py tests/test_app.py tests/test_contributions.py -q"
+            ]
+          }
+        },
+        {
+          "id": "T026",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run pytest -q"
+            ],
+            "tests": [
+              "CHANGELOG.md"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US4",
+      "priority": "P3",
+      "issue": 12,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T027",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/urls_without_payments.py:1"
+            ],
+            "tests": [
+              "tests/test_views.py::TestURLsNotMounted"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestURLsNotMounted -v",
+              "poetry run pytest -q"
+            ]
+          }
+        },
+        {
+          "id": "T028",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US5",
+      "priority": "P3",
+      "issue": 13,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T029",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/second_namespace/__init__.py:1",
+              "tests/second_namespace/contribution.py:1"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestSecondNamespaceFixture"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py -v"
+            ]
+          }
+        },
+        {
+          "id": "T030",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/settings_with_second_namespace.py:1"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestNamespaceIndependence"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py -v",
+              "poetry run pytest -q"
+            ]
+          }
+        },
+        {
+          "id": "T031",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "git diff 4922dd2a2058a90916b43efe2f018d6a15085c86..HEAD -- mvp_payments/",
+              "poetry run pytest -q"
+            ]
+          }
+        },
+        {
+          "id": "T032",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "README.md:81",
+              "CHANGELOG.md:18"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "budgets": {
+    "converge_cycles": {
+      "used": 1,
+      "max": 2
+    },
+    "review_cycles": {
+      "used": 1,
+      "max": 1
+    },
+    "design_review_cycles": {
+      "used": 2,
+      "max": 1
+    },
+    "tokens": {
+      "used": 0,
+      "max": 120
+    }
+  },
+  "pr": {
+    "number": 14,
+    "draft": false
+  },
+  "escalations": []
+}

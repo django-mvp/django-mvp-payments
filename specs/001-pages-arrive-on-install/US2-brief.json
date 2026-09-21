@@ -1,0 +1,99 @@
+{
+  "story": "US2",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 10,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T018",
+    "T019",
+    "T020",
+    "T021"
+  ],
+  "context": {
+    "why": "The package's promise has two halves. The first \u2014 install a backend and its pages appear \u2014 was built in the previous story. This story holds the second: a backend you have NOT installed contributes nothing at all, and costs your project none of that backend's dependencies. That is what makes the first half safe to rely on, because a package that contributes pages for an absent backend puts a broken link in front of a person, and a package that installs a backend to be sure hands every project that backend's own constraints.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root. Tests: 'poetry run pytest'. The full verify command is '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo .' \u2014 run it once, at your report. The test settings inherit from demo/settings.py, which installs the backend; this story needs a settings module that does not.",
+    "spec_sections": [
+      "User Story 2 - A backend you have not installed costs you nothing",
+      "Requirements: FR-002, FR-004",
+      "Success Criteria: SC-002, SC-003"
+    ],
+    "plan_sections": [
+      "Design",
+      "Project Structure"
+    ],
+    "prior_decisions": [
+      "D1 \u2014 every surface reads mvp_payments.namespaces.available_contributions() rather than asking apps.is_installed for itself. If this story finds a surface that asks for itself, the fix is to route it through that function, not to special-case the surface.",
+      "D3 \u2014 availability is two questions. is_available() asks the application registry; is_reachable() additionally asks whether the pages reverse. An absent backend fails the first, so it fails both."
+    ],
+    "glossary_terms": [
+      "Backend",
+      "Namespace",
+      "Contribution",
+      "Host project"
+    ],
+    "conventions": "CONSTITUTION.md Articles X (test structure: mirror the source tree, group into Test<Subject> classes) and XVI (assert rendered output, never the presence of a class name).",
+    "acceptance": [
+      {
+        "task": "T018",
+        "given_when_then": "Given the project's test settings, when a variant is built with the backend removed from the installed applications, then the suite can run against it and Django starts cleanly."
+      },
+      {
+        "task": "T019",
+        "given_when_then": "Given the backend is not installed, when a signed-in person opens the Account Center, then no navigation entry and no card belonging to that backend appear in the rendered page, and none of its page addresses resolve. Assert against what is rendered, not against the menu objects."
+      },
+      {
+        "task": "T020",
+        "given_when_then": "Given the package's own source, when its declared runtime dependencies are read, then they are exactly django and django-mvp; and when every module under mvp_payments/ is scanned, then none imports a payment backend or a payment provider's library. Confirm the existing assertions in tests/test_app.py actually reach the modules the previous story added \u2014 mvp_payments/namespaces/ and anything else new \u2014 rather than assuming they do."
+      },
+      {
+        "task": "T021",
+        "given_when_then": "Given the tests above, when they are run, then they pass without any production change; if one does not, the fix routes the offending surface through available_contributions() rather than special-casing it."
+      }
+    ],
+    "verified_base": {
+      "commit": "e6a4401a3190a09b552bb7f3aa2678ebb5afdd05",
+      "verified_at": "2026-09-21T15:00:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "Green on this exact commit: 34 tests passed, pre-commit clean, docs and structure checks clean, build ok. If your first test run shows a failure outside your own new tests, stop and report it rather than fixing it."
+    }
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story. tests/test_app.py's existing assertions are a previous story's work: you may ADD to that module, and you may not weaken or rewrite what is there. If an existing assertion genuinely must change, mark the task blocked and say why.",
+    "Do not create or edit the card, the template tag, or mvp_payments/templates/mvp/account/overview.html \u2014 those belong to US-3.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development.",
+    "Do not import a payment backend or a payment provider library anywhere in mvp_payments/.",
+    "Do not weaken an assertion, add a skip or an xfail, or special-case code to make a test pass."
+  ]
+}

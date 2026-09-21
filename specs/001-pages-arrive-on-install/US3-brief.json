@@ -1,0 +1,112 @@
+{
+  "story": "US3",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 11,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T022",
+    "T023",
+    "T024",
+    "T025",
+    "T026"
+  ],
+  "context": {
+    "why": "The Account Center's overview is where a person arrives by default. A backend that contributes only navigation entries is discoverable to somebody already looking for it and nobody else. This story puts one card per installed backend on that overview, leading into that backend's pages. The navigation entries and the pages already exist and work.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root. Tests: 'poetry run pytest'. The full verify command is '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo .' \u2014 run it once, at your report. The demo runs on port 8020 and serves this branch, so you can look at the overview at http://127.0.0.1:8020/account/ signed in as regular.user@example.com / password if it helps; it is not evidence, the tests are.",
+    "spec_sections": [
+      "User Story 3 - The overview says what is available",
+      "Requirements: FR-006, FR-009, FR-011",
+      "Success Criteria: SC-002, SC-006"
+    ],
+    "plan_sections": [
+      "Design",
+      "Project Structure"
+    ],
+    "prior_decisions": [
+      "D1 \u2014 every surface reads mvp_payments.namespaces.available_contributions() rather than asking apps.is_installed for itself.",
+      "D3 \u2014 availability is two questions and both already live on Contribution. is_available() asks the application registry. is_reachable() additionally asks whether the namespace's pages reverse, and the card is the caller that needs it: a card rendering a link through {% url %} raises NoReverseMatch and takes the whole overview down with it. Ask the object; do not re-derive either answer in the tag or the template.",
+      "D4 \u2014 mvp_payments precedes mvp in INSTALLED_APPS so that this package's copy of mvp/account/overview.html is found first and {% extends %} to the same name picks up django-mvp's. The demo and the test settings already have that order. Keeping {{ block.super }} is what lets several applications chain into the same block.",
+      "US-2's report raised one carry-forward: tests/test_app.py::TestNothingWithoutABackend asserts no card appears without the backend, and that assertion is currently vacuous because no card template exists. It boots a fresh process under tests.settings_without_backend rather than overriding INSTALLED_APPS, because the URL configuration and the navigation registration are both built once at process start and an override afterwards leaves both standing. Reuse that mechanism rather than inventing another."
+    ],
+    "glossary_terms": [
+      "Contribution",
+      "Namespace",
+      "Backend",
+      "Theme"
+    ],
+    "conventions": "CONSTITUTION.md Articles VIII (translatable strings), X (test structure), XI (a registered template tag module is an explicit exception to the cohesion rule), XVI (assert rendered output, never the presence of a class name). Cards on the overview are contributed by shipping a same-named template that extends mvp/account/overview.html and adds to its account.cards block through {{ block.super }} \u2014 django-mvp declares no attribute, no registry and no template tag for this.",
+    "acceptance": [
+      {
+        "task": "T022",
+        "given_when_then": "Given one available contribution, when the tag renders, then exactly one card is produced, carrying that namespace's heading and a link into its first page; given an unavailable contribution, when the tag renders, then it produces nothing for it."
+      },
+      {
+        "task": "T023",
+        "given_when_then": "Given the backend is installed, when a signed-in person opens the Account Center overview, then exactly one card for that backend is on it, leading into that backend's pages, and any card django-mvp or another application contributed is still there \u2014 the second half is what proves {{ block.super }} was kept."
+      },
+      {
+        "task": "T024",
+        "given_when_then": "Given a contribution that is available but whose pages do not reverse, when the tag renders, then it produces nothing for that contribution and the overview still renders. Ask Contribution.is_reachable(); do not re-implement the check."
+      },
+      {
+        "task": "T025",
+        "given_when_then": "Given the overridden overview template, when the Account Center overview renders, then the cards region contains both what django-mvp put there and this package's cards."
+      },
+      {
+        "task": "T026",
+        "given_when_then": "Given the README's description of what installing a backend produces, when it is read, then it names the card as well as the navigation entries, and states the INSTALLED_APPS order as a requirement rather than a suggestion. docs/namespaces.md already documents the card_template field; keep it true."
+      },
+      {
+        "task": "T023",
+        "given_when_then": "Carried forward from the previous story, which flagged it: its 'no card appears without the backend' assertion currently holds only because no card exists at all. Re-prove that absence against the real card markup \u2014 with the backend absent, the overview renders and this package's card is not on it \u2014 and say in your report how you established it."
+      }
+    ],
+    "verified_base": {
+      "commit": "b9d62f028ba1c3cbed22431bb9d61b1367ff62a3",
+      "verified_at": "2026-09-21T15:15:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "Green on this exact commit: 36 tests passed, pre-commit clean, docs and structure checks clean, build ok. If your first test run shows a failure outside your own new tests, stop and report it rather than fixing it."
+    }
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Update the documentation this story changes the truth of, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story. Two previous stories' tests are in tests/ and they are evidence about intent.",
+    "Do not change mvp_payments/contributions.py. Both availability questions already live there and this story's job is to ask them, not to add to them. If you believe something is genuinely missing, mark the task blocked and say why.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development.",
+    "Do not import a payment backend or a payment provider library anywhere in mvp_payments/.",
+    "Do not drop {{ block.super }} from the overview override. Without it this package silently deletes every card another application contributed.",
+    "Do not weaken an assertion, add a skip or an xfail, or special-case code to make a test pass."
+  ]
+}

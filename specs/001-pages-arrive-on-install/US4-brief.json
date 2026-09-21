@@ -1,0 +1,89 @@
+{
+  "story": "US4",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 12,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T027",
+    "T028"
+  ],
+  "context": {
+    "why": "Mounting this package's URL configuration is the one step that cannot be made automatic \u2014 Django gives an installed application no way to add routes to a project's root URLs. So a project can install the backend, install this package, and forget that line. What it must see then is the Account Center working normally with nothing of this package on it. A dead link is worse than an absent one, and a card whose link cannot resolve is worse still because it raises while rendering and takes the whole page down.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root. Tests: 'poetry run pytest'. The full verify command is '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo .' \u2014 run it once, at your report.",
+    "spec_sections": [
+      "User Story 4 - Nothing is offered that cannot be reached",
+      "Requirements: FR-009",
+      "Success Criteria: SC-004",
+      "Edge Cases"
+    ],
+    "plan_sections": [
+      "Design"
+    ],
+    "prior_decisions": [
+      "D3 \u2014 the guard already exists. Contribution.is_reachable() asks whether the namespace's pages reverse, and the card tag already filters on it. django-flex-menus already hides a navigation leaf whose URL will not reverse, so the navigation half needs nothing at all. This story is the test that turns both into guarantees, and is expected to add no production code.",
+      "Two earlier stories established that overriding INSTALLED_APPS or ROOT_URLCONF inside a running test does not always reach state built once at process start. tests/settings_without_backend.py and tests/settings_with_another_card.py boot a fresh process for exactly that reason. Decide which approach this story needs and say why; do not assume either."
+    ],
+    "glossary_terms": [
+      "Contribution",
+      "Namespace",
+      "Host project"
+    ],
+    "conventions": "CONSTITUTION.md Articles X (test structure) and XVI (assert rendered output, never the presence of a class name).",
+    "acceptance": [
+      {
+        "task": "T027",
+        "given_when_then": "Given the backend installed and this package's URL configuration NOT mounted, when a signed-in person opens the Account Center, then the page renders with status 200, no navigation entry belonging to the backend appears, no card belonging to it appears, and nothing raises. Build the state with a URL configuration module that omits this package's include, named in tasks.md. Prove the test has teeth: mount the include in that configuration and confirm the test goes red."
+      },
+      {
+        "task": "T028",
+        "given_when_then": "Given the tests above, when they run, then they pass with no production change. If they do not, the fix belongs on Contribution where both halves of availability already live, not in the tag or the template."
+      }
+    ],
+    "verified_base": {
+      "commit": "4ea62a171659d73ea6b68c1d1d1ea553c70acd30",
+      "verified_at": "2026-09-21T15:39:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "Green on this exact commit: 40 tests passed, pre-commit clean, docs and structure checks clean, build ok. If your first test run shows a failure outside your own new tests, stop and report it rather than fixing it."
+    }
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story. Three previous stories' tests are in tests/ and they are evidence about intent.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development.",
+    "Do not import a payment backend or a payment provider library anywhere in mvp_payments/.",
+    "Do not weaken an assertion, add a skip or an xfail, or special-case code to make a test pass.",
+    "Do not change mvp_payments/contributions.py unless a test genuinely exposes a gap there; if it does, say so in deviations with the failing assertion.",
+    "Do not create or edit tests/second_namespace/ \u2014 that belongs to US-5."
+  ]
+}
