@@ -185,9 +185,11 @@ and the boundary is absolute rather than a matter of current scope.
   host project, and this package only shows the answer. A calculation that would change what a
   customer is charged or what they may access does not belong here in any language, JavaScript
   included.
-- **No card details, ever.** Payment instruments are collected by the provider, on the provider's
-  own pages. No component renders a card field, and none is added — not with the provider's
-  embedded elements, not behind a flag.
+- **No card details, ever.** A card number is typed into the provider's own iframe, or on the
+  provider's own page, and never into markup written here. Mounting a provider's embed is
+  allowed and expected: the card still lands in the provider's environment, which is the entire
+  point of an embed, and a wrapper around one is a supported way to build a page. What is
+  forbidden is a field of this package's own that a card number could be typed into.
 - **No secret keys.** An API key, a webhook signing secret and a restricted key are all equally
   forbidden. A publishable key is the host project's to supply, as an attribute or its own
   configuration, and it is never read from Django settings by this package.
@@ -224,6 +226,12 @@ third-party origin on a reader's behalf. Stripe forbids self-hosting `stripe.js`
 must come from their CDN — but choosing to load it, and how, belongs to the host project, which
 already has a way of managing its frontend. A project installing this package gains no external
 origin it did not already have.
+
+A component that wraps a provider's embed follows the same split: it emits the provider's mount
+point — a `<stripe-pricing-table>` element and the attributes it needs — and the host project
+loads the script that brings the element to life. A publishable key reaches the component as an
+attribute, the way the provider's own documentation passes it, and is never read from Django
+settings here.
 
 Where a component needs logic of its own, it ships as a small static file in this repository, with
 no build step and no bundler. Components state which global or module they require and fail
