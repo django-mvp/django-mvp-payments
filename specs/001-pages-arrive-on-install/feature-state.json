@@ -477,18 +477,35 @@
       "priority": "P3",
       "issue": 12,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T027",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/urls_without_payments.py:1"
+            ],
+            "tests": [
+              "tests/test_views.py::TestURLsNotMounted"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestURLsNotMounted -v",
+              "poetry run pytest -q"
+            ]
+          }
         },
         {
           "id": "T028",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
         }
       ]
     },
