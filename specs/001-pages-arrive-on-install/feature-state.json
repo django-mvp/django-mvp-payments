@@ -3,7 +3,7 @@
   "feature": "001-pages-arrive-on-install",
   "branch": "feat/001-pages-arrive-on-install",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "PR_READY",
+  "state": "MERGED",
   "state_history": [
     {
       "state": "DESIGN_REVIEW",
@@ -29,6 +29,11 @@
       "state": "PR_READY",
       "at": "2026-09-21T16:23:32Z",
       "note": "Review applied; walkthrough pending Sam"
+    },
+    {
+      "state": "MERGED",
+      "at": "2026-09-21T18:18:21Z",
+      "note": "PR #14 merged; approved by SamuelJennings"
     }
   ],
   "gates": {
@@ -48,8 +53,8 @@
       "at": null
     },
     "merge": {
-      "approved_by": null,
-      "at": null
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-21T18:18:10Z"
     },
     "design_review": {
       "approved_by": "design-panel",
@@ -617,7 +622,7 @@
       "max": 1
     },
     "design_review_cycles": {
-      "used": 2,
+      "used": 1,
       "max": 1
     },
     "tokens": {
