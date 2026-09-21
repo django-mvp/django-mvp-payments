@@ -1,11 +1,17 @@
 """``Contribution``: what one namespace puts into the Account Center."""
 
+import json
+import os
+import subprocess
+import sys
+
 import pytest
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
 from mvp_payments.contributions import Contribution, Page
+from mvp_payments.namespaces.drf_stripe import drf_stripe
 from tests.second_namespace.contribution import second_namespace
 
 
@@ -118,3 +124,121 @@ class TestSecondNamespaceFixture:
 
         assert len(after) - before == len(second_namespace.pages)
         assert {child.name for child in after[-1:]} == {"second-namespace-overview"}
+
+
+#: Boots a fresh Django process with the second namespace's fixture app added
+#: to `CONTRIBUTIONS` for that process only (D1), signs a person in, opens
+#: the Account Center, and reports the rendered page plus every page
+#: address's resolved path. Run as a subprocess for the same reason D9 and
+#: D10 do: `mvp_payments/urls.py` builds `urlpatterns` once, at import time,
+#: and `MvpPaymentsConfig.ready()` registers navigation entries once, at
+#: startup — patching `CONTRIBUTIONS` after either has already run would
+#: leave both exactly as first built. Patching before the first `reverse()`
+#: call and re-running the same `ready()` Django already called once (exactly
+#: what an autoreloading dev server does, per D5) is enough, so no fresh
+#: settings module is needed for the fixture itself — only for whether its
+#: application is actually installed.
+_NAMESPACE_INDEPENDENCE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.apps import apps
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.test import Client
+from django.test.utils import setup_test_environment
+from django.urls import NoReverseMatch, reverse
+
+import mvp_payments.namespaces as namespaces
+from tests.second_namespace.contribution import second_namespace
+
+namespaces.CONTRIBUTIONS = namespaces.CONTRIBUTIONS + (second_namespace,)
+apps.get_app_config("mvp_payments").ready()
+
+setup_test_environment()
+call_command("migrate", verbosity=0, run_syncdb=True)
+User.objects.create_user(username="person", password="password")
+client = Client()
+client.login(username="person", password="password")
+response = client.get(reverse("account-center"))
+
+reverses = {}
+for name in (
+    "payments:drf-stripe-subscription",
+    "payments:drf-stripe-plans",
+    "payments:drf-stripe-billing",
+    "payments:second-namespace-overview",
+):
+    try:
+        reverses[name] = reverse(name)
+    except NoReverseMatch:
+        reverses[name] = None
+
+print(json.dumps({
+    "status_code": response.status_code,
+    "content": response.content.decode(),
+    "reverses": reverses,
+}))
+"""
+
+
+class TestNamespaceIndependence:
+    """A second namespace leaves the first exactly as it was (US-5).
+
+    Both runs boot a fresh process rather than using `override_settings`
+    mid-test (D9/D10's shape): the first namespace's page addresses,
+    navigation and card are all built once, at import or startup, so only a
+    process that starts with the fixture actually installed shows what a
+    project with a second namespace gets.
+    """
+
+    def _open_the_account_center(self, settings_module: str) -> dict:
+        # sys.executable and a module-level string constant, no untrusted input.
+        completed = subprocess.run(  # noqa: S603
+            [sys.executable, "-c", _NAMESPACE_INDEPENDENCE_PROBE],
+            env={**os.environ, "DJANGO_SETTINGS_MODULE": settings_module},
+            capture_output=True,
+            text=True,
+        )
+        assert completed.returncode == 0, completed.stderr
+        return json.loads(completed.stdout.strip().splitlines()[-1])
+
+    def test_the_first_namespaces_entries_card_and_pages_are_unchanged(self) -> None:
+        alone = self._open_the_account_center("tests.settings")
+        alongside = self._open_the_account_center(
+            "tests.settings_with_second_namespace"
+        )
+
+        for page in drf_stripe.pages:
+            marker = f"<span>{page.label}</span>"
+            assert alongside["content"].count(marker) == alone["content"].count(marker)
+
+        card_href = 'href="/payments/drf-stripe/subscription/"'
+        assert card_href in alone["content"]
+        assert card_href in alongside["content"]
+
+        for name in (
+            "payments:drf-stripe-subscription",
+            "payments:drf-stripe-plans",
+            "payments:drf-stripe-billing",
+        ):
+            assert alongside["reverses"][name] == alone["reverses"][name]
+
+    def test_neither_namespaces_pages_resolve_to_the_others(self) -> None:
+        alongside = self._open_the_account_center(
+            "tests.settings_with_second_namespace"
+        )
+        addresses = list(alongside["reverses"].values())
+        assert None not in addresses
+        assert len(addresses) == len(set(addresses))
+
+    def test_no_two_declared_contributions_share_a_url_name(self) -> None:
+        names = [
+            pattern.name
+            for contribution in (drf_stripe, second_namespace)
+            for pattern in contribution.url_patterns()
+        ]
+        assert len(names) == len(set(names))
