@@ -29,7 +29,7 @@ Everything needed for a project to install this beside a backend and have workin
 
 ### R1 — Pages that arrive on their own
 
-*feature · advances G1, G3*
+*delivered in [#6](https://github.com/django-mvp/django-mvp-payments/issues/6) · advances G1, G3*
 
 A project that installs this package alongside a payment backend gets that backend's pages in the
 Account Center without writing a view, a template or a menu entry. What is in the installed-apps
