@@ -315,3 +315,79 @@ task-per-commit ledger, per the ritual (same as T021's precedent).
 Verified: `poetry run pytest -q` (full suite) — 41 passed (base 40 + T027's 1), no regression.
 Next: story-level `forge verify`.
 Watch: none.
+
+## 2026-09-21T19:00:00Z · Implementer US5 · T029 (`tests/second_namespace/`, `TestSecondNamespaceFixture`)
+
+Did: `tests/second_namespace/__init__.py` (a minimal installed application, mirroring
+`tests/other_app/`'s shape) and `tests/second_namespace/contribution.py` (a `Contribution`
+declared against it, through the exact same public constructor every real namespace uses, reusing
+the existing `mvp_payments/drf_stripe/subscription.html` template rather than adding a new one).
+`TestSecondNamespaceFixture` in `tests/test_contributions.py` proves `is_available()` and
+`register()` work on it with no special case anywhere in `mvp_payments/`.
+Verified: `poetry run pytest tests/test_contributions.py -v` — first run: 8 passed, 1 failed —
+`test_registers_through_the_same_mechanism_as_the_shipped_namespace` — `second_namespace.is_available()`
+was `False` even inside `override_settings(INSTALLED_APPS=[..., "tests.second_namespace"])`. Root
+cause: `Contribution.is_available()` calls `apps.is_installed(self.backend_app_label)`, and
+Django's `is_installed()` matches an installed app's full dotted **name** (`AppConfig.name`), not
+its short **label** — confirmed by reading `django.apps.registry.Apps.is_installed`'s own
+docstring. `backend_app_label="drf_stripe"` works today only because that backend is installed at
+the top level, where its name and label coincide; this fixture is nested under `tests.`, where
+they do not. Fixed by setting `backend_app_label="tests.second_namespace"` (the app's full dotted
+name) rather than touching `mvp_payments/contributions.py` — not a special case, just the value the
+existing mechanism actually needs. Reran: 10 passed.
+Next: T030.
+Watch: `backend_app_label`'s docstring and `docs/namespaces.md` both call it a "label"; it is
+actually consulted as the app's dotted name. Flagged as a concern, not fixed — out of this story's
+scope (the shipped namespace is unaffected, and the field's own module is off limits per the
+brief's prohibitions).
+
+## 2026-09-21T19:15:00Z · Implementer US5 · T030 (`tests/test_contributions.py::TestNamespaceIndependence`)
+
+Did: `tests/settings_with_second_namespace.py` (`tests.settings` plus `tests.second_namespace`
+installed — a fresh-process settings module the same shape as D9/D10's, not an
+`override_settings` mid-test, because `mvp_payments/urls.py` builds `urlpatterns` once at import
+and `MvpPaymentsConfig.ready()` registers entries once at startup). `TestNamespaceIndependence`
+boots one fresh process per side via a shared subprocess probe (`_NAMESPACE_INDEPENDENCE_PROBE`)
+that adds the fixture to `CONTRIBUTIONS` for that process only (D1) and re-calls the same
+`ready()` Django already called once (idempotent by entry name, D5) — never a settings override
+mid-test, and never anything added to the shipped tuple. Three tests: the first namespace's
+rendered navigation, card href and page addresses are identical alone and alongside the second;
+neither namespace's declared name resolves to the other's page; no two declared contributions
+share a URL name (this last one in-process, no subprocess needed — `url_patterns()` is a pure
+function of the declared pages).
+Verified: `poetry run pytest tests/test_contributions.py -v` — 10 passed, first try.
+Negative-test proof: temporarily set the fixture's `namespace` to `"drf-stripe"` and its page
+`slug` to `"subscription"`, colliding exactly with the shipped contribution's URL name and entry
+name. Reran `TestNamespaceIndependence` and `TestSecondNamespaceFixture` — 3 of 5 failed:
+`test_no_two_declared_contributions_share_a_url_name` (4 names, 3 unique),
+`test_neither_namespaces_pages_resolve_to_the_others` (one reverse came back `None`), and
+`test_registers_through_the_same_mechanism_as_the_shipped_namespace` (`register()` silently
+skipped the collision — entry already existed under that name). `test_the_first_namespaces_...`
+stayed green, which is itself informative: `register()`'s idempotent-by-name check absorbs a
+colliding second contribution rather than corrupting the first. Reverted (`diff` against the
+committed fixture was empty); reran — 10 passed again.
+Full suite: `poetry run pytest -q` — 46 passed (base 41 + this story's 5), no regression.
+Next: T031.
+Watch: none.
+
+## 2026-09-21T19:25:00Z · Implementer US5 · T031 (implementation — expectation was nothing)
+
+Did: nothing. T029 and T030 passed against the existing mechanism — the URL naming scheme already
+carries the namespace slug (D2), and `Contribution`'s methods are already generic per-instance
+behaviour with no shipped-namespace special case. `git diff <base>..HEAD -- mvp_payments/` is
+empty. Committed an empty commit to keep the task-per-commit ledger, per the ritual (same as
+T028's precedent).
+Verified: `poetry run pytest -q` — 46 passed, no regression; `git diff 4922dd2..HEAD -- mvp_payments/ | wc -l` — 0.
+Next: T032.
+Watch: none.
+
+## 2026-09-21T19:30:00Z · Implementer US5 · T032 (documentation)
+
+Did: `docs/namespaces.md` was already true — read in full, it already says "A second backend gets
+a namespace beside it rather than underneath it, and the two share no markup and no data shape,"
+nothing to change. `README.md`'s Namespaces section named the same intention but didn't yet say
+the guarantee holds for namespaces already installed, so added one clause. `CHANGELOG.md` records
+the test suite guarantee this story landed.
+Verified: read `README.md` and `docs/namespaces.md` in full against T032's acceptance criterion.
+Next: story-level `forge verify`.
+Watch: none.

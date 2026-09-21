@@ -519,23 +519,59 @@
       "tasks": [
         {
           "id": "T029",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/second_namespace/__init__.py:1",
+              "tests/second_namespace/contribution.py:1"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestSecondNamespaceFixture"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py -v"
+            ]
+          }
         },
         {
           "id": "T030",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "tests/settings_with_second_namespace.py:1"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestNamespaceIndependence"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py -v",
+              "poetry run pytest -q"
+            ]
+          }
         },
         {
           "id": "T031",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "git diff 4922dd2a2058a90916b43efe2f018d6a15085c86..HEAD -- mvp_payments/",
+              "poetry run pytest -q"
+            ]
+          }
         },
         {
           "id": "T032",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "README.md:81",
+              "CHANGELOG.md:18"
+            ]
+          }
         }
       ]
     }

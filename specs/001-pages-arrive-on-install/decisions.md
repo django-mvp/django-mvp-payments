@@ -364,3 +364,46 @@ because the value of that gate is entirely that the builder is not the one who s
 breach that costs nothing this time is the one that gets repeated.
 
 **ADR:** none — a process breach in one run, corrected in place. Nothing downstream inherits it.
+
+## D16 — US-5's equality proof boots a fresh process, not `override_settings`; the mechanism check does not
+
+**Decision:** `TestNamespaceIndependence` (T030) — the test whose property is an equality between
+"the first namespace alone" and "the first namespace alongside the second" — boots one fresh
+process per side, exactly like D9/D10's shape. `TestSecondNamespaceFixture` (T029) — the test that
+the fixture's `is_available()`/`register()` work through the shipped mechanism — uses
+`override_settings(INSTALLED_APPS=...)` mid-test instead.
+
+**Why:** confirmed by hand before choosing, the same way D9, D10 and D14 each were.
+`mvp_payments/urls.py` builds `urlpatterns` once, at first import, from `available_contributions()`,
+and `MvpPaymentsConfig.ready()` registers navigation entries once, at startup — D9's exact shape.
+T030's tests read the *rendered result* of both: the navigation markup, the card's `href`, and
+`reverse()` against whatever `urlpatterns` was built with. `override_settings(INSTALLED_APPS=...)`
+would leave both exactly as first built, the same failure D9 found by hand. A fresh process avoids
+the question entirely: `tests/settings_with_second_namespace.py` installs the fixture app from the
+start, and the process's own probe script adds the fixture to `CONTRIBUTIONS` (never the shipped
+tuple, per D1) before the first `reverse()` call, then re-invokes the exact `ready()` Django already
+called once — idempotent by entry name (D5), the same guarantee `TestRepeatedRegistration` already
+covers.
+
+T029's tests read neither of those built-once artefacts — `is_available()` asks the application
+registry live, and `register()` is called directly in the test rather than through `ready()`. D9
+confirmed by hand that overriding `INSTALLED_APPS` correctly flips `apps.is_installed(...)` because
+Django's `setting_changed` signal repopulates the app registry itself; that is precisely the live,
+per-call surface D9 said `override_settings` remains the right tool for. Verified directly here too:
+`second_namespace.is_available()` was `False` outside the `override_settings` block and `True`
+inside it, and `register()` inside the same block added exactly one entry, confirmed by rerunning
+after reverting an intentional collision (T030's commit).
+
+**Found along the way, not a mechanism gap:** `Contribution.is_available()` passes
+`backend_app_label` straight to `apps.is_installed()`, which Django's own docstring says matches an
+app's full dotted *name*, not its short *label* — despite the field's name and `docs/namespaces.md`
+both calling it a label. The shipped namespace is installed at the top level (`"drf_stripe"`),
+where name and label coincide, which is what hid this. The fixture is nested under `tests.`, where
+they do not, and using `backend_app_label="tests.second_namespace"` (the app's real dotted name)
+was enough — no change to `mvp_payments/contributions.py`, and not a special case for the fixture,
+just the value the existing mechanism already needs.
+
+**Revisit if:** a future namespace's backend is ever installed as a sub-package (`some.vendor.app`
+rather than a top-level `app`) — `docs/namespaces.md`'s "application label" wording would then
+actively mislead a namespace author, which is the point to fix the docstring/docs wording (out of
+this story's scope; this package's own `mvp_payments/` was not touched).
