@@ -56,6 +56,15 @@
         "reviewer note: CONTEXT.md glossary entry for contribution folded into T017",
         "reviewer note: stale plan phrasing about US-1 building every surface corrected"
       ]
+    },
+    "review": {
+      "approved_by": "code-review",
+      "at": "2026-09-21T16:20:00Z",
+      "self_resolved": [
+        "TST-001 the import-safety guard omitted the template tag module it exists to pin: added, and proved against a narrowed walk",
+        "SIM-001 the same subprocess runner stood in three test files: extracted to tests/probes.py with the reason it is needed",
+        "reviewer note declined: the card's context could be a method on Contribution, but it is one function with no sibling sharing its subject"
+      ]
     }
   },
   "stories": [
