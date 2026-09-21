@@ -3,12 +3,17 @@
   "feature": "001-pages-arrive-on-install",
   "branch": "feat/001-pages-arrive-on-install",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "DESIGN_REVIEW",
+  "state": "IMPLEMENT",
   "state_history": [
     {
       "state": "DESIGN_REVIEW",
       "at": "2026-09-21T14:30:12Z",
       "note": "S3R complete: two non-blocking findings applied as plan edits"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-09-21T14:36:30Z",
+      "note": "Foundational phase committed; US-1 dispatched"
     }
   ],
   "gates": {
@@ -49,93 +54,265 @@
       "priority": "P1",
       "issue": 9,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T001",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry add --group dev drf-stripe-subscription 'stripe@<8'",
+              "poetry check",
+              "poetry run python -c \"import drf_stripe, stripe\""
+            ],
+            "code": [
+              "pyproject.toml:59"
+            ]
+          }
         },
         {
           "id": "T002",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "poetry run python manage.py migrate --noinput",
+              "poetry run python manage.py seed_demo",
+              "curl -o /dev/null -w '%{http_code}' http://127.0.0.1:8020/accounts/login/"
+            ],
+            "code": [
+              "demo/settings.py:34",
+              "demo/urls.py:5"
+            ]
+          }
         },
         {
           "id": "T003",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "CONSTITUTION.md:172"
+            ]
+          }
         },
         {
           "id": "T004",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "git rm docs/brainstorm.md",
+              "grep -rn brainstorm --include='*.md' ."
+            ],
+            "code": [
+              "AGENTS.md:116"
+            ]
+          }
         },
         {
           "id": "T005",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_contributions.py::TestContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py::TestContribution -q"
+            ]
+          }
         },
         {
           "id": "T006",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_contributions.py::TestRepeatedRegistration"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py::TestRepeatedRegistration -q"
+            ]
+          }
         },
         {
           "id": "T007",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_urls.py::TestPaymentURLs"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_urls.py -q"
+            ]
+          }
         },
         {
           "id": "T008",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPaymentPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py -q"
+            ]
+          }
         },
         {
           "id": "T009",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe.py::TestDrfStripeContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe.py -q"
+            ]
+          }
         },
         {
           "id": "T010",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/contributions.py:1"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py::TestContribution -q"
+            ]
+          }
         },
         {
           "id": "T011",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/namespaces/drf_stripe.py:1",
+              "mvp_payments/namespaces/__init__.py:1"
+            ],
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe.py::TestDrfStripeContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe.py -q"
+            ]
+          }
         },
         {
           "id": "T012",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/views.py:1"
+            ],
+            "tests": [
+              "tests/test_urls.py::TestPaymentURLs",
+              "tests/test_views.py::TestPaymentPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_urls.py tests/test_views.py -q"
+            ]
+          }
         },
         {
           "id": "T013",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/urls.py:1"
+            ],
+            "tests": [
+              "tests/test_urls.py::TestPaymentURLs"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_urls.py -q"
+            ]
+          }
         },
         {
           "id": "T014",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1",
+              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html:1",
+              "mvp_payments/templates/mvp_payments/drf_stripe/billing.html:1"
+            ],
+            "tests": [
+              "tests/test_views.py::TestPaymentPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py -q"
+            ]
+          }
         },
         {
           "id": "T015",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "mvp_payments/apps.py:10"
+            ],
+            "tests": [
+              "tests/test_contributions.py::TestRepeatedRegistration",
+              "tests/test_namespaces/test_drf_stripe.py::TestDrfStripeContribution"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py tests/test_namespaces/ -q"
+            ]
+          }
         },
         {
           "id": "T016",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "demo/urls.py:14"
+            ],
+            "tests": [
+              "tests/test_contributions.py",
+              "tests/test_urls.py",
+              "tests/test_views.py",
+              "tests/test_namespaces/test_drf_stripe.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py tests/test_urls.py tests/test_views.py tests/test_namespaces/ -q",
+              "poetry run pytest -q"
+            ]
+          }
         },
         {
           "id": "T017",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "code": [
+              "README.md:35",
+              "CONTEXT.md:31",
+              "CHANGELOG.md:8",
+              "demo/templates/demo/home.html:60"
+            ],
+            "commands": [
+              "poetry run pytest -q"
+            ]
+          }
         }
       ]
     },

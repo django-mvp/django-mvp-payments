@@ -1,0 +1,121 @@
+{
+  "story": "US1",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 9,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T005",
+    "T006",
+    "T007",
+    "T008",
+    "T009",
+    "T010",
+    "T011",
+    "T012",
+    "T013",
+    "T014",
+    "T015",
+    "T016",
+    "T017"
+  ],
+  "context": {
+    "why": "This package is a UI layer for payment backends. Its whole promise is that a project installs it beside a backend, adds one line to its URL configuration, and that backend's pages appear in django-mvp's Account Center with no view, template or menu entry written in the project. This story builds that arrival mechanism and the drf-stripe namespace's three pages. The foundational phase is already done and committed: the backend is installed in the demo, the Account Center and sign-in are mounted there, and the standards document has been amended to allow views beyond template rendering.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root. Tests: 'poetry run pytest'. The full verify command is '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo .' \u2014 run it once, at your report. The demo project runs on port 8020 and is already serving this branch; you do not need to start it.",
+    "spec_sections": [
+      "User Story 1 - The backend's pages are simply there",
+      "Requirements: FR-001, FR-002, FR-003, FR-004, FR-005, FR-007, FR-008, FR-011, FR-012",
+      "Success Criteria: SC-001, SC-003, SC-006"
+    ],
+    "plan_sections": [
+      "Design",
+      "Project Structure",
+      "Technical Context"
+    ],
+    "prior_decisions": [
+      "D1 \u2014 one Contribution object per namespace; ready(), the URL configuration and the card all read one function for the available ones, so the three surfaces cannot drift apart. Not a base class; nothing subclasses it.",
+      "D2 \u2014 URL names are grouped under one application namespace, app_name = 'payments', and each name carries its namespace slug, e.g. payments:drf-stripe-subscription. A Django URL namespace named after the backend was rejected because a project can claim that name by mounting the backend's own URLs under it.",
+      "D3 \u2014 availability has two halves. is_available() asks the application registry only, because ready() and urls.py both call it and neither may reverse a URL. is_reachable() asks whether this namespace's pages reverse, and only a render-time caller may ask. Build both in T010; the card in US-3 uses the second.",
+      "D4 \u2014 mvp_payments must precede mvp in INSTALLED_APPS for the template override to resolve. The README currently says the opposite and T017 corrects it.",
+      "D5 \u2014 register() is idempotent by entry name, because ready() runs again on every development-server reload and the menu tree survives it."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md \u2014 Development workflow. CONSTITUTION.md Articles VIII (translatable strings), X (test structure), XI (cohesion), XII (what this package may not do), XIV (gate on installation, register in ready()), XVI (assert rendered output, never a class name).",
+    "acceptance": [
+      {
+        "task": "T005",
+        "given_when_then": "Given a contribution whose backend application label is installed, when it is asked, then it reports itself available; when the label is not installed, then it does not. Given three declared pages, when url_patterns() is called, then it returns exactly three routes named for the namespace and page; when register() is called, then exactly three navigation entries exist."
+      },
+      {
+        "task": "T006",
+        "given_when_then": "Given a contribution already registered, when register() runs a second time, then the rendered Account Center navigation still shows each entry exactly once."
+      },
+      {
+        "task": "T007",
+        "given_when_then": "Given the URL configuration is mounted, when each of the three page names is reversed under the payments namespace, then it resolves to a page view; when a name belonging to no declared page is reversed, then it raises NoReverseMatch."
+      },
+      {
+        "task": "T008",
+        "given_when_then": "Given a signed-in person, when they request each contributed page, then it renders inside the Account Center layout carrying that page's heading and the Account Center navigation. Given an anonymous visitor, when they request one directly, then they are redirected to the sign-in location."
+      },
+      {
+        "task": "T009",
+        "given_when_then": "Given the drf-stripe contribution, when it is inspected, then it names the backend's application label and declares exactly three pages with the expected slugs and translatable labels; and when a signed-in person opens the Account Center, then one navigation entry per page is rendered."
+      }
+    ],
+    "verified_base": {
+      "commit": "ea8efd115a058cf9f07327e1a77a16de59941f1d",
+      "verified_at": "2026-09-21T14:34:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "Green on this exact commit: 17 tests passed, pre-commit clean (ruff lint, ruff format, mypy, deptry), build ok. If your first test run shows a failure outside your own new tests, stop and report it rather than fixing it."
+    }
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Update the documentation your story changes the truth of, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story.",
+    "Do not touch files outside this story's scope. Specifically: do not create or edit the card, the template tag, or mvp_payments/templates/mvp/account/overview.html \u2014 those belong to US-3.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any runtime dependency. The package must keep declaring exactly django and django-mvp.",
+    "Do not import a payment backend or a payment provider library anywhere in mvp_payments/. Reach an installed backend through Django's application registry instead.",
+    "Do not add a model, migration, form, admin or serializer to mvp_payments/.",
+    "Do not put placeholder copy on the contributed pages. They render their heading and nothing else.",
+    "Do not reverse a URL, read settings or touch the application registry at import time. Registration happens in ready()."
+  ]
+}
