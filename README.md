@@ -74,10 +74,15 @@ share markup or a data shape, because the things they are describing are not the
 wearing different names — a subscription in one library is a different record with different
 fields from a subscription in the next.
 
-Shipped today: none. `drf-stripe` is the first, built against
+Shipped today: `drf-stripe`, built against
 [drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
-webhooks locally and hands checkout and billing management to Stripe's hosted pages. Namespaces
-for other backends are welcome and do not need this one's agreement about anything.
+webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
+contributes three pages — subscription, plans and billing — which are routed and reachable but do
+not show anything yet. Namespaces for other backends are welcome and do not need this one's
+agreement about anything.
+
+[docs/namespaces.md](docs/namespaces.md) is how you add one: what a namespace declares, the two
+questions it answers about itself, and what it may not do.
 
 ## JavaScript
 
