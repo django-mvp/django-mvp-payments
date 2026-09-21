@@ -28,6 +28,42 @@ class TestPackagedApp:
         )
         assert namespace.is_dir()
 
+    def test_the_app_defines_no_models(self) -> None:
+        """This package owns no table and stores nothing (Article XII).
+
+        Installing it must leave a project's schema untouched, which is also
+        why there is no `migrations/` directory for `migrate` to find.
+        """
+        assert list(apps.get_app_config("mvp_payments").get_models()) == []
+
+    def test_the_package_ships_no_application_code(self) -> None:
+        """One `AppConfig` and no more (Article XII).
+
+        Nothing here is mounted, routed to or requested, and no payment logic
+        runs in this package. Asserted rather than remembered, because the
+        pressure to add "just a small view" arrives one convenience at a time.
+        """
+        package = Path(mvp_payments.__file__).parent
+        forbidden = {
+            "models",
+            "views",
+            "urls",
+            "forms",
+            "admin",
+            "serializers",
+            "signals",
+            "migrations",
+        }
+        found = sorted(
+            str(path.relative_to(package))
+            for path in package.rglob("*")
+            if path.stem in forbidden and (path.suffix == ".py" or path.is_dir())
+        )
+        assert found == []
+
+        modules = sorted(path.stem for path in package.rglob("*.py"))
+        assert modules == ["__init__", "apps"]
+
     def test_no_payment_backend_is_a_dependency(self) -> None:
         """Installing this package must never pull a payment backend in.
 
