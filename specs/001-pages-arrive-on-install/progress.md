@@ -185,3 +185,100 @@ Verified: `poetry run pytest -q` (full suite) — 36 passed (base 34 + T019's 1 
 regression.
 Next: story-level `forge verify`.
 Watch: none.
+
+## 2026-09-21T17:35:00Z · Implementer US3 · T022 (`tests/test_templatetags/test_mvp_payments.py::TestPaymentCards`)
+
+Did: added the test class, calling the not-yet-existing `payment_cards()` tag directly — one test
+monkeypatches `available_contributions` (as imported into the tag module) to return the real
+`drf_stripe` contribution and asserts exactly one `href` to its first page plus its heading text;
+the other monkeypatches it to return `()` and asserts the tag renders the empty string.
+Verified: `poetry run pytest tests/test_templatetags/test_mvp_payments.py -v` — collection failed
+with `ModuleNotFoundError: No module named 'mvp_payments.templatetags'`, the right reason (T024
+hasn't built it yet).
+Next: T023.
+Watch: none.
+
+## 2026-09-21T17:40:00Z · Implementer US3 · T023 (`tests/test_views.py::TestAccountCenterOverview`)
+
+Did: added the test, plus a fixture application `tests/other_app/` (a bare template override of
+`mvp/account/overview.html` that adds a `data-testid="other-app-card"` marker through
+`{{ block.super }}`) to make the block.super half of the acceptance non-vacuous. First attempt used
+`override_settings(INSTALLED_APPS=...)` mid-test with the fixture app inserted before `mvp`; this
+resolved `mvp_payments`'s own overview.html correctly (confirmed via `get_template().origin` and
+`response.templates`) but the card rendered by `<c-card>` inside it never reached the response —
+`django_cotton`'s own template resolution does not reset on an `INSTALLED_APPS` override the way
+Django's own template engine cache does (D10). Rebuilt on the same mechanism T018/T019 already use:
+a dedicated `tests/settings_with_another_card.py` and a subprocess-booted probe.
+Verified: `poetry run pytest tests/test_views.py::TestAccountCenterOverview -v` — failed with
+`assert 0 == 1` on the card's `href` (right reason: T024/T025 don't exist yet). Found and fixed a
+bug in my own `_account_center_cards_region` helper along the way (see below) before trusting this
+result — its balanced-div counter started `depth` at 0 instead of 1, so it returned only the first
+nested `<div>` (the fixture's own marker) rather than the whole `account-center-cards` region;
+confirmed the fix by diffing the helper's output against a hand-inspected full-page dump.
+Next: T024.
+Watch: none.
+
+## 2026-09-21T17:55:00Z · Implementer US3 · T024 (`mvp_payments/templatetags/mvp_payments.py`)
+
+Did: `payment_cards()`, a `simple_tag` rendering `contribution.card_template` for every contribution
+`available_contributions()` returns and `is_reachable()` confirms, joined and marked safe — asking
+`Contribution` rather than re-deriving either check (D3). Each contribution's context carries its
+first page's `label` as `heading` and a precomputed `payments:<namespace>-<slug>` view name for the
+template's own `{% url %}` (the naming scheme T007/T013 already treat as public — hardcoded in
+`tests/test_urls.py`).
+Verified: committed on its own, still red — `card.html` doesn't exist yet, so
+`tests/test_templatetags/test_mvp_payments.py` fails on `TemplateDoesNotExist` at this point,
+expected per the phase split (T024/T025 land together, same as T010-T015). `ruff` flagged `S308` on
+the bare `mark_safe(...)`; addressed with an inline `# noqa: S308` and a comment (each piece is
+already-escaped `render_to_string` output, not raw formatting of untrusted input). Green confirmed
+together with T025, below.
+Next: T025.
+Watch: none.
+
+## 2026-09-21T18:05:00Z · Implementer US3 · T025 (overview override, `mvp_payments/card.html`)
+
+Did: `mvp_payments/templates/mvp/account/overview.html` extends the same template name, keeps
+`{{ block.super }}`, loads and calls `{% payment_cards %}`. `mvp_payments/templates/mvp_payments/card.html`
+wraps `<c-card>` in an `<a href="{% url page_view_name %}">`.
+Verified: `poetry run pytest tests/test_templatetags/ tests/test_views.py tests/test_app.py
+tests/test_contributions.py -q` — first run: 19 passed, 1 failed —
+`TestRepeatedRegistration.test_registering_twice_does_not_duplicate_entries` (T006, US-1, not mine
+to edit) went from 2 to 3 matches of `<span>Subscription</span>`, because `<c-card :title="heading">`
+renders its title inside exactly that markup and the shipped page's label is "Subscription" — a
+coincidental collision with an unrelated count, not a real duplicate registration (D12). Fixed by
+writing the card's own `<h2 class="card-title">{{ heading }}</h2>` into `<c-card>`'s default slot
+instead of its `title` prop. Reran the same four files — 20 passed.
+Negative-test proof (T022/T023's absence and block.super assertions): temporarily dropped
+`{{ block.super }}` from the overview override and reran `TestAccountCenterOverview` — failed on
+the missing `other-app-card` marker, confirming the test would have caught a dropped `block.super`;
+reverted (`git diff --stat` showed no output, byte-identical).
+Next: T023's carried-forward item — re-prove `TestNothingWithoutABackend`'s absence against the real
+card markup.
+Watch: none.
+
+## 2026-09-21T18:15:00Z · Implementer US3 · T023 carried-forward (`tests/test_app.py::TestNothingWithoutABackend`)
+
+Did: added `test_account_center_shows_no_card_from_the_absent_backend`, a new method on the
+existing `TestNothingWithoutABackend` class (not editing its existing test), reusing its private
+`_open_the_account_center_without_the_backend()` helper and asserting the card's real `href` markup
+does not appear when the backend is absent.
+Verified: `poetry run pytest tests/test_app.py::TestNothingWithoutABackend -v` — 2 passed.
+Negative-test proof: temporarily hardcoded a literal `<a href="/payments/drf-stripe/subscription/">`
+into the overview override (simulating a leak independent of whether the URL could even reverse) and
+reran the new test alone — it failed, naming the missing `href` in its diff; reverted (`git diff
+--stat` showed no output, byte-identical) and reran — passed again.
+Next: T026.
+Watch: none.
+
+## 2026-09-21T18:20:00Z · Implementer US3 · T026 (documentation)
+
+Did: `CHANGELOG.md` — recorded the card landing. `README.md` and `docs/namespaces.md` were already
+true for the card and the `INSTALLED_APPS` order (both written ahead of this story, in T017/US-1):
+README already states the order is "load-bearing, not a style choice" and already names "its own
+card to the Account Center's overview" alongside the pages; `docs/namespaces.md` already documents
+`card_template`. Confirmed by reading both in full rather than assuming T017's note was still
+accurate.
+Verified: read `README.md` and `docs/namespaces.md` in full; no gap against the acceptance criteria
+found.
+Next: story-level `forge verify`.
+Watch: none.

@@ -253,3 +253,48 @@ had the backend in `INSTALLED_APPS` is the only way to observe what a project wi
 **Revisit if:** a future story needs the same "as if never installed" guarantee for something that
 does update per-request (there `settings`/`override_settings` would be simpler and should be
 preferred) — the subprocess is specifically for surfaces built once at import/startup.
+
+## D10 — Proving `{{ block.super }}` was kept also needs a fresh process, not `override_settings`
+
+**Decision:** `TestAccountCenterOverview` (T023) opens the Account Center inside a subprocess
+booted under a new `tests.settings_with_another_card`, which inserts a minimal fixture application
+(`tests/other_app/`, shipping its own `mvp/account/overview.html` override) between `mvp_payments`
+and `mvp` in `INSTALLED_APPS`.
+**Why:** confirmed by hand before settling on this — `django.test.signals` resets the template
+engine's app-directory cache on an `INSTALLED_APPS` change (unlike D9's URLconf/menu case), so
+`override_settings(INSTALLED_APPS=...)` mid-test does make `get_app_template_dirs()` see the
+fixture app, and `django.template.loader.get_template("mvp/account/overview.html")` correctly
+resolves to `mvp_payments`'s own copy first. But the rendered response still showed only the
+fixture app's card, never this package's — `django_cotton`'s own template resolution (used to
+render `<c-card>` inside `mvp_payments/card.html`) does not observe that same reset, so the tag's
+own template lookups stayed stale mid-test. A fresh process sidesteps the whole question, the same
+way D9's does, and stays consistent with the one mechanism this story already reuses.
+**Revisit if:** django-cotton starts responding to `INSTALLED_APPS` overrides itself, or this
+package drops its dependency on `<c-card>` for this template.
+
+## D11 — The card's heading is the first page's label, not a new field on `Contribution`
+
+**Decision:** the card's heading is `contribution.pages[0].label` — the first declared page's
+existing translatable label — rather than a new attribute added to `Contribution`.
+**Why:** the brief prohibits changing `mvp_payments/contributions.py`, and `Contribution` already
+carries no separate "namespace title" concept — only `backend_app_label`, `namespace` (a routing
+slug, not prose), `pages` and `card_template`. Every page's `label` is already required to be
+translatable (Article VIII, FR-011); reusing it avoids introducing a second, uncoordinated piece of
+translatable copy for the same namespace, and keeps the card's link and its heading pointing at the
+same thing — the namespace's first page.
+**Revisit if:** a namespace ever needs a card heading that differs from its first page's name —
+that would be the point to add a dedicated field to `Contribution`, brief permitting.
+
+## D12 — The card's `<h2>` skips `<c-card>`'s `title` prop
+
+**Decision:** `mvp_payments/card.html` writes its own `<h2 class="card-title">{{ heading }}</h2>`
+into `<c-card>`'s default slot, instead of passing `heading` through the `title` prop.
+**Why:** `<c-card :title="...">` wraps its heading as `<span>{{ title }}</span>`, and the shipped
+namespace's first page is titled "Subscription" — the exact text
+`TestRepeatedRegistration.test_registering_twice_does_not_duplicate_entries` (T006, US-1) counts
+occurrences of as `<span>Subscription</span>` to prove the navigation isn't duplicated. Using the
+`title` prop made that pre-existing test see three matches instead of two once the card existed, a
+coincidental text collision rather than a real duplication. That test predates this story and
+records real intent, so scope stayed on this package's own template.
+**Revisit if:** `<c-card>` changes its `title` prop's markup so it no longer collides, or the
+navigation's own rendering changes what it counts.
