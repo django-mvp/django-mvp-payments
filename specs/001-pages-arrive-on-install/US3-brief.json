@@ -74,8 +74,8 @@
       }
     ],
     "verified_base": {
-      "commit": "PLACEHOLDER",
-      "verified_at": "PLACEHOLDER",
+      "commit": "b9d62f028ba1c3cbed22431bb9d61b1367ff62a3",
+      "verified_at": "2026-09-21T15:15:00Z",
       "steps": [
         "conformance",
         "docs",

@@ -298,3 +298,23 @@ coincidental text collision rather than a real duplication. That test predates t
 records real intent, so scope stayed on this package's own template.
 **Revisit if:** `<c-card>` changes its `title` prop's markup so it no longer collides, or the
 navigation's own rendering changes what it counts.
+
+## D13 — Two items held for the convergence pass
+
+Both came out of story reports and neither belongs to a story that could fix it.
+
+**The card writes its own heading markup.** `mvp_payments/templates/mvp_payments/card.html` renders
+an `<h2 class="card-title">` rather than passing a title to the packaged card component, because
+that component's markup collides with an assertion in the first story's tests that counts
+occurrences of a label inside a `<span>`. The assertion is the thing that is too broad — it should
+be scoped to the navigation it is actually about — and a story may not edit an earlier story's
+tests. Hand-written markup carrying a literal class name where a packaged component exists is
+exactly what this project's review standard rejects, so the assertion is tightened at convergence
+and the card then uses the component.
+
+**`AGENTS.md` still describes every view here as a template-rendering one** and the package as
+Cotton components only. Article XII was amended in this feature's foundational phase and two
+separate story reports have now flagged the contradiction. It was outside every story's named
+scope, which is correct — it is repository-level documentation, not a story's surface.
+
+**ADR:** to be decided at convergence.

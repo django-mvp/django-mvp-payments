@@ -410,15 +410,12 @@
           "status": "done",
           "attempts": 2,
           "evidence": {
-            "code": [
+            "tests": [
               "tests/test_views.py::TestAccountCenterOverview",
+              "tests/test_app.py::TestNothingWithoutABackend",
               "tests/other_app/templates/mvp/account/overview.html",
               "tests/settings_with_another_card.py",
               "tests/test_app.py::TestNothingWithoutABackend::test_account_center_shows_no_card_from_the_absent_backend"
-            ],
-            "tests": [
-              "tests/test_views.py::TestAccountCenterOverview",
-              "tests/test_app.py::TestNothingWithoutABackend"
             ],
             "commands": [
               "poetry run pytest tests/test_views.py::TestAccountCenterOverview -v",
@@ -465,11 +462,11 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "code": [
-              "CHANGELOG.md"
-            ],
             "commands": [
               "poetry run pytest -q"
+            ],
+            "tests": [
+              "CHANGELOG.md"
             ]
           }
         }
