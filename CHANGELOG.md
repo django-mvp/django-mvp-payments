@@ -13,3 +13,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The URL configuration a project includes once (`mvp_payments.urls`), and the drf-stripe
   namespace's three pages — subscription, plans and billing — arriving in django-mvp's Account
   Center navigation when the backend is installed.
+- A card for each installed backend on the Account Center's overview, leading into that backend's
+  first page.
