@@ -161,11 +161,23 @@ between the caller and the work is not.
 
 ## Project articles
 
-### Article XII — Nothing here touches money, card details or a secret
+### Article XII — An interface layer, and nothing else
 
-This package renders interface. It does not take payment, and the boundary is absolute rather
-than a matter of current scope.
+This package renders interface. It holds no state, runs no payment logic and takes no payment,
+and the boundary is absolute rather than a matter of current scope.
 
+- **No models, and no migrations.** The package defines no Django model and ships no migration.
+  It owns no table, stores nothing and is not a place data lives. Installing it changes nothing
+  about a project's schema, and `manage.py migrate` has nothing here to apply.
+- **No views, no URLs, no forms, no admin, no serializers.** Nothing in this package is mounted,
+  routed to or requested. Its Python is one `AppConfig`, which exists so Django can find the
+  templates and static files. `tests/test_app.py` asserts this, because the rule is worth more as
+  a failing test than as a sentence someone has to remember.
+- **No payment logic anywhere.** What a subscription costs, who is entitled to what, when a trial
+  ends, whether a card is about to expire — every one of those is decided by the backend or by the
+  host project, and this package only shows the answer. A calculation that would change what a
+  customer is charged or what they may access does not belong here in any language, JavaScript
+  included.
 - **No card details, ever.** Payment instruments are collected by the provider, on the provider's
   own pages. No component renders a card field, and none is added — not with the provider's
   embedded elements, not behind a flag.
@@ -181,8 +193,12 @@ than a matter of current scope.
   hiding it from a reader, not from an attacker.
 
 The consequence worth stating plainly: a defect here can make a page wrong. It cannot lose money,
-leak a key or expose a card. Any change that would alter that sentence is a change to this
-constitution.
+leak a key, expose a card or corrupt a record, because there is no record and no money to reach.
+Any change that would alter that sentence is a change to this constitution.
+
+Where a component seems to need server-side work, the answer is that the host project does it and
+passes the result in, or the backend exposes it and the component reads it. "It would be easier
+with a small view here" is the exact argument this article exists to refuse.
 
 ### Article XIII — No payment backend is a dependency, and no provider script is emitted
 
