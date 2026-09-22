@@ -68,3 +68,24 @@ class SubscriptionPageView(PaymentPageView):
             else None
         )
         return context
+
+
+class PlansPageView(PaymentPageView):
+    """The drf-stripe namespace's plans page: the provider's own pricing table, mounted.
+
+    Adds ``pricing_table_id`` and ``publishable_key`` to the context, read from
+    ``settings.MVP_PAYMENTS`` at render time rather than assumed (Article XIV). Both default
+    to ``None`` where the setting is not supplied — the surface a project overriding this
+    page's template relies on.
+    """
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context: dict[str, Any] = super().get_context_data(**kwargs)
+        mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
+        context["pricing_table_id"] = mvp_payments_settings.get(
+            "DRF_STRIPE_PRICING_TABLE_ID"
+        )
+        context["publishable_key"] = mvp_payments_settings.get(
+            "DRF_STRIPE_PUBLISHABLE_KEY"
+        )
+        return context
