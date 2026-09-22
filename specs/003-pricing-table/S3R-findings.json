@@ -1,0 +1,18 @@
+{
+  "stage": "design",
+  "lens": "spec-compliance",
+  "verdict": "approve",
+  "risk": "low",
+  "scope": "specs/003-pricing-table/{spec.md,decisions.md,plan.md,research.md,tasks.md} against CONSTITUTION.md and CONTEXT.md, plus targeted reads of mvp_payments/views.py, mvp_payments/namespaces/drf_stripe.py, mvp_payments/templates/cotton/drf_stripe/portal_link.html, mvp_payments/templates/mvp_payments/drf_stripe/plans.html, mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js, tests/test_app.py, tests/markup.py, demo/settings.py, demo/templates/base.html, pyproject.toml [tool.forge.conformance], tests/settings_with_project_template_override.py, tests/project_app/",
+  "skills_loaded": [
+    { "name": "craft-review", "receipt": "craft-review/2026-09-17/b773db2e", "loaded_via": "skill-tool" },
+    { "name": "craft-security", "receipt": "craft-security/2026-08-04/ea3d6742", "loaded_via": "skill-tool" },
+    { "name": "craft-simplify", "receipt": "craft-simplify/2026-08-04/69038ce1", "loaded_via": "skill-tool" }
+  ],
+  "findings": [],
+  "notes": [
+    "[spec-compliance] Research premise spot-checked against the resolved package: drf-stripe-subscription 1.2.2's drf_stripe/stripe_api/customers.py:116-117 (`_get_or_create_django_user_if_configured`, called from `_get_or_create_stripe_user_from_customer_id` at line 99) confirms the email-only lookup `django_user_query_filters = {drf_stripe_settings.DJANGO_USER_EMAIL_FIELD: customer.email}` verbatim as research.md states it. `grep -rn client_reference_id` over the whole installed package returned zero matches, confirming research.md's claim that the backend reads that attribute nowhere. Both load-bearing claims underpinning FR-005 check out against the code, not the provider's docs or a sibling checkout.",
+    "[architecture] The CONSTITUTION.md narrowing (T032) is scoped precisely in tasks.md to 'the two sentences that forbid reading a publishable key from settings' in Article XII's 'No secret keys' bullet and Article XIII's embed paragraph — it does not touch the bullet's separate sentence forbidding an API key, webhook signing secret or restricted key from ever being read from settings by this package, which remains package-wide and unweakened. This is the smallest edit that makes FR-004 buildable: the alternative (a page that renders nothing until a project subclasses its view) was correctly rejected in decisions.md as defeating the page's own purpose. No other constitution article references these two sentences, so no further inconsistency was found. Worth keeping the amendment's actual wording as narrow as T032 already states it, since the schema's own imprecise phrasing elsewhere ('by this package' vs. 'by this package's components') is where a careless edit could accidentally loosen the API-key/webhook-secret sentence too — not a plan defect, a note for whoever writes the exact replacement text at T032.",
+    "[tooling] kit/schemas/review-findings.schema.json models `lens` as a single required top-level enum ('one reviewer lens's verdict'), but design-review.md (collapsed 2026-08-10) dispatches one reviewer carrying all three lenses in one pass and asks for every finding to be tagged with its own lens. With zero findings this run, the mismatch had no practical effect; `lens` is set to `spec-compliance` (lens 1, per the protocol's run order) as the least-arbitrary single value, and each note above is prefixed with its actual lens by hand. A future run with findings across more than one lens will need the same workaround or a schema update adding a per-finding `lens` property."
+  ]
+}

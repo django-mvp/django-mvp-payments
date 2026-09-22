@@ -110,3 +110,28 @@ Reconciling the roadmap text is a separate change and does not belong in a speci
 request. The related intake issue for a checkout handoff is also superseded, because the pricing
 table sends a person into the provider's checkout itself, and it is closed with that reason
 recorded rather than left open as work nobody will do.
+
+---
+
+## D1 — Design review outcome
+
+One reviewer, three lenses, against `spec.md`, `plan.md`, `research.md`, `tasks.md`, the
+constitution and targeted reads of the code the plan names. Verdict **approve**, zero findings at
+any severity, so no plan edit and no watch item was carried into any implementation brief.
+
+Two things the review established that are worth keeping:
+
+The two load-bearing claims in `research.md` were spot-checked against the resolved installed
+package rather than against documentation. `drf_stripe/stripe_api/customers.py:116-117` in
+drf-stripe-subscription 1.2.2 carries the email-only lookup verbatim, and a search for
+`client_reference_id` across the whole installed package returns nothing — so the attribute the
+provider built for this exact reconciliation really is read nowhere, which is why FR-005 passes the
+address instead.
+
+The constitution narrowing was checked for collateral damage and has none. Article XII's "No secret
+keys" bullet contains two separate prohibitions: one on an API key, webhook signing secret or
+restricted key, and one on a publishable key. Only the second is narrowed. Whoever writes the
+replacement text keeps the first package-wide and untouched, because a careless edit to the
+surrounding sentence would loosen it.
+
+**ADR:** none — a record of this run's design review, not a standing rule.

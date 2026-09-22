@@ -1,0 +1,36 @@
+{
+  "stage": "S3R",
+  "role": "design_reviewer",
+  "repo": "django-mvp/django-mvp-payments",
+  "feature": "003-pricing-table",
+  "worktree": "/home/sam/projects/worktrees/dmp-003-pricing-table",
+  "required_skills": [
+    {
+      "name": "craft-review",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-review/SKILL.md",
+      "receipt": "craft-review/2026-09-17/b773db2e"
+    },
+    {
+      "name": "craft-security",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-security/SKILL.md",
+      "receipt": "craft-security/2026-08-04/ea3d6742"
+    },
+    {
+      "name": "craft-simplify",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-simplify/SKILL.md",
+      "receipt": "craft-simplify/2026-08-04/69038ce1"
+    }
+  ],
+  "protocol": "/home/sam/.openclaw/workspaces/forge/skills/forge-feature-request/references/design-review.md",
+  "inputs": [
+    "specs/003-pricing-table/spec.md",
+    "specs/003-pricing-table/decisions.md",
+    "specs/003-pricing-table/plan.md",
+    "specs/003-pricing-table/research.md",
+    "specs/003-pricing-table/tasks.md",
+    "CONSTITUTION.md",
+    "CONTEXT.md"
+  ],
+  "output": "specs/003-pricing-table/S3R-findings.json",
+  "schema": "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/schemas/review-findings.schema.json"
+}
