@@ -17,6 +17,29 @@ from mvp_payments.namespaces.drf_stripe_records import (
 )
 
 
+class TestPricingTable:
+    """``<c-drf-stripe.pricing-table>`` mounts the provider's own embed (T001, FR-011, SC-007).
+
+    No amount, currency, billing frequency or plan name is produced by this component or
+    anywhere else in this package — the provider renders every price inside its own frame.
+    """
+
+    def test_renders_the_providers_element_with_its_table_id_and_publishable_key(
+        self, cotton_render
+    ):
+        html = cotton_render(
+            "drf-stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+        )
+
+        assert "<stripe-pricing-table" in html
+        assert 'pricing-table-id="prctbl_test123"' in html
+        assert 'publishable-key="pk_test_456"' in html
+        assert "<script" not in html
+        assert not re.search(r"\d[\d,]*\.\d{2,3}", html)
+
+
 class TestAmount:
     """``<c-drf-stripe.amount>`` renders the ``Money`` it was given."""
 
