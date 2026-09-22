@@ -18,13 +18,17 @@
       the library never having arrived.
     {% endcomment %}
     <script defer src="https://js.stripe.com/v3/pricing-table.js"></script>
-    <script defer
-            src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
   {% endblock provider_library %}
   {% comment %}
-    <c-drf-stripe.portal-link>'s own logic. Loaded here the way this project
-    already loads its other static assets — the package emits no script tag
-    of its own (Article XIII, D3).
+    Our own scripts, loaded the way this project already loads its other
+    static assets — the package emits no script tag of its own (Article XIII,
+    D3). They sit outside provider_library deliberately: that block holds the
+    provider's library alone, so a page emptying it to show the mount point
+    with the library never having arrived still has pricing_table.js present.
+    Inside the block, emptying it would take away the very script whose job is
+    to reveal the message that page exists to show.
   {% endcomment %}
+  <script defer
+          src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
   <script defer src="{% static 'mvp_payments/drf_stripe/billing_portal.js' %}"></script>
 {% endblock extra_js %}

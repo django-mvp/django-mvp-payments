@@ -314,3 +314,31 @@ emptying it outright.
 
 **ADR:** none — flagged as a concern in this story's completion report for Forge to triage;
 `demo/templates/base.html` is outside this story's scope to edit.
+
+## D10 — `pricing_table.js` moves out of the demo's `provider_library` block, and a test holds it there
+
+**Decision:** `demo/templates/base.html` now loads `pricing_table.js` outside
+`{% block provider_library %}`, beside `billing_portal.js`. That block holds the provider's
+library and nothing else. `demo/templates/demo/no_library.html` keeps emptying it outright, so the
+route drops only the provider's script and our own still runs — the hidden message is revealed
+live on the page built to show exactly that.
+
+**Why:** this is D9's triage. D9 recorded the gap accurately and correctly declined to close it,
+because `base.html` was outside US-4's file scope. Taking the fix on the second of D9's own
+"revisit if" options is the cheaper half: moving one script tag costs nothing, where a partial
+block override would have `no_library.html` restating a script tag it does not own and would drift
+the moment `base.html` gained another. The block's purpose narrows to the one thing its comment
+already claims it is for.
+
+The route existed to demonstrate a state, and without this it demonstrated a different state that
+looks identical — a mount point that never comes to life, with no message either way. Nobody
+inspecting it would have seen anything wrong.
+
+**How it is held:** `tests/test_demo.py::TestUnavailableStateRoutes` covers both new routes, and
+`test_the_no_library_route_drops_the_provider_library_and_keeps_ours` asserts the provider's origin
+is absent from that page while `pricing_table.js` is present. Confirmed against the defect: with
+the script tag returned to its previous position inside the block, that test fails and the other
+three pass.
+
+**ADR:** none — a demonstration-project wiring choice, local to this feature, nothing downstream
+inherits it.

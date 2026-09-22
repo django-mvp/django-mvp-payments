@@ -84,6 +84,47 @@ class TestHomePage:
         assert "Neither is the fallback for the other." in home_page
 
 
+class TestUnavailableStateRoutes:
+    """The two routes that make US-4's states reachable by clicking.
+
+    Both belong to the demo, not the package. They are tested here because the
+    states they show are the ones nobody sees during ordinary use — a project
+    that has configured everything correctly never reaches either — so a route
+    that quietly stopped rendering them would go unnoticed indefinitely.
+    """
+
+    def test_the_unconfigured_route_states_plans_are_unavailable(self, client, db):
+        content = client.get("/plans-unconfigured/").content.decode()
+
+        assert "<stripe-pricing-table" not in content
+
+    def test_the_no_library_route_emits_the_mount_point(self, client, db):
+        content = client.get("/no-library/").content.decode()
+
+        assert "<stripe-pricing-table" in content
+        assert 'pricing-table-id="prctbl_not_a_real_table"' in content
+
+    def test_the_no_library_route_drops_the_provider_library_and_keeps_ours(
+        self, client, db
+    ):
+        """The point of that page, and the one way it can silently stop making it.
+
+        Emptying ``provider_library`` is how the page shows a mount point the
+        provider's library never came to life for. ``pricing_table.js`` is ours
+        and does the revealing, so it has to survive that emptying — if it ever
+        moves back inside the block, this page renders a hidden message with
+        nothing left to reveal it and looks identical to a working one.
+        """
+        content = client.get("/no-library/").content.decode()
+
+        assert "js.stripe.com" not in content
+        assert "pricing_table.js" in content
+
+    def test_both_routes_are_reachable_from_the_landing_page(self, home_page):
+        assert "/plans-unconfigured/" in home_page
+        assert "/no-library/" in home_page
+
+
 class TestSidebarMenu:
     """What the navigation holds while no component exists."""
 
