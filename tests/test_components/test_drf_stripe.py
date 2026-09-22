@@ -77,6 +77,34 @@ class TestPlan:
 
         assert "fortnight_1" in html
 
+    def test_its_features_render_beneath_it(self, cotton_render):
+        plan = Plan(
+            name="Premium monthly",
+            amount=Money(minor_units=2500, currency="USD"),
+            frequency="month_1",
+            quantity=1,
+            features=(
+                PlanFeature(identifier="reports", description="Advanced reports"),
+            ),
+        )
+
+        html = cotton_render("drf-stripe.plan", plan=plan)
+
+        assert "Advanced reports" in html
+
+    def test_no_features_renders_no_heading_or_list(self, cotton_render):
+        plan = Plan(
+            name="Basic",
+            amount=Money(minor_units=500, currency="USD"),
+            frequency="month_1",
+            quantity=1,
+        )
+
+        html = cotton_render("drf-stripe.plan", plan=plan)
+
+        assert "<ul" not in html
+        assert "<li" not in html
+
 
 class TestSubscription:
     """``<c-drf-stripe.subscription>`` renders one ``CurrentSubscription`` as a card."""

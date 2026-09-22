@@ -1,24 +1,28 @@
 {% load i18n %}
 {# ============================================================ #}
-{# <c-drf-stripe.plan> — one priced item on a subscription       #}
+{# <c-drf-stripe.plan> — one priced item on a subscription, and  #}
+{# what it grants beneath it (FR-009)                            #}
 {#                                                                #}
 {# Props:                                                        #}
 {#   plan – a mvp_payments.namespaces.drf_stripe_records.Plan    #}
 {# ============================================================ #}
 <c-vars plan />
-<div class="flex flex-wrap items-baseline justify-between gap-2 py-2 border-b border-base-200 last:border-b-0">
-  <div>
-    <p class="font-medium">{{ plan.name }}</p>
-    {% if plan.quantity > 1 %}
-      <p class="text-sm text-base-content/60">
-        {% blocktranslate with quantity=plan.quantity %}Quantity: {{ quantity }}{% endblocktranslate %}
-      </p>
-    {% endif %}
+<div class="py-2 border-b border-base-200 last:border-b-0">
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <div>
+      <p class="font-medium">{{ plan.name }}</p>
+      {% if plan.quantity > 1 %}
+        <p class="text-sm text-base-content/60">
+          {% blocktranslate with quantity=plan.quantity %}Quantity: {{ quantity }}{% endblocktranslate %}
+        </p>
+      {% endif %}
+    </div>
+    <div class="text-right">
+      <c-drf-stripe.amount :amount="plan.amount" />
+      {% if plan.frequency_display %}
+        <span class="text-sm text-base-content/60">{{ plan.frequency_display }}</span>
+      {% endif %}
+    </div>
   </div>
-  <div class="text-right">
-    <c-drf-stripe.amount :amount="plan.amount" />
-    {% if plan.frequency_display %}
-      <span class="text-sm text-base-content/60">{{ plan.frequency_display }}</span>
-    {% endif %}
-  </div>
+  <c-drf-stripe.features :features="plan.features" />
 </div>

@@ -1,0 +1,23 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.features> — what a plan's product grants inside #}
+{# the application (FR-009)                                      #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   features – a tuple of                                       #}
+{#     mvp_payments.namespaces.drf_stripe_records.PlanFeature    #}
+{#                                                                #}
+{# Renders nothing at all when given none — no heading, no empty #}
+{# list (Article XVI).                                           #}
+{# ============================================================ #}
+<c-vars features />
+{% if features %}
+  <div class="mt-2">
+    <p class="text-sm font-medium text-base-content/80">{% translate "What this includes" %}</p>
+    <ul class="list-disc list-inside text-sm text-base-content/70">
+      {% for feature in features %}
+        <li>{{ feature.description|default:feature.identifier }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

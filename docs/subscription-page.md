@@ -72,6 +72,10 @@ provider's dashboard rather than held here.
 | `identifier` | The feature id you set on the product. |
 | `description` | Your description of it, falling back to the identifier where you gave none. |
 
+drf-stripe-subscription reads a product's features from a space-delimited `features` key in that
+product's Stripe metadata, and syncs each id into its own record, with a description you set
+separately. A product you have set none on is normal, and its plan's `features` is simply empty.
+
 ### `Money`
 
 An amount as the provider reports it: an integer in the currency's minor unit, plus the currency
@@ -97,13 +101,14 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Four components render the page, and each one renders on its own given its attributes. You can
+Five components render the page, and each one renders on its own given its attributes. You can
 place any of them in a template of your own.
 
 ```html
 <c-drf-stripe.subscription :subscription="subscription" />
 <c-drf-stripe.plan :plan="plan" />
 <c-drf-stripe.amount :amount="plan.amount" />
+<c-drf-stripe.features :features="plan.features" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
 ```
 
@@ -113,11 +118,15 @@ place any of them in a template of your own.
   with a neutral badge.
 
 `<c-drf-stripe.plan>`
-: One priced item: its name, its quantity where more than one, its amount and its billing
-  frequency.
+: One priced item: its name, its quantity where more than one, its amount, its billing frequency,
+  and its features beneath it.
 
 `<c-drf-stripe.amount>`
 : A `Money`, rendered in its own currency.
+
+`<c-drf-stripe.features>`
+: A plan's `features`, one line each, its description where the project gave one and its
+  identifier otherwise. Given none, renders nothing at all — no heading and no empty list.
 
 `<c-drf-stripe.portal-link>`
 : Given an `endpoint`, a control that posts to it and follows the address the backend answers
