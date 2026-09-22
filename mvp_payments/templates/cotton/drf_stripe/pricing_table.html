@@ -1,0 +1,21 @@
+{# ============================================================ #}
+{# <c-drf-stripe.pricing-table> — the provider's own embeddable  #}
+{# pricing table (T005, FR-001, FR-011, SC-007)                  #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   table_id – the pricing table's id, from the provider's      #}
+{#              dashboard                                        #}
+{#   publishable_key – the account's publishable key; not a      #}
+{#                      secret, and printed in the provider's own#}
+{#                      copy-paste examples                      #}
+{#   customer_email – declared for a later story; not read here  #}
+{#                                                                #}
+{# Emits only the provider's element and the two attributes      #}
+{# above. No script element and no figure about price: the       #}
+{# provider renders every price inside its own frame, and        #}
+{# loading the library that brings the element to life is the    #}
+{# host project's decision, never this package's (Article XIII). #}
+{# ============================================================ #}
+<c-vars table_id publishable_key customer_email />
+<stripe-pricing-table pricing-table-id="{{ table_id }}"
+                       publishable-key="{{ publishable_key }}"></stripe-pricing-table>
