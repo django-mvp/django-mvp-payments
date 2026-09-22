@@ -78,26 +78,22 @@
       Every project starts here: nothing supplied, or the provider's library never loaded. Both
       states are one click away rather than left to be imagined.
     </c-text>
-    <c-grid md="2" gap="4">
-      <c-card title="Nothing configured yet" icon="plan">
-        <c-text tight>
-          The package's own Plans page, reached with neither a pricing table id nor a
-          publishable key supplied.
-        </c-text>
-        <c-button variant="primary"
-                  text="Open the unconfigured page"
-                  href="{% url 'plans-unconfigured' %}" />
-      </c-card>
-      <c-card title="The library never arrived" icon="subscription">
-        <c-text tight>
-          Both values configured, the mount point rendered, and the provider's own script
-          never loaded.
-        </c-text>
-        <c-button variant="primary"
-                  text="Open the page"
-                  href="{% url 'no-library' %}" />
-      </c-card>
-    </c-grid>
+    <c-text tight>
+      The package's own Plans page, reached with neither a pricing table id nor a publishable key
+      supplied:
+      <c-button variant="primary"
+                size="sm"
+                text="Nothing configured yet"
+                href="{% url 'plans-unconfigured' %}" />
+    </c-text>
+    <c-text tight>
+      Both values configured, the mount point rendered, and the provider's own script never
+      loaded:
+      <c-button variant="primary"
+                size="sm"
+                text="The library never arrived"
+                href="{% url 'no-library' %}" />
+    </c-text>
   </c-section>
   <c-section title="Where the components will appear" icon="overview">
     <c-alert variant="info" soft>
