@@ -454,3 +454,22 @@ that reason, not an error. Restored, then `poetry run pytest tests/test_views.py
 Next: T029, the standalone-component guarantee.
 
 Watch: none.
+
+## 2026-09-22T05:46:15Z · Implementer US-5 · T029
+
+Did: `tests/test_components/test_drf_stripe.py::TestStandalone` — every component this feature
+added (`amount`, `plan`, `subscription`, `features`, `portal-link`, `no-subscription`), placed
+inside markup unrelated to the shipped page (an `<article>`, a `<section>`, an `<aside>`, a
+`<footer>`, a `<nav>`, a `<main>`), rendering correctly from its attributes alone via
+`cotton_render_string` (T029, FR-012, SC-006). Additive: the existing `TestAmount`/`TestPlan`/
+etc. classes and their `cotton_render` assertions are untouched.
+
+Verified: confirmed red first by temporarily blanking `amount.html` and running
+`test_amount_renders_inside_an_unrelated_template` alone — failed on the missing figure while
+the unrelated wrapper markup (`<article><h2>Order summary</h2>`) still rendered, proving the
+test genuinely exercises the component rather than the surrounding template. Restored, then
+`poetry run pytest tests/test_components/test_drf_stripe.py` — 22 passed.
+
+Next: T030, bringing docs/subscription-page.md up to date against the branch as it stands.
+
+Watch: none.
