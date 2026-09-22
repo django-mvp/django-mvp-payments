@@ -4,6 +4,12 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
+from tests.factories import (
+    StripeUserFactory,
+    SubscriptionFactory,
+    SubscriptionItemFactory,
+)
+
 
 @pytest.fixture
 def home_page(client, db):
@@ -27,6 +33,27 @@ def user(db):
 @pytest.fixture
 def logged_in_client(client, user):
     """A test client already signed in as ``user``."""
+    client.force_login(user)
+    return client
+
+
+@pytest.fixture
+def stripe_user(user):
+    """The backend's record of ``user`` as a Stripe customer."""
+    return StripeUserFactory(user=user)
+
+
+@pytest.fixture
+def current_subscription(stripe_user):
+    """One active subscription covering one priced item of a product."""
+    subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+    SubscriptionItemFactory(subscription=subscription)
+    return subscription
+
+
+@pytest.fixture
+def subscriber_client(client, user, current_subscription):
+    """A signed-in client whose person holds ``current_subscription``."""
     client.force_login(user)
     return client
 
