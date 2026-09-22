@@ -1,0 +1,128 @@
+{
+  "story": "US5",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 31,
+  "worktree": "/home/sam/projects/worktrees/dmp-003-pricing-table",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T028",
+    "T029",
+    "T030",
+    "T031",
+    "T032",
+    "T033"
+  ],
+  "budgets": {
+    "attempts_per_task": 5,
+    "wallclock_minutes": 100
+  },
+  "rituals": [
+    "Load craft-tdd and craft-increments by name before anything else, and copy each RECEIPT line verbatim out of the file you read.",
+    "Read this brief in full, then your tasks T028-T033 in specs/003-pricing-table/tasks.md — your tasks only.",
+    "Read the plan.md sections this brief names by heading, and stop there.",
+    "Read the CONTEXT.md glossary entries named above and use that vocabulary in code, tests and commit messages.",
+    "git log --oneline -10.",
+    "Do NOT run the suite to check your starting point — context.verified_base is the assurance, already given. Confirm your HEAD equals that commit and start."
+  ],
+  "context": {
+    "why": "This is the last story of the feature, and it is what makes an opinionated default acceptable rather than a ceiling. US-1 to US-4 built a Plans page that a project gets without asking and cannot currently change. This story proves a project can replace it — the component, or the whole page template — and documents how.\n\nTwo of your six tasks are tests and prose about behaviour that very likely ALREADY WORKS. Django's app-directories template loader resolves a template by INSTALLED_APPS order, so a project application listed ahead of this package simply wins. Nothing was built to make that happen and nothing should need to be. If T028 passes on first run, that is the design holding, and it is the honest result — SAY SO PLAINLY IN YOUR REPORT rather than reshaping it into a conventional red/green cycle. tests/settings_with_project_template_override.py already establishes exactly how an override is tested in this repo, and tests/project_app/ already supplies one override template for the subscription page. Follow both; add to them rather than inventing a second mechanism.\n\nThe constitution amendment (T032) is the one piece of this story with real weight. Two sentences currently say, flatly, that a publishable key is 'never read from Django settings by this package'. Applied literally, the page US-1 built cannot work — and that page is the point of the feature, because a project that has to pass attributes is a project building the page itself. The amendment NARROWS each sentence to the COMPONENT, which genuinely never reads settings, and names the page reading settings and passing them down as the permitted shape. That distinction is the whole design: the component stays a pure function of its attributes, and exactly one place — the page — is allowed to know about configuration.\n\nPut NO reasoning in the constitution itself. It states rules. The justification belongs in decisions.md, and you should write that entry.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root /home/sam/projects/worktrees/dmp-003-pricing-table, which is a git worktree on branch feat/003-pricing-table. Tests: 'poetry run pytest'. Narrow scope: 'poetry run pytest tests/test_views.py::TestPlansPageOverride'. The full verify command, to run ONCE at your report: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main'.\n\nOVERRIDE TESTING, read before writing T028:\n- tests/settings_with_project_template_override.py — tests.settings plus a project application placed AHEAD of the package in INSTALLED_APPS. Its docstring explains why a fresh process is needed rather than reordering mid-test: the app-directories loader decides order at process start.\n- tests/project_app/templates/mvp_payments/drf_stripe/subscription.html — the existing override template, for the subscription page. Your Plans page equivalents go beside it.\n- Look at how the existing subscription-page override test invokes that settings module; match it exactly rather than devising a new way to boot a settings variant.\n\nDOCUMENTATION SHAPE, read before writing T030 and T031:\n- docs/subscription-page.md — the sibling page and the model for docs/plans-page.md's completion: what the page puts in the template context, the components it is built from, and how to replace it with your own.\n- README.md around line 90 — the documentation section where T031's link goes, beside the subscription page's. Match the existing sentence shape.\n- docs/plans-page.md already exists and already covers the component, its attributes and both unavailable states from earlier stories. You are COMPLETING it, not rewriting it. Preserve what is there.\n\nCONSTITUTION, the two sentences T032 narrows:\n- Article XII, the 'No secret keys' bullet, around line 195: '...A publishable key is the host project's to supply, as an attribute or its own configuration, and it is never read from Django settings by this package.'\n- Article XIII, the embed paragraph, around line 235: '...A publishable key reaches the component as an attribute, the way the provider's own documentation passes it, and is never read from Django settings here.'\nBoth keep their force for the component. Both gain the page as the named exception.",
+    "spec_sections": [
+      "User Story 5 - A project supplies its own markup instead",
+      "Requirements: FR-012, FR-013",
+      "Success Criteria: SC-007"
+    ],
+    "plan_sections": [
+      "Design",
+      "The page",
+      "The constitution amendment"
+    ],
+    "prior_decisions": [
+      "The override mechanism is Django's own template resolution order and nothing else. Do NOT add a setting, a registry, a hook or a swappable-class mechanism to support overriding — a project application ahead of this one in INSTALLED_APPS is the entire feature, and adding machinery would be building what Django already does.",
+      "The component remains a pure function of its attributes. The amendment narrows the rule to the component; it does not loosen it. Nothing in this story may make a component read settings.",
+      "The page is the one place permitted to read the two settings and pass them down. That asymmetry is the design, and T032's wording should make it read as a deliberate boundary rather than an exemption.",
+      "No reasoning text in CONSTITUTION.md. It states rules; decisions.md carries the why. Write the decisions.md entry for the amendment.",
+      "WATCH — T028 may well pass on first run, because nothing had to be built for it. Report which it was, honestly. Do not weaken the test to force a red.",
+      "WATCH — scenario 2 requires that EVERY context name the shipped page would have used is available to a project's own page template, and that those names are documented. Assert the names, do not assume them.",
+      "WATCH — scenario 3: either override renders with no view of the project's own and no query. Use the zero-query assertion, the way US-3's T016 test does.",
+      "WATCH — assert against rendered output, never against the presence of a class name (constitution Article XVI).",
+      "D10 — the demo's base.html loads pricing_table.js outside the provider-library block, and a test in tests/test_demo.py holds it there. Do not move it back and do not touch that file."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Plan",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md — Development workflow. CONSTITUTION.md Article I (test-first), VI (public API changes ship their docs in the same change), VIII (every user-facing string translatable — gettext_lazy in Python, {% translate %} in templates), X (test modules mirror the source tree; Test<Subject> classes; component tests go under the declared non-mirror path tests/test_components/), XII (an interface layer and nothing else), XIII (no backend import, no provider script emitted, no build step), XIV (nothing at import time reads settings or reverses a URL), XVI (assert against rendered output, never against the presence of a class name). Public markdown — README.md, CONSTITUTION.md, CHANGELOG.md and docs/ are read by people outside this project: write plainly, no internal shorthand, no status markers, no revision stamps or strikethrough. Edit a document to read as current state; git records what changed.",
+    "verified_base": {
+      "commit": "866c2f47abf0515ce687be058ef4bfd1d590fd2d",
+      "verified_at": "2026-09-22T21:18:24Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "poetry:lint",
+        "poetry:typecheck",
+        "poetry:test",
+        "poetry:build"
+      ],
+      "note": "Green on the commit you are starting from, verified independently after US-4 was accepted: lint, typecheck, full suite (146 passed), build, conformance and docs all clean. If the tree is red on arrival, or your HEAD is not this commit, stop and report blocked."
+    },
+    "acceptance": [
+      {
+        "task": "T028",
+        "given_when_then": "Given a project application ahead of the package in INSTALLED_APPS supplying its own cotton/drf_stripe/pricing_table.html, when the Plans page renders, then the project's markup is what appears (scenario 1); given the same project supplying its own mvp_payments/drf_stripe/plans.html, then that renders and every context name the shipped page would have used is available to it (scenario 2); given either override, then it renders with no view of the project's own and no query, asserted with a zero-query assertion (scenario 3)."
+      },
+      {
+        "task": "T029",
+        "given_when_then": "Given the README, when the documentation links are checked the way the existing ones are, then docs/plans-page.md is reachable from it."
+      },
+      {
+        "task": "T030",
+        "given_when_then": "Given someone reading docs/plans-page.md, when they look for the component, its attributes, the settings the page reads, how the provider's script is expected to arrive, and how to override either the component or the page, then all of them are documented — the two context names as a table, and what each override keeps."
+      },
+      {
+        "task": "T031",
+        "given_when_then": "Given the README's documentation section, when it is read, then docs/plans-page.md is linked beside the subscription page's, in the same sentence shape."
+      },
+      {
+        "task": "T032",
+        "given_when_then": "Given Article XII's 'No secret keys' bullet and Article XIII's embed paragraph, when each is read after the amendment, then the prohibition on reading a publishable key from Django settings applies to a component, and the page reading the settings and passing them down is named as the permitted shape — with no reasoning text in the constitution itself."
+      },
+      {
+        "task": "T033",
+        "given_when_then": "Given CHANGELOG.md's Unreleased section, when it is read, then one Added entry covers the component, the page's two settings, and the documentation page."
+      }
+    ]
+  },
+  "prohibitions": [
+    "Never modify or delete a test you did not author in this story. If a pre-existing test genuinely must change, mark the task blocked and say why in concerns.",
+    "Never touch files outside this story's scope: tests/test_views.py, tests/test_app.py, tests/settings_with_project_template_override.py, tests/project_app/ (new override templates only), docs/plans-page.md, README.md, CONSTITUTION.md, CHANGELOG.md, and the progress.md and decisions.md of this feature.",
+    "Do NOT touch demo/templates/base.html or tests/test_demo.py. D10 fixed a defect there during US-4's acceptance and a test holds it; moving pricing_table.js back inside the provider-library block reintroduces it.",
+    "Do NOT add a setting, registry, hook, swappable class or any other mechanism to support overriding. Django's template resolution order is the entire feature.",
+    "Do NOT loosen the component's rule in CONSTITUTION.md. The amendment narrows two sentences to the component and names the page as the permitted reader of settings — it does not permit a component to read settings.",
+    "Do NOT put reasoning, justification or history in CONSTITUTION.md. It states rules; the why goes in decisions.md.",
+    "Do NOT use strikethrough, revision stamps or 'formerly said' annotations in any document. Edit each to read as current state — git records what changed.",
+    "Do NOT emit a script element, or anything that causes the provider's library to be fetched, from any template under mvp_payments/.",
+    "Do NOT produce, read or render any amount, currency, billing frequency or plan name anywhere in this package.",
+    "Never edit feature-state.json beyond flipping your own tasks' status, attempts and evidence. Not the top-level state, not state_history, not your story's status, not any gate. Every code evidence entry must be path:line — the schema refuses a bare path.",
+    "You do not review, accept, merge or push your own story. No git merge, no bot-push, no gh, no token. Your story ends at a clean committed worktree and a report.",
+    "Never write a decisions.md entry, progress note or commit message that asserts a check you did not personally run, and never write one in Forge's voice.",
+    "Never weaken assertions, add skips or xfails, or special-case code to make a test pass.",
+    "No GitHub operations, no network beyond the package registry, never commit secrets."
+  ]
+}

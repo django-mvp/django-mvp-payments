@@ -530,67 +530,99 @@
       "priority": "P3",
       "issue": 31,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T028",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_views.py::TestPlansPageOverride::test_a_projects_own_component_renders_with_no_view_and_no_query",
+              "tests/test_views.py::TestPlansPageOverride::test_a_projects_own_page_template_receives_every_documented_context_name"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestPlansPageOverride -v"
+            ],
+            "code": [
+              "tests/test_views.py:699",
+              "tests/project_app/templates/cotton/drf_stripe/pricing_table.html:1",
+              "tests/project_app/templates/mvp_payments/drf_stripe/plans.html:1"
+            ]
           }
         },
         {
           "id": "T029",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_app.py::TestDocumentationLinkedFromReadme::test_the_plans_page_documentation_is_linked"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -q"
+            ],
+            "code": [
+              "tests/test_app.py:165"
+            ]
           }
         },
         {
           "id": "T030",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_app.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -q"
+            ],
+            "code": [
+              "docs/plans-page.md:133"
+            ]
           }
         },
         {
           "id": "T031",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_app.py::TestDocumentationLinkedFromReadme"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -q"
+            ],
+            "code": [
+              "README.md:94"
+            ]
           }
         },
         {
           "id": "T032",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
             "tests": [],
             "commands": [],
-            "code": []
+            "code": [
+              "CONSTITUTION.md:197",
+              "CONSTITUTION.md:237"
+            ]
           }
         },
         {
           "id": "T033",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
             "tests": [],
             "commands": [],
-            "code": []
+            "code": [
+              "CHANGELOG.md:8"
+            ]
           }
         }
       ]
