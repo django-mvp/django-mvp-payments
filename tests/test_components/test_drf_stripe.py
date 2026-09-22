@@ -332,6 +332,17 @@ class TestNoSubscription:
         assert "You have no subscription that is currently active." in html
 
 
+class TestPlansUnavailable:
+    """``<c-drf-stripe.plans-unavailable>`` — plans cannot be shown yet, said
+    plainly, on its own, given no attributes at all (T020, T022, FR-007)."""
+
+    def test_renders_its_sentence_given_nothing(self, cotton_render):
+        html = cotton_render("drf-stripe.plans-unavailable")
+
+        assert "Plans not available" in html
+        assert "This project has not configured its plans yet." in html
+
+
 class TestStandalone:
     """Every component this feature added, placed inside a template that has nothing to do
     with the shipped page, given only its attributes (T029, FR-012, SC-006).
