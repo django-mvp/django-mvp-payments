@@ -67,19 +67,31 @@ MVP_PAYMENTS = {
 }
 ```
 
-The shipped page renders the component with both values unconditionally. It keeps
-`LoginRequiredMixin`, so an anonymous visitor is sent to sign in rather than shown the page.
+The shipped page renders the component when both values are present, and a plain sentence in
+their place when either is absent. It keeps `LoginRequiredMixin`, so an anonymous visitor is sent
+to sign in rather than shown the page.
 
 ```html
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
-    <c-drf-stripe.pricing-table :table_id="pricing_table_id"
-                                 :publishable_key="publishable_key" />
+    {% if pricing_table_id and publishable_key %}
+      <c-drf-stripe.pricing-table :table_id="pricing_table_id"
+                                   :publishable_key="publishable_key" />
+    {% else %}
+      <c-drf-stripe.plans-unavailable />
+    {% endif %}
   </c-page>
 {% endblock account.content %}
 ```
+
+## Before it is configured
+
+A project that has not yet supplied `DRF_STRIPE_PRICING_TABLE_ID`, `DRF_STRIPE_PUBLISHABLE_KEY`,
+or `MVP_PAYMENTS` at all, gets a page that says plans are not available — never an empty region
+with nothing to explain it. `<c-drf-stripe.plans-unavailable>` renders that sentence and takes no
+props of its own.
 
 ## Loading the provider's library
 
@@ -98,6 +110,25 @@ entry point, an import map, whatever your project already uses:
 
 The demo project does this in `demo/templates/base.html`, inside a `{% block provider_library %}`
 labelled a demonstration convenience rather than a recommendation.
+
+## When the library never arrives
+
+Loading the provider's library is your project's decision, and there is no guarantee it always
+succeeds — the project may not have loaded it at all, or a reader's browser could not reach the
+provider's origin. Either way the element renders as nothing, with no event to signal it.
+
+The component carries a message for exactly this, rendered hidden in the same markup as the
+element rather than injected by JavaScript — the message is translatable this way, and revealing
+it needs no string in a `.js` file (`FR-010`).
+
+`mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js` is what reveals it: after your
+page's `load` event, it checks `customElements.get("stripe-pricing-table")`. Undefined means the
+library never arrived, and the hidden message is shown. Load this file the way you load the
+provider's own library — it emits no message of its own and fetches nothing:
+
+```html
+<script defer src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
+```
 
 ## Replacing the page
 
