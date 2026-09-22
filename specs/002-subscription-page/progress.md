@@ -353,3 +353,24 @@ Verified: no new commands beyond T021's.
 Next: T024.
 
 Watch: none.
+
+## 2026-09-22T05:30:00Z · Implementer US3 · T024
+
+Did: added `cotton/drf_stripe/features.html` (T022's `TestFeatures` now green) and extended
+`plan.html` to render it beneath the plan, with an outer wrapper carrying the per-plan border so
+the divider separates whole plan+features blocks rather than sitting inside one plan (D12). Added
+two `TestPlan` cases proving the integration and the no-features case. Extended
+`docs/subscription-page.md`: the component to the components table and list, its row in `Plan`'s
+attribute table already existed, and a new note on how drf-stripe-subscription records features
+against a product (space-delimited metadata key) since a reader would need it and nothing
+documented it yet. Recorded D12 (wrapper) and D13 (template-level fallback, independent of
+`build_plan`'s own) in `decisions.md`.
+
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py tests/test_views.py` — 33
+passed. `TestPlan::test_its_features_render_beneath_it` observed red first
+(`TemplateDoesNotExist`... then a missing-text assertion) before `features.html` and the `plan.html`
+change turned it green.
+
+Next: the story's completion report and the full verify run.
+
+Watch: none.
