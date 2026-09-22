@@ -1,0 +1,119 @@
+"""Every component this story adds renders standalone, from its attributes alone (T014).
+
+No view runs to produce these — ``cotton_render`` builds a bare request and passes each
+dataclass straight through as a component attribute, which is exactly the guarantee a project
+overriding this page's template, or placing one of these components elsewhere, relies on.
+"""
+
+from django.utils import timezone
+
+from mvp_payments.money import Money
+from mvp_payments.namespaces.drf_stripe_records import CurrentSubscription, Plan
+
+
+class TestAmount:
+    """``<c-drf-stripe.amount>`` renders the ``Money`` it was given."""
+
+    def test_renders_the_amount_it_was_given(self, cotton_render):
+        html = cotton_render(
+            "drf-stripe.amount", amount=Money(minor_units=2000, currency="USD")
+        )
+
+        assert "20.00 USD" in html
+
+    def test_a_currencyless_amount_renders_nothing_for_the_figure(self, cotton_render):
+        html = cotton_render(
+            "drf-stripe.amount", amount=Money(minor_units=2000, currency="")
+        )
+
+        assert "2000" not in html
+        assert "20.00" not in html
+
+
+class TestPlan:
+    """``<c-drf-stripe.plan>`` renders one priced item's name, amount, frequency and quantity."""
+
+    def test_renders_the_name_amount_and_frequency_it_was_given(self, cotton_render):
+        plan = Plan(
+            name="Premium monthly",
+            amount=Money(minor_units=2500, currency="USD"),
+            frequency="month_1",
+            quantity=1,
+        )
+
+        html = cotton_render("drf-stripe.plan", plan=plan)
+
+        assert "Premium monthly" in html
+        assert "25.00 USD" in html
+        assert "every month" in html
+
+    def test_a_quantity_above_one_is_shown(self, cotton_render):
+        plan = Plan(
+            name="Seats",
+            amount=Money(minor_units=500, currency="USD"),
+            frequency="month_1",
+            quantity=3,
+        )
+
+        html = cotton_render("drf-stripe.plan", plan=plan)
+
+        assert "3" in html
+
+    def test_an_unrecognised_frequency_renders_as_itself(self, cotton_render):
+        plan = Plan(
+            name="Odd billing",
+            amount=Money(minor_units=500, currency="USD"),
+            frequency="fortnight_1",
+            quantity=1,
+        )
+
+        html = cotton_render("drf-stripe.plan", plan=plan)
+
+        assert "fortnight_1" in html
+
+
+class TestSubscription:
+    """``<c-drf-stripe.subscription>`` renders one ``CurrentSubscription`` as a card."""
+
+    def test_renders_the_status_and_its_plans(self, cotton_render):
+        plan = Plan(
+            name="Premium monthly",
+            amount=Money(minor_units=2500, currency="USD"),
+            frequency="month_1",
+            quantity=1,
+        )
+        subscription = CurrentSubscription(
+            status="active",
+            period_start=None,
+            period_end=None,
+            plans=(plan,),
+        )
+
+        html = cotton_render("drf-stripe.subscription", subscription=subscription)
+
+        assert "active" in html
+        assert "Premium monthly" in html
+
+    def test_renders_a_recorded_period(self, cotton_render):
+        now = timezone.now()
+        subscription = CurrentSubscription(
+            status="active", period_start=now, period_end=now, plans=()
+        )
+
+        html = cotton_render("drf-stripe.subscription", subscription=subscription)
+
+        assert str(now.year) in html
+
+    def test_an_unrecognised_status_renders_as_itself_with_no_special_variant(
+        self, cotton_render
+    ):
+        subscription = CurrentSubscription(
+            status="paused", period_start=None, period_end=None, plans=()
+        )
+
+        html = cotton_render("drf-stripe.subscription", subscription=subscription)
+
+        assert "paused" in html
+        assert "badge-success" not in html
+        assert "badge-info" not in html
+        assert "badge-warning" not in html
