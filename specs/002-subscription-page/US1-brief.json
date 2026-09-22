@@ -1,0 +1,139 @@
+{
+  "story": "US1",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 18,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T001",
+    "T002",
+    "T003",
+    "T004",
+    "T005",
+    "T006",
+    "T007",
+    "T008",
+    "T009",
+    "T010",
+    "T011",
+    "T012",
+    "T013",
+    "T014"
+  ],
+  "context": {
+    "why": "This package is a UI layer over payment backends. Its drf-stripe namespace already contributes three pages to django-mvp's Account Center, and all three are empty headings. This story fills the first of them: a signed-in person opens the subscription page and reads the plan they are on, what it costs, how often they are charged, the state the subscription is in and the period it is in now. Every value on that page is one the installed backend recorded. The page computes nothing.\n\nYour tasks T001-T003 are the foundational phase: the test factories, the fixtures over them, and the demo project's seed data. Nothing in mvp_payments/ changes in those three. T004 onward is the story proper.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root, which is the repository root — this story runs in the main checkout, not a separate worktree. Tests: 'poetry run pytest'. The full verify command is '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo .' — run it once, at your report. The demo project is already serving this branch on port 8020 with autoreload; you do not need to start it, and a broken template there is visible immediately at http://127.0.0.1:8020/payments/drf-stripe/subscription/.",
+    "the_backend": "drf-stripe-subscription 1.2.2, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/drf_stripe. Read it there when you need to — never import it from mvp_payments/, and never import it in tests either; resolve its models with apps.get_model('drf_stripe', '<Model>'). The models this story reads are StripeUser (one-to-one with the project's user, primary key, plus customer_id), Subscription (status, period_start, period_end, stripe_user), SubscriptionItem (subscription, price, quantity), Price (nickname, price as an integer in the currency's minor unit, freq, currency, product) and Product (name, description).",
+    "spec_sections": [
+      "User Story 1 - The page says what you are subscribed to",
+      "Requirements: FR-001, FR-002, FR-003, FR-004, FR-007, FR-010",
+      "Success Criteria: SC-001, SC-003",
+      "Edge Cases"
+    ],
+    "plan_sections": [
+      "Design",
+      "Project Structure",
+      "Technical Context"
+    ],
+    "prior_decisions": [
+      "D1 — 'current' is read from the backend's own StripeUser.current_subscription_items property and the rows are grouped by item.subscription. Do not filter subscriptions on a status list: no status string belongs anywhere in mvp_payments/. The backend applies that line everywhere else it answers a question about a person, and copying its list here would go stale silently.",
+      "D2 — an amount's minor-unit exponent is a table in mvp_payments/money.py. Stripe's zero-decimal set is BIF CLP DJF GNF JPY KMF KRW MGA PYG RWF UGX VND VUV XAF XOF XPF; its three-decimal set is BHD IQD JOD KWD LYD OMR TND; everything else is two. babel was considered and rejected. Converting minor units for display is not the figure FR-007 forbids — that is about producing a number the backend never recorded, such as a total across items.",
+      "D4 — Page gains a `view` field defaulting to PaymentPageView, and url_patterns() builds each route from it. The other two pages keep the generic view and must keep rendering exactly as they do now.",
+      "D5 — the design review found that the backend's portal endpoint creates a Stripe customer for a person who has none rather than failing. Nothing in this story touches the portal, but do not add any link to it here; US-2 owns that entirely."
+    ],
+    "watch_items": [
+      "The design review noted (DR-003, low) that Price.nickname and Product.name are both nullable, so a plan could in principle have no name at all. Do not invent a third fallback — FR-003 names two and the spec is the yardstick. If it is free to do so, make the absence visible rather than rendering an empty element.",
+      "DR-002: name select_related('subscription', 'price__product') explicitly on the reader's queryset. The grouping reads item.subscription from every row, so leaving it out is one query per item and no test would notice without the query-count assertion T007 asks for."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md — Development workflow. CONSTITUTION.md Article I (test-first), VIII (every user-facing string translatable — gettext_lazy in Python, {% trans %} in templates), X (test modules mirror the source tree; Test<Subject> classes; one factory per model in tests/factories.py with no factory subclasses for variants; fixtures in conftest.py are thin wrappers over factories), XI (related behaviour grouped on a class), XII (an interface layer and nothing else), XIII (no backend import), XVI (assert against rendered output, never a class name; money rendered with its currency in the right unit or not at all; every state the backend can report is representable; status never conveyed by colour alone; daisyUI semantic palette from django-mvp, never a literal colour).",
+    "components_available": "django-mvp 0.23.0 ships the Cotton components this page is assembled from: <c-card> (title, icon, badges/actions/footer slots), <c-badge> (variant, text), <c-data_field> (label, value, missing), <c-page>, <c-page.title>, <c-icon>, <c-link>, <c-button>. Read them under the resolved mvp package's templates/cotton/ rather than guessing at their attributes. Your own components go in mvp_payments/templates/cotton/drf_stripe/ — that directory exists with a .gitkeep — and are used as <c-drf-stripe.name>.",
+    "acceptance": [
+      {
+        "task": "T001",
+        "given_when_then": "Given the factories module, when each factory is called, then a row of the corresponding backend model is saved and readable; and no module under tests/ imports drf_stripe directly."
+      },
+      {
+        "task": "T002",
+        "given_when_then": "Given the fixtures, when a test asks for subscriber_client, then it is a signed-in client whose person holds one active subscription covering one priced item of a product."
+      },
+      {
+        "task": "T003",
+        "given_when_then": "Given a fresh database, when 'manage.py seed_demo' runs twice, then the accounts and their subscriptions exist exactly once; regular.user holds a subscription with two priced items in different currencies and features recorded against its products, staff.user holds a trialing one, super.user holds none."
+      },
+      {
+        "task": "T004",
+        "given_when_then": "Given 2000 minor units of a two-decimal currency, when rendered, then it reads as 20.00 with its currency; given 2000 of JPY, then it reads as 2,000; given 2000 of BHD, then it reads as 2.000; given an amount with no currency, then nothing is rendered."
+      },
+      {
+        "task": "T005",
+        "given_when_then": "Given a person the backend records one active subscription for, when the reader is asked for their current subscriptions, then it returns that one carrying its status, its period and one plan per priced item. Given a subscription the backend does not count as current, then it is absent. Given another person's subscription, then it is absent. Given a person with no StripeUser row at all, then the result is empty and nothing raises. Given a price with a nickname, then the plan's name is the nickname; without one, the product's name."
+      },
+      {
+        "task": "T006",
+        "given_when_then": "Given a Page declared without a view, when its route is built, then it routes to PaymentPageView; given a Page declared with one, then it routes to that view, and the other pages in the same contribution are unaffected."
+      },
+      {
+        "task": "T007",
+        "given_when_then": "Given a signed-in subscriber, when they open the subscription page, then the plan's name, its amount with its currency, its billing frequency and its status all appear in the rendered page, along with the period when one is recorded. Given a subscription with no period recorded, then the rest still renders. Given a subscription covering two priced items, then both amounts appear and no third figure does. Given a status the page has no treatment for, then that status appears as itself. Given a second person's subscription in the database, then it never appears. The page issues a fixed number of queries whatever the number of items — assert it with django_assert_num_queries."
+      },
+      {
+        "task": "T014",
+        "given_when_then": "Given each component this story adds, when it is rendered on its own in a throwaway template with its attributes supplied and no view having run, then its output carries the values it was given."
+      }
+    ],
+    "verified_base": {
+      "commit": "eac5e4631639b2a42e4a1d96c796407dcebfee3f",
+      "verified_at": "2026-09-22T00:55:00Z",
+      "steps": [
+        "conformance",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "Green on this exact commit: full suite passed, pre-commit clean (ruff lint, ruff format, mypy, deptry), build ok, conformance ok. If your first test run shows a failure outside your own new tests, stop and report it rather than fixing it."
+    }
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Update the documentation your story changes the truth of, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story.",
+    "Do not touch files outside this story's scope. Specifically: nothing about the provider's billing portal, no portal setting, no static file and no portal component — US-2 owns all of it. No feature list and no features component — US-3. No empty-state component — US-4. No docs/subscription-page.md, README or CHANGELOG edit — US-5.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
+    "Do not import drf_stripe anywhere — not in mvp_payments/, not in tests/, not in demo/ outside its settings. Use apps.get_model.",
+    "Do not add a model, migration, form, admin or serializer to mvp_payments/.",
+    "Do not compute a total, a proration, a next charge or any figure that combines two recorded values. If a sum looks obviously useful, that is FR-007 and Article XII telling you not to.",
+    "Do not name a subscription status in any module under mvp_payments/. The backend decides which are current, and the page renders whatever string it holds."
+  ]
+}
