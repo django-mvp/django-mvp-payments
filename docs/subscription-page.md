@@ -122,8 +122,11 @@ place any of them in a template of your own.
 `<c-drf-stripe.portal-link>`
 : Given an `endpoint`, a control that posts to it and follows the address the backend answers
   with, carrying the endpoint and a CSRF token as data. Given `None`, a statement that the
-  subscription is managed by the provider and the portal cannot be reached — with no control,
-  since there is nowhere for it to lead.
+  subscription is managed by the provider and the portal cannot be reached, with no control,
+  since there is nowhere for it to lead. Place it only where the reader has a subscription: that
+  second wording addresses somebody who has one and whose project has not set the endpoint, and
+  the shipped page renders the component only when there is a subscription for exactly that
+  reason.
 
 They render the daisyUI classes django-mvp already ships, so they follow your theme without any
 stylesheet of their own.

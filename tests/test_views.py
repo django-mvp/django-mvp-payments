@@ -331,3 +331,25 @@ class TestBillingPortalEndpoint:
             response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
 
         assert response.context["billing_portal_endpoint"] is None
+
+    def test_says_nothing_about_a_subscription_to_someone_who_has_none(
+        self, logged_in_client
+    ):
+        """A person with nothing current is told nothing about "your subscription".
+
+        ``billing_portal_endpoint`` is None both for an unconfigured project and for a
+        person with nothing to manage, and the component cannot tell those apart. The
+        page can: it renders the control only where there is a subscription behind it.
+        Without that, someone who never subscribed reads that their subscription is
+        managed by the provider and that the portal is temporarily unreachable, and
+        both halves of that are untrue (FR-008).
+        """
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+
+        content = response.content.decode()
+        assert "data-mvp-payments-portal-link" not in content
+        assert "managed by the provider" not in content
+        assert "cannot be reached" not in content

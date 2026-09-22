@@ -277,3 +277,25 @@ piece of copy on this page goes through.
 **Revisit if:** a future failure needs to distinguish *why* the request failed (network error vs.
 the backend's own 4xx/5xx) — the single generic message would need to become several, still static,
 selected by the script rather than written by it.
+
+## D11 — The page renders the portal control only where there is a subscription behind it
+
+`billing_portal_endpoint` is `None` in two unrelated situations: the project never set the
+setting, and the reader has nothing current (D5). The component receives only the endpoint, so it
+cannot tell them apart, and its no-endpoint wording — that the subscription is managed by the
+provider and the portal cannot be reached right now — is true of the first and false of the
+second in both halves. Somebody who never subscribed has no subscription for anyone to manage,
+and nothing is failing.
+
+The page can tell them apart, because it holds the subscriptions as well. It renders the
+component only when there is at least one, so the wording addresses only the reader it is true
+of. The control was already withheld from the other reader; what was left was a sentence about a
+subscription they do not have.
+
+This is not US-4's empty state arriving early. US-4 decides what the page says to a person with
+nothing, which is a different question from whether this story leaves a false statement on the
+page until then. The guard is one line in a template this story already owns.
+
+**Revisit if:** the component is ever given a way to distinguish the two cases itself — passing
+the subscriptions, or a second attribute — at which point the guard belongs inside it rather than
+at the call site.

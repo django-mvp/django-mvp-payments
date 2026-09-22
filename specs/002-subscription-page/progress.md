@@ -274,3 +274,36 @@ someone who never subscribed (US-4 territory, not this story's to fix: the page 
 %}` branch yet, and building one is explicitly out of this story's scope). Flagged in the
 completion report's `concerns` for US-4 to account for when it replaces this page's empty-list
 behaviour.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 accepted, with one finding fixed
+
+Verified the story independently rather than on its report: receipts green against the brief it
+was dispatched with, `tamper-check` clean over `2fa817c..HEAD`, and `forge verify --repo . --base
+origin/main` green on all six steps with 98 tests passing. The three declared deviations are all
+sound — the paired commits follow US-1's D7, the conditional mount in `demo/urls.py` is what a
+real project's URLconf does and the unconditional version genuinely broke the no-backend settings
+module, and keeping the failure message as rendered translated text rather than writing the
+backend's response into the DOM is the right call twice over.
+
+One finding, which the story had flagged as a watch item and deferred to US-4: the page rendered
+the portal component unconditionally, so a signed-in person with no subscription read that their
+subscription is managed by the provider and that the portal cannot be reached. Both halves are
+untrue for that reader. Deferring it was defensible — US-4 does replace what that page shows — but
+it leaves a false statement on a live page in the meantime, and the fix is a one-line guard in a
+template this story already owns. Fixed here rather than carried: `{% if subscriptions %}` around
+the component, a page-level test that fails without it, and the documentation corrected to say
+which reader the no-endpoint wording addresses. Recorded as D11.
+
+The story's own component-level tests were left alone. They assert the component's behaviour given
+an endpoint and given none, and both remain correct — the case they never covered was the page's,
+which is where the new test sits.
+
+Verified: `poetry run pytest` — 99 passed. `forge verify --repo . --base origin/main` — all six
+steps green.
+
+Next: US-3.
+
+Watch: `billing_portal.js` has no automated test and cannot have one in this suite — the only
+seam is a browser. It is covered by the walkthrough, not by pytest. The portal component's note
+carries a fixed element id, so placing two of them on one page would duplicate it; the shipped
+page places one, and US-5's standalone-rendering work should not introduce a second.
