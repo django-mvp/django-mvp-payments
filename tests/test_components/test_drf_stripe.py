@@ -7,6 +7,7 @@ overriding this page's template, or placing one of these components elsewhere, r
 
 import re
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from mvp_payments.money import Money
@@ -38,6 +39,67 @@ class TestPricingTable:
         assert 'publishable-key="pk_test_456"' in html
         assert "<script" not in html
         assert not re.search(r"\d[\d,]*\.\d{2,3}", html)
+
+    def test_a_signed_in_person_with_an_address_carries_it_as_customer_email(
+        self, cotton_render_string, rf, user
+    ):
+        user.email = "person@example.com"
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" />',
+            context={"request": request},
+        )
+
+        assert 'customer-email="person@example.com"' in html
+
+    def test_a_signed_in_person_with_no_address_carries_no_customer_email_attribute(
+        self, cotton_render_string, rf, user
+    ):
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" />',
+            context={"request": request},
+        )
+
+        assert "customer-email" not in html
+        assert 'pricing-table-id="prctbl_test123"' in html
+        assert 'publishable-key="pk_test_456"' in html
+
+    def test_an_anonymous_visitor_carries_no_customer_email_attribute(
+        self, cotton_render_string, rf
+    ):
+        request = rf.get("/")
+        request.user = AnonymousUser()
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" />',
+            context={"request": request},
+        )
+
+        assert "customer-email" not in html
+
+    def test_an_explicit_customer_email_wins_over_the_signed_in_persons_address(
+        self, cotton_render_string, rf, user
+    ):
+        user.email = "person@example.com"
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" customer_email="explicit@example.com" />',
+            context={"request": request},
+        )
+
+        assert 'customer-email="explicit@example.com"' in html
+        assert "person@example.com" not in html
 
 
 class TestAmount:
