@@ -55,7 +55,7 @@ Serves G1 and G3. Does not cover what any individual page shows.
 
 ### R2 — A person can see where they stand
 
-*feature · advances G1, G4*
+*delivered in [#16](https://github.com/django-mvp/django-mvp-payments/issues/16) · advances G1, G4*
 
 The first destination those entries lead to: what this person is subscribed to, what it costs,
 which billing period they are in, and what happens next. This is the page an adopter would
@@ -79,46 +79,38 @@ Serves G1 and G4. Does not cover changing the subscription, which belongs to the
 
 ### R3 — A person can choose a plan and start paying
 
-*feature · advances G2, G4*
+*feature · advances G1, G2*
 
-The native half of the two-paths goal: a plan selection built from the backend's own records, in
-the project's own theme, that takes a person into the provider's checkout. Because it reads local
-data rather than the provider's catalogue, it can do the things an embed cannot — mark the plan
-someone is already on, leave out what they cannot buy, and show what each plan includes.
+Plans a person can pick from, and a way to pay for one, in the two positions a project needs them:
+the Plans page in the Account Center, and any page of the project's own, a public landing page
+being the obvious one.
 
-**Deliverables:**
+The provider already publishes a pricing table built for exactly this, configured in its own
+dashboard and maintained by the people whose catalogue it draws on. That is what this item places.
+An adopter gets working plans from one tag and some configuration, which is the shortest route
+there is from installing the package to taking money, and it is the route the backend's own
+documentation already points its readers at.
 
-- A person can see the plans available to them, with prices, billing frequencies and what each
-  one includes.
-- Choosing a plan takes them into the provider's own checkout.
-- A signed-in person can tell which plan they are already on, and is not offered it again.
-- The whole thing themes with the rest of the site.
-
-Serves G2 and G4. Does not cover taking payment, which happens on the provider's pages.
-
-### R4 — A project can use the provider's own embed instead
-
-*resolve · advances G2*
-
-The other half of the same goal. Providers publish drop-in embeds — Stripe's pricing table is the
-first — and for a public pricing page with no signed-in person to reflect, dropping one in is
-faster and perfectly reasonable. A thin wrapper makes that a supported choice rather than an
-escape from the package.
-
-The trade is worth stating where an adopter will read it: an embed is configured in the provider's
-dashboard from the provider's catalogue, so it carries the provider's styling and cannot know
-anything about the person looking at it. It answers the public pricing page. R3 answers every page
-that shows a person their own state.
+The trade is worth stating where an adopter will read it. An embed carries the provider's styling
+and knows nothing about the person looking at it, so it cannot mark the plan someone is already on,
+leave out what they cannot buy, or describe what a plan grants inside the application. A project
+that needs any of that replaces the component with markup of its own and keeps everything else the
+package gives it. Building a plan selection from the backend's records is a much bigger thing to
+own, and it waits for an adopter to ask for it rather than being built on the guess that one will.
 
 **Deliverables:**
 
-- A project can place a provider's published embed through this package, configured from its own
-  template.
-- The documentation says plainly which of the two paths suits which page.
-- Choosing the embed pulls in no dependency and no external origin the project did not already
-  have.
+- A project supplies a published pricing table and gets a working plan-choosing page, having
+  written no view and no template.
+- The same thing can be placed on any page the project owns, including one with no signed-in
+  person.
+- Choosing a plan takes a person into the provider's own checkout, and what they buy is attached
+  to their account.
+- A project that wants its own markup replaces it without writing a view.
+- None of it brings in a dependency or an external origin the project did not already have.
 
-Serves G2. Does not cover building an alternative to the provider's embed.
+Serves G1 and G2. Does not cover taking payment, which happens on the provider's pages, and does
+not cover building an alternative to the provider's embed.
 
 ### R5 — A person can manage their billing
 
