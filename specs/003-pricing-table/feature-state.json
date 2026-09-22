@@ -3,7 +3,7 @@
   "feature": "003-pricing-table",
   "branch": "feat/003-pricing-table",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "REVIEW",
+  "state": "PR_READY",
   "state_history": [
     {
       "state": "PLAN",
@@ -29,6 +29,11 @@
       "state": "REVIEW",
       "at": "2026-09-22T21:47:17Z",
       "note": "convergence complete: merged main, cleanup pass, ADR verdicts, S5 green"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-09-22T21:56:41Z",
+      "note": "review green, zero findings; PR #33 opened for the walkthrough"
     }
   ],
   "gates": {
