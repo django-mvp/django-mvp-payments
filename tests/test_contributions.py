@@ -7,9 +7,14 @@ from django.urls import reverse
 
 from mvp_payments.contributions import Contribution, Page
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from mvp_payments.views import PaymentPageView
 from tests.markup import account_navigation_regions
 from tests.probes import run_probe
 from tests.second_namespace.contribution import second_namespace
+
+
+class _CustomPageView(PaymentPageView):
+    """A throwaway view, standing in for a page that needs its own."""
 
 
 def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
@@ -84,6 +89,78 @@ class TestContribution:
             "register-count-fixture-one",
             "register-count-fixture-two",
         ]
+
+
+class TestPageView:
+    """A ``Page`` built without a ``view`` routes to ``PaymentPageView``; one given a ``view``
+    routes to that instead, and the pages beside it are unaffected (D4).
+    """
+
+    def test_a_page_without_a_view_routes_to_paymentpageview(self):
+        page = Page(
+            slug="one",
+            label="One",
+            icon="overview",
+            template_name="mvp_payments/drf_stripe/subscription.html",
+        )
+        contribution = Contribution(
+            backend_app_name="drf_stripe",
+            namespace="page-view-fixture-default",
+            pages=(page,),
+            card_template="mvp_payments/card.html",
+            group_label="Fixture payments",
+        )
+
+        (pattern,) = contribution.url_patterns()
+
+        assert pattern.callback.view_class is PaymentPageView
+
+    def test_a_page_with_a_view_routes_to_that_view(self):
+        page = Page(
+            slug="one",
+            label="One",
+            icon="overview",
+            template_name="mvp_payments/drf_stripe/subscription.html",
+            view=_CustomPageView,
+        )
+        contribution = Contribution(
+            backend_app_name="drf_stripe",
+            namespace="page-view-fixture-custom",
+            pages=(page,),
+            card_template="mvp_payments/card.html",
+            group_label="Fixture payments",
+        )
+
+        (pattern,) = contribution.url_patterns()
+
+        assert pattern.callback.view_class is _CustomPageView
+
+    def test_the_other_pages_in_the_same_contribution_are_unaffected(self):
+        default_page = Page(
+            slug="one",
+            label="One",
+            icon="overview",
+            template_name="mvp_payments/drf_stripe/subscription.html",
+        )
+        custom_page = Page(
+            slug="two",
+            label="Two",
+            icon="overview",
+            template_name="mvp_payments/drf_stripe/plans.html",
+            view=_CustomPageView,
+        )
+        contribution = Contribution(
+            backend_app_name="drf_stripe",
+            namespace="page-view-fixture-mixed",
+            pages=(default_page, custom_page),
+            card_template="mvp_payments/card.html",
+            group_label="Fixture payments",
+        )
+
+        default_pattern, custom_pattern = contribution.url_patterns()
+
+        assert default_pattern.callback.view_class is PaymentPageView
+        assert custom_pattern.callback.view_class is _CustomPageView
 
 
 class TestRepeatedRegistration:
