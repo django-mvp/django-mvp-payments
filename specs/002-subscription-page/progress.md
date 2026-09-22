@@ -473,3 +473,25 @@ test genuinely exercises the component rather than the surrounding template. Res
 Next: T030, bringing docs/subscription-page.md up to date against the branch as it stands.
 
 Watch: none.
+
+## 2026-09-22T05:49:33Z · Implementer US-5 · T030
+
+Did: read `docs/subscription-page.md` against the code as this branch stands and checked every
+statement: the two context names against `SubscriptionPageView.get_context_data`, every
+attribute table against `CurrentSubscription`/`Plan`/`PlanFeature`/`Money`'s actual dataclass
+fields and properties, every component's documented props against its own `<c-vars>` line, the
+feature-metadata claim against `drf_stripe`'s installed source (`ProductFeature.feature`, "a
+space delimited strings in Stripe.product.metadata.features"), and the shipped override
+template against `mvp_payments/templates/mvp_payments/drf_stripe/subscription.html` byte for
+byte. Everything was already true — no name, attribute or example needed correcting.
+
+Filled one gap: "earlier on the template search path" never explained the mechanism. Added two
+sentences to "Replacing the page" naming the app-directories loader's `INSTALLED_APPS` order,
+the same mechanism the README already states for this package preceding `mvp`, and the one
+T028's test exercises.
+
+No component behaviour or template output touched, per this story's prohibition.
+
+Next: T031, the README and CHANGELOG.
+
+Watch: none.
