@@ -196,3 +196,28 @@ feature, which a single page's response assertion never would.
 which case a response-level assertion becomes meaningful again.
 
 **ADR:** none — how one success criterion is tested, recorded against the criterion it belongs to.
+
+## D5 — T012's component-level tests use `cotton_render_string`, not `cotton_render`
+
+**Decision:** the four new `TestPricingTable` cases that need a signed-in `request.user` are
+written against `cotton_render_string`, passing an explicit `context={"request": request}`, rather
+than against `cotton_render` (the fixture the rest of the class, and the rest of this file, uses).
+
+**Why:** `cotton_render` calls `django_cotton.utils.render_component`, which builds its own
+`RequestContext` around the one `HttpRequest` the fixture constructs internally
+(`RequestFactory().get("/")`, no `.user` ever attached) and runs the project's configured context
+processors against it. `django.template.context_processors.request` always returns `{"request":
+<that same request>}`, and a `RequestContext`'s processor-supplied values are looked up ahead of
+whatever was in the context dict passed in — so any `request` a caller tries to pass through
+`cotton_render`'s `context`/`kwargs` is shadowed by the fixture's own anonymous one before the
+template ever sees it. There is no way to give `cotton_render` a request carrying a signed-in user.
+`cotton_render_string` builds a plain `Context` (no processors) and sets `context["request"]`
+itself from whatever the caller supplied, so the request a test builds — with `.user` attached — is
+the one `{{ request.user }}` resolves against in `pricing_table.html`.
+
+**Revisit if:** `mvp`'s `cotton_render` fixture is ever extended to accept a caller-supplied
+request; at that point these four tests could move back onto the fixture the rest of the class
+uses, for consistency.
+
+**ADR:** none — a test-authoring choice local to this story, not a design decision about the
+package.

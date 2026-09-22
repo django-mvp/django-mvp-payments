@@ -149,3 +149,52 @@ Verified: read back against `pricing_table.html`, `plans.html` and `demo/setting
 every name and every template fragment shown matches the branch as committed.
 Next: full verify (§3), then the completion report. Watch: the `test_urls.py` collision remains
 open for Forge.
+
+## 2026-09-22 · Implementer US2 · T012
+
+Did: added four tests to `TestPricingTable` — a signed-in person with an address carries it as
+`customer-email`; a signed-in person with no address carries no `customer-email` attribute at all;
+an anonymous visitor carries none; and an explicit `customer_email` attribute wins over the
+signed-in person's own address. `cotton_render_string` was needed rather than the existing
+`cotton_render` fixture — `cotton_render` renders through `render_component`, whose
+`RequestContext` always resolves `request` from its own fixed, anonymous `RequestFactory` request
+via the `django.template.context_processors.request` processor, which overrides anything placed
+under the `request` key in the initial context dict. `cotton_render_string` builds a plain
+`Context` with no context processors, so the `request` key from an explicit `context={...}` is the
+one the template actually sees, letting a test attach a real `.user` to it.
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v` — 2
+failed for the right reason (`customer-email` not asserted in output because the current template
+does not read `customer_email` or `request.user` at all), 3 passed (the pre-existing test, and the
+two cases the unread attribute already satisfies by omission).
+Next: T013. Watch: none.
+
+## 2026-09-22 · Implementer US2 · T013
+
+Did: added one test to `TestPlansPage` — the page rendered for a signed-in person whose account
+carries an address shows that address on the element, asserted through the page's content region
+rather than the component in isolation.
+Verified: `poetry run pytest tests/test_views.py::TestPlansPage -v` — 1 failed for the right reason
+(`customer-email` absent from the rendered content because the component does not yet read it), 4
+passed (the pre-existing tests, untouched).
+Next: T014. Watch: none.
+
+## 2026-09-22 · Implementer US2 · T014
+
+Did: `pricing_table.html` now resolves `customer-email`: the `customer_email` attribute wins when
+supplied; otherwise `request.user.email` is used when `request.user.is_authenticated` and that
+person holds an address; otherwise the attribute is omitted from the element entirely, via an
+`{% if %}/{% elif %}` pair around the attribute rather than always emitting it with a possibly
+empty value. Extended the header comment with why the address is passed at all, per T014's brief.
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable
+tests/test_views.py::TestPlansPage -v` — 10 passed, including T012's four new tests and T013's one.
+Next: T015. Watch: none.
+
+## 2026-09-22 · Implementer US2 · T015
+
+Did: `docs/plans-page.md` — corrected the `customer_email` row in the attribute table (it is now
+read, not declared-and-unread), and added a "Where the address comes from" section: the backend's
+email-only matching, that an attribute wins, that the signed-in person's address is the fallback,
+and that absence is omission rather than an empty attribute.
+Verified: read back against `pricing_table.html` as committed at T014; every claim and the example
+markup match the branch.
+Next: full verify (§3), then the completion report. Watch: none.
