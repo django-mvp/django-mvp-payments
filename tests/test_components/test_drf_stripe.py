@@ -101,6 +101,29 @@ class TestPricingTable:
         assert 'customer-email="explicit@example.com"' in html
         assert "person@example.com" not in html
 
+    def test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor(
+        self, cotton_render_string, rf, django_assert_num_queries, db
+    ):
+        """No view, no context processor, no query — a page of the host project's own
+        can place this component and give it nothing but its two attributes (T016,
+        FR-001, FR-009, FR-011)."""
+        request = rf.get("/")
+        request.user = AnonymousUser()
+
+        with django_assert_num_queries(0):
+            html = cotton_render_string(
+                "<article><h2>Order summary</h2>"
+                '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+                'publishable_key="pk_test_456" /></article>',
+                context={"request": request},
+            )
+
+        assert "Order summary" in html
+        assert "<stripe-pricing-table" in html
+        assert 'pricing-table-id="prctbl_test123"' in html
+        assert 'publishable-key="pk_test_456"' in html
+        assert "customer-email" not in html
+
 
 class TestAmount:
     """``<c-drf-stripe.amount>`` renders the ``Money`` it was given."""
