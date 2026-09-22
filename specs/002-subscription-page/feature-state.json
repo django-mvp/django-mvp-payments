@@ -66,8 +66,8 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_conftest.py::TestSubscriberClientFixture"],
-            "commands": ["poetry run pytest tests/test_conftest.py"],
+            "tests": ["tests/test_views.py::TestSubscriptionPage"],
+            "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
             "code": ["tests/conftest.py:34"]
           }
         },

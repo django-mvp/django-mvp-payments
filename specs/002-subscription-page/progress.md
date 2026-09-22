@@ -127,3 +127,17 @@ Verified: `poetry run pytest tests/` — 95 passed, 0 failed. `mypy`, `ruff chec
 Next: the story's completion report and the full `forge verify` run.
 
 Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (verify: conformance failure on tests/test_conftest.py)
+
+`forge verify --repo .` failed conformance: `tests/test_conftest.py` (added at T002 to prove the
+fixtures) mirrors no source module — Article X's exception list covers `tests/factories.py` →
+`tests/test_factories.py` by name, not a `conftest.py` test file, and the conformance tool's own
+message says a cross-cutting test belongs as another `Test*` class in the module of its subject
+rather than a file of its own. `tests/test_views.py::TestSubscriptionPage`, written for T007,
+already exercises `subscriber_client` and `current_subscription` through real use (signed-in
+request, period mutation, cross-user isolation), so the standalone file was redundant rather than
+load-bearing. Removed it and pointed T002's ledger evidence at the tests that now cover it.
+
+Verified: `poetry run pytest tests/` — 94 passed (one fewer than before, the coverage it added is
+subsumed). `forge verify --repo .` re-run after — see the completion report for the full result.
