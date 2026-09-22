@@ -211,3 +211,14 @@ class TestPortalLink:
         assert "<button" not in html
         assert "provider" in html.lower()
         assert "cannot be reached" in html.lower()
+
+
+class TestNoSubscription:
+    """``<c-drf-stripe.no-subscription>`` — nothing current to show, on its own,
+    given no attributes at all (T026, D11)."""
+
+    def test_renders_its_heading_and_message_given_nothing(self, cotton_render):
+        html = cotton_render("drf-stripe.no-subscription")
+
+        assert "No current subscription" in html
+        assert "You have no subscription that is currently active." in html
