@@ -299,3 +299,31 @@ page until then. The guard is one line in a template this story already owns.
 **Revisit if:** the component is ever given a way to distinguish the two cases itself — passing
 the subscriptions, or a second attribute — at which point the guard belongs inside it rather than
 at the call site.
+
+## D12 — `plan.html`'s border moved to an outer wrapper when features were added
+
+`plan.html`'s per-plan separator (`border-b ... last:border-b-0`) lived on the same element as the
+name/amount row. Adding `<c-drf-stripe.features>` as a sibling after that row would have put the
+border between a plan's own row and its own features, inside the same plan, rather than between
+one plan and the next in `subscription.html`'s loop — the opposite of what the class is for.
+
+Moved the border and vertical padding to a new outer `<div>` wrapping both the row and the
+features block, so the divider separates whole plan+features units. No test asserted the old
+markup's div nesting, only the text and classes it carried, so this is additive from every
+existing test's perspective.
+
+**Revisit if:** a plan gains a third block beneath features — the wrapper already generalises to
+that; no further change to this decision.
+
+## D13 — `features.html` renders `feature.description|default:feature.identifier`, not a fallback baked into `PlanFeature`
+
+`build_plan` already falls back to the identifier when constructing `PlanFeature` (T009), so every
+feature reaching the template through the reading layer already carries a non-empty
+`description`. The component's own acceptance (T022) is stated independently of that pipeline —
+"given a feature with none, then the identifier is carried" — and FR-012/SC-006 require every
+component to render correctly from its attributes alone, in a template of its own. Repeating the
+fallback in the template, rather than trusting the one upstream, means `<c-drf-stripe.features>`
+is still correct if it is ever handed a `PlanFeature` built by hand with an empty description.
+
+**Revisit if:** `PlanFeature` itself grows validation that makes an empty `description` impossible
+to construct — at which point the template's fallback becomes dead code and can be dropped.
