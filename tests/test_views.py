@@ -117,6 +117,74 @@ class TestPaymentPage:
         assert response.url.startswith(reverse("login"))
 
 
+def _content_region(content: str) -> str:
+    """The page's content, with the Account Center's navigation cut out.
+
+    "Plans" is also the navigation's label for this page, and django-mvp draws that
+    navigation twice (``tests.markup``). Cutting both copies out narrows an assertion
+    about the page's own content to markup nothing else could have produced.
+    """
+    for region in account_navigation_regions(content):
+        content = content.replace(region, "")
+    return content
+
+
+@pytest.mark.django_db
+class TestPlansPage:
+    """The Plans page mounts the provider's pricing table from settings (T002, T003).
+
+    No script element for the provider is a separate, repository-wide guarantee held by
+    ``tests.test_app.TestNoProviderScript`` (T004) against every template this package ships,
+    rather than a check here — the demo project's own base template legitimately loads the
+    provider's library for every page it serves (T010), which this page inherits the way any
+    host project's shell choices reach every page it renders (Article XIII's host-project
+    split; see ``decisions.md``).
+    """
+
+    def test_context_and_content_carry_both_settings_values(self, logged_in_client):
+        with override_settings(
+            MVP_PAYMENTS={
+                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+            }
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        assert response.status_code == 200
+        assert response.context["pricing_table_id"] == "prctbl_test123"
+        assert response.context["publishable_key"] == "pk_test_456"
+
+        content = _content_region(response.content.decode())
+        assert "<stripe-pricing-table" in content
+        assert 'pricing-table-id="prctbl_test123"' in content
+        assert 'publishable-key="pk_test_456"' in content
+
+    def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
+        response = client.get(reverse("payments:drf-stripe-plans"))
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("login"))
+
+    def test_renders_with_mvp_payments_absent_from_settings_entirely(
+        self, logged_in_client, settings
+    ):
+        """Article XIV: the context names are read at render time, not at import (T003)."""
+        del settings.MVP_PAYMENTS
+
+        response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        assert response.status_code == 200
+        assert response.context["pricing_table_id"] is None
+        assert response.context["publishable_key"] is None
+
+    def test_importing_the_views_module_with_settings_unconfigured_raises_nothing(self):
+        import importlib
+
+        import mvp_payments.views as views_module
+
+        importlib.reload(views_module)
+
+
 class TestAccountCenterOverview:
     """The overview carries the installed backend's card, and keeps whatever
     django-mvp or another application already put there through
