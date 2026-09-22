@@ -49,7 +49,7 @@
       "priority": "P1",
       "issue": 27,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -64,7 +64,7 @@
               "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable"
             ],
             "code": [
-              "mvp_payments/templates/cotton/drf_stripe/pricing_table.html"
+              "mvp_payments/templates/cotton/drf_stripe/pricing_table.html:1"
             ]
           }
         },
@@ -81,9 +81,9 @@
               "poetry run pytest tests/test_views.py::TestPlansPage"
             ],
             "code": [
-              "mvp_payments/views.py",
-              "mvp_payments/namespaces/drf_stripe.py",
-              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html"
+              "mvp_payments/views.py:1",
+              "mvp_payments/namespaces/drf_stripe.py:1",
+              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html:1"
             ]
           }
         },
@@ -100,7 +100,7 @@
               "poetry run pytest tests/test_views.py::TestPlansPage"
             ],
             "code": [
-              "mvp_payments/views.py"
+              "mvp_payments/views.py:1"
             ]
           }
         },
@@ -130,7 +130,7 @@
               "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable"
             ],
             "code": [
-              "mvp_payments/templates/cotton/drf_stripe/pricing_table.html"
+              "mvp_payments/templates/cotton/drf_stripe/pricing_table.html:1"
             ]
           }
         },
@@ -146,7 +146,7 @@
               "DJANGO_SETTINGS_MODULE=tests.settings poetry run python -c \"import django; django.setup(); import mvp_payments.views\""
             ],
             "code": [
-              "mvp_payments/views.py"
+              "mvp_payments/views.py:1"
             ]
           }
         },
@@ -164,7 +164,7 @@
               "poetry run pytest tests/test_views.py::TestPlansPage tests/test_views.py::TestPaymentPage tests/test_namespaces/test_drf_stripe.py"
             ],
             "code": [
-              "mvp_payments/namespaces/drf_stripe.py"
+              "mvp_payments/namespaces/drf_stripe.py:1"
             ]
           }
         },
@@ -183,7 +183,7 @@
               "poetry run pytest tests/test_views.py tests/test_app.py tests/test_components/test_drf_stripe.py tests/test_namespaces/"
             ],
             "code": [
-              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html"
+              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html:1"
             ]
           }
         },
@@ -199,7 +199,7 @@
               "poetry run pytest tests/"
             ],
             "code": [
-              "demo/settings.py"
+              "demo/settings.py:1"
             ]
           }
         },
@@ -215,7 +215,7 @@
               "poetry run pytest tests/"
             ],
             "code": [
-              "demo/templates/base.html"
+              "demo/templates/base.html:1"
             ]
           }
         },
@@ -227,7 +227,7 @@
             "tests": [],
             "commands": [],
             "code": [
-              "docs/plans-page.md"
+              "docs/plans-page.md:1"
             ]
           }
         }
