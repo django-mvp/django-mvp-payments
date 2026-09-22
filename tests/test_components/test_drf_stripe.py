@@ -10,7 +10,11 @@ import re
 from django.utils import timezone
 
 from mvp_payments.money import Money
-from mvp_payments.namespaces.drf_stripe_records import CurrentSubscription, Plan
+from mvp_payments.namespaces.drf_stripe_records import (
+    CurrentSubscription,
+    Plan,
+    PlanFeature,
+)
 
 
 class TestAmount:
@@ -119,6 +123,35 @@ class TestSubscription:
         assert "badge-success" not in html
         assert "badge-info" not in html
         assert "badge-warning" not in html
+
+
+class TestFeatures:
+    """``<c-drf-stripe.features>`` lists what a plan's product grants inside the
+    application (FR-009)."""
+
+    def test_lists_the_features_it_is_given(self, cotton_render):
+        features = (
+            PlanFeature(identifier="reports", description="Advanced reports"),
+            PlanFeature(identifier="seats", description="Unlimited seats"),
+        )
+
+        html = cotton_render("drf-stripe.features", features=features)
+
+        assert "Advanced reports" in html
+        assert "Unlimited seats" in html
+
+    def test_shows_the_identifier_where_there_is_no_description(self, cotton_render):
+        features = (PlanFeature(identifier="priority_support", description=""),)
+
+        html = cotton_render("drf-stripe.features", features=features)
+
+        assert "priority_support" in html
+
+    def test_renders_nothing_at_all_when_given_none(self, cotton_render):
+        html = cotton_render("drf-stripe.features", features=())
+
+        assert "<ul" not in html
+        assert "<li" not in html
 
 
 class TestPortalLink:
