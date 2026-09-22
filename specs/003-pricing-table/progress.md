@@ -240,3 +240,122 @@ demo/templates/demo/home.html --profile django` — 0 errors.
 Next: full verify (§5), then the completion report. Watch: T016 was red once, for the
 `django_assert_num_queries` fixture requirement, and passed on first run for the guarantee itself
 — recorded plainly per the brief's instruction, not smoothed into a conventional red/green story.
+
+## 2026-09-22 · Implementer US4 · T019
+
+Did: three tests added to `TestPlansPage` in `tests/test_views.py` — no table id configured
+(scenario 1), no publishable key configured (scenario 2), and `MVP_PAYMENTS` absent entirely with
+the heading and account navigation asserted unchanged alongside the unavailable sentence
+(scenario 4, extending the pre-existing absent-settings coverage from US-1 rather than rewriting
+`test_renders_with_mvp_payments_absent_from_settings_entirely`).
+Verified: `poetry run pytest tests/test_views.py::TestPlansPage -x` — the three new tests failed
+for the right reason: `plans.html` still renders the element unconditionally, so
+`"stripe-pricing-table" not in content` failed against markup that plainly contains it.
+Next: T020. Watch: none.
+
+## 2026-09-22 · Implementer US4 · T020
+
+Did: `TestPlansUnavailable` added to `tests/test_components/test_drf_stripe.py`, one test —
+`<c-drf-stripe.plans-unavailable>` renders given no attributes at all.
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestPlansUnavailable -v` —
+failed for the right reason, `TemplateDoesNotExist: cotton/drf_stripe/plans_unavailable.html` —
+the component does not exist yet.
+Next: T021. Watch: none.
+
+## 2026-09-22 · Implementer US4 · T021
+
+Did: one test added to `TestPricingTable` —
+`test_carries_a_hidden_could_not_be_loaded_message_and_its_marker` — asserting the exact
+`hidden data-mvp-payments-pricing-table-unavailable` attribute pair and the translated message
+text appear together in the component's output.
+Verified: `poetry run pytest
+tests/test_components/test_drf_stripe.py::TestPricingTable::test_carries_a_hidden_could_not_be_loaded_message_and_its_marker`
+— failed for the right reason: the marker string was absent from rendered output, which carried
+only the `<stripe-pricing-table>` element.
+Next: T022. Watch: none.
+
+## 2026-09-22 · Implementer US4 · T022
+
+Did: `mvp_payments/templates/cotton/drf_stripe/plans_unavailable.html` — takes no props, follows
+`no_subscription.html`'s shape (`{% translate ... as name %}` pair, `<c-page.list.empty>`), heading
+"Plans not available", message "This project has not configured its plans yet.".
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestPlansUnavailable -v` —
+1 passed, T020's test green on first run of the new file.
+Next: T023. Watch: none.
+
+## 2026-09-22 · Implementer US4 · T023
+
+Did: `mvp_payments/templates/mvp_payments/drf_stripe/plans.html` now branches: the pricing table
+component when both `pricing_table_id` and `publishable_key` are present,
+`<c-drf-stripe.plans-unavailable />` otherwise.
+Verified: `poetry run pytest tests/test_views.py::TestPlansPage -v` — 8 passed, all three of
+T019's new tests green; `poetry run pytest tests/test_views.py -v` — 30 passed, no regression
+elsewhere in the file (`TestPaymentPage`, `TestSubscriptionPage`, `TestTemplateOverride` and the
+rest untouched).
+Next: T024. Watch: none.
+
+## 2026-09-22 · Implementer US4 · T024
+
+Did: `mvp_payments/templates/cotton/drf_stripe/pricing_table.html` now emits a
+`<p hidden data-mvp-payments-pricing-table-unavailable>` carrying the translated
+could-not-be-loaded message, after the `<stripe-pricing-table>` element — the shape
+`portal_link.html` already uses for its own failure message. Added `{% load i18n %}`, absent from
+the file until now since it carried no translated string.
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v` — 7
+passed, T021's test green, the zero-query assertion in
+`test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor` still holding with
+the added static markup. `poetry run pytest tests/test_views.py::TestPlansPage
+tests/test_app.py -v` — 18 passed, including `TestNoProviderScript`, which still finds no script
+element with a host `src` anywhere.
+Next: T025. Watch: none.
+
+## 2026-09-22 · Implementer US4 · T025
+
+Did: `mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js` — after the page's `load`
+event, reveals every `[data-mvp-payments-pricing-table-unavailable]` element when
+`customElements.get("stripe-pricing-table")` is undefined. Header comment names the check and why
+a timing-based alternative was rejected, per `research.md`'s "Rejected without further reading"
+section. No build step, no bundler, `querySelectorAll` over its own marker — `billing_portal.js`'s
+shape.
+Verified: no automated test exercises browser JavaScript in this suite; read back against
+`research.md` and `billing_portal.js` for shape, and against `pricing_table.html`'s marker name
+for an exact string match. `demo/templates/base.html` (already committed, outside this story's
+scope) already references this exact static path, so nothing else needed to change to wire it in.
+Next: T026. Watch: see `decisions.md` D8 — `pricing_table.js` and the provider's own script share
+one overridable block in `demo/templates/base.html`, which affects what the demo's `no_library`
+route (T026) can actually demonstrate live.
+
+## 2026-09-22 · Implementer US4 · T026
+
+Did: two demonstration routes, `demo/views.py` and `demo/urls.py` — `PlansUnconfiguredView`
+renders `demo/templates/demo/plans_unconfigured.html`, which extends the package's own
+`mvp_payments/drf_stripe/plans.html` through ordinary template inheritance with neither
+`pricing_table_id` nor `publishable_key` supplied; `NoLibraryView` renders
+`demo/templates/demo/no_library.html`, extending `page_view.html` with `provider_library` emptied
+and the component placed directly with literal attributes, matching `home.html`'s T018 precedent.
+Both linked from a new "Before it is configured" section on `demo/home.html`. Nothing under
+`mvp_payments/` references either route.
+Verified: no pytest task pairs with T026 in `tasks.md`, so no new test was written for it — a
+Django test-client smoke check instead (`demo.settings`, `manage.py migrate` then `Client().get`
+against `/`, `/plans-unconfigured/`, `/no-library/`) confirmed all three return 200, the
+unconfigured route's content carries "Plans not available" and no `stripe-pricing-table` element,
+the no-library route's content carries the element and the hidden marker, and the home page links
+to both new paths. `poetry run pytest tests/test_app.py tests/test_views.py -q` — 40 passed, no
+regression. `poetry run ruff check demo/views.py demo/urls.py` and `ruff format --check` on the
+same two files — clean.
+Next: T027. Watch: the port-8020 demo server named in this story's brief as "already serving this
+branch" is running a different worktree's checkout on branch `feat/account-center-navigation`, so
+it could not be used to verify these routes live; recorded as a concern rather than restarted or
+reassigned, which is outside this story's authority.
+
+## 2026-09-22 · Implementer US4 · T027
+
+Did: `docs/plans-page.md` — corrected "The shipped page renders the component with both values
+unconditionally" (now false) to describe the branch T023 added; added a "Before it is configured"
+section documenting the unavailable sentence; added a "When the library never arrives" section
+documenting the hidden message and `pricing_table.js`'s job, with the static-asset `<script>` tag
+a project would add.
+Verified: read every claim back against the templates and script as committed through T025;
+`poetry run pytest tests/test_app.py -q` — 10 passed, unaffected by a docs-only change.
+Next: full verify (§5), then the completion report. Watch: none beyond what is already recorded
+above.

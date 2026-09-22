@@ -264,3 +264,53 @@ simpler choice and this decision should be revisited alongside it.
 
 **ADR:** none — a demonstration-project choice local to this story, not a design decision about
 the package.
+
+## D8 — `demo/templates/demo/plans_unconfigured.html` extends the package's own `plans.html`, rather than pointing a view straight at it
+
+**Decision:** `PlansUnconfiguredView.template_name` is `"demo/plans_unconfigured.html"`, a
+one-line file under the demo's own `templates/demo/` directory that does nothing but
+`{% extends "mvp_payments/drf_stripe/plans.html" %}`. The view does not set
+`template_name = "mvp_payments/drf_stripe/plans.html"` directly, though either would render
+identically here.
+
+**Why:** T026's own instruction is explicit that "nothing in `mvp_payments/` may know they exist"
+about the demo's routes — a property of the package, not of a single view. Extending keeps every
+file the demo route touches under `demo/`, the same shape a host project reaching this page would
+actually be in: reusing the shipped template through ordinary inheritance, never a package file
+edited or pointed at by name from outside `demo/`. A view whose `template_name` is a package path
+would work identically today, but would make it one accidental edit away from someone adding
+demo-only markup straight into a package file to "customise" this route.
+
+**Revisit if:** never expected to — the file costs one line and keeps the demo self-contained.
+
+**ADR:** none — a demonstration-project choice local to this story.
+
+## D9 — the demo's `no_library` route cannot demonstrate the hidden message being revealed live, because T025's script and the provider's own share one overridable block
+
+**Decision:** `demo/templates/demo/no_library.html` empties `{% block provider_library %}`
+exactly as `demo/templates/base.html`'s own comment invites ("A template extending this one can
+empty this block to show the mount point with the library never having arrived"), per T026's
+literal instruction that the route render "the component on a page whose `provider_library` block
+is empty."
+
+**Why this is worth recording:** `demo/templates/base.html` (committed at T010, before this
+story, and outside this story's file scope — see the brief's prohibitions) places
+`pricing_table.js`'s `<script>` tag *inside* `provider_library`, alongside the provider's own
+`pricing-table.js`. Emptying that block for the `no_library` route therefore drops both scripts
+together — the route shows the inert `<stripe-pricing-table>` mount point exactly as designed,
+but `pricing_table.js` never runs there either, so the hidden could-not-be-loaded message is never
+revealed live in a browser on that specific page. The Python test suite has no way to probe this
+(there is no JavaScript runtime in these tests), so nothing here is red — this is a demonstration
+fidelity gap, not a defect in the package the tests can see. `tests/test_components` and
+`tests/test_views` both confirm the message is present and hidden in the component's own markup
+(T021), which is the guarantee FR-010 actually makes; the demo route is only asked to make the
+*mount point* reachable by clicking (T026's given/when/then), which it does.
+
+**Revisit if:** `demo/templates/base.html` is ever restructured so `pricing_table.js` loads
+outside `provider_library` — at that point `no_library.html` could keep emptying the whole block
+and the live reveal would work too, or `no_library.html` could override `provider_library` with
+partial content (keeping `pricing_table.js`, dropping only the provider's script) instead of
+emptying it outright.
+
+**ADR:** none — flagged as a concern in this story's completion report for Forge to triage;
+`demo/templates/base.html` is outside this story's scope to edit.
