@@ -199,4 +199,4 @@ class TestNothingWithoutABackend:
         # link a card would carry into the backend's first page.
         result = self._open_the_account_center_without_the_backend()
 
-        assert 'href="/payments/drf-stripe/subscription/"' not in result["content"]
+        assert 'href="/account/billing/subscription/"' not in result["content"]

@@ -362,7 +362,7 @@ class TestNamespaceIndependence:
             marker = f"<span>{page.label}</span>"
             assert alongside["content"].count(marker) == alone["content"].count(marker)
 
-        card_href = 'href="/payments/drf-stripe/subscription/"'
+        card_href = 'href="/account/billing/subscription/"'
         assert card_href in alone["content"]
         assert card_href in alongside["content"]
 

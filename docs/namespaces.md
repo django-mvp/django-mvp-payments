@@ -38,8 +38,10 @@ acme_payments = Contribution(
   package installed at the top level, `"some.vendor.app"` for one installed as a sub-package. It is
   the string Django's application registry matches, and it is never imported: the package declares
   no payment backend as a dependency and must not gain one.
-- **`namespace`** is the backend's short name. It prefixes every URL name the contribution
-  declares, which is what keeps two namespaces from colliding.
+- **`namespace`** is the backend's short name. It prefixes every URL *name* the contribution
+  declares, which is what keeps two namespaces from colliding. It does not appear in the address
+  a reader sees: pages are addressed by slug alone, under whatever prefix the project mounted
+  this package at.
 - **`pages`** are the pages this namespace contributes, in the order they should appear in the
   navigation. A `Page`'s `slug` names it within the namespace, its `label` is what a person reads
   and must be translatable, its `icon` is a name from the project's icon set, and its

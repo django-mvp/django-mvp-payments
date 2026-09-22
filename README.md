@@ -54,9 +54,15 @@ Then mount its URLs wherever you like:
 ```python
 urlpatterns = [
     ...,
-    path("payments/", include("mvp_payments.urls")),
+    path("account/billing/", include("mvp_payments.urls")),
 ]
 ```
+
+Mount it where a reader would expect to find it. These are Account Center pages, so inside the
+Account Center's own prefix and under the label the navigation gives them is the natural place.
+Addresses carry no backend name: a page is at `<your prefix>/subscription/`, never
+`<your prefix>/some-library-name/subscription/`, because which library you chose to talk to your
+payment provider is not a person's business while they read their own subscription.
 
 That line is the only wiring. From there, every backend you have installed contributes its own
 section of the Account Center's navigation and its own card to the Account Center's overview, and a

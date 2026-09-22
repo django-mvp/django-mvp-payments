@@ -87,7 +87,16 @@ class Contribution:
         return True
 
     def url_patterns(self) -> list[URLPattern]:
-        """One route per declared page, named ``<namespace>-<page slug>``.
+        """One route per declared page, addressed by its slug alone.
+
+        The address a reader sees carries no backend name. Which library a
+        project chose to talk to its payment provider is not something the
+        person reading their subscription has any use for, and the same rule
+        already applies to the label heading these pages in the navigation.
+        Collision safety lives in the URL *name*, which does carry the
+        namespace (ADR 0002), so two backends cannot claim one name however
+        their pages are addressed. Two backends installed at once is not a
+        supported configuration for other reasons; see the README.
 
         Every page is routed, including one kept out of the navigation. The
         view is handed this contribution as well as its own page, which is
@@ -96,7 +105,7 @@ class Contribution:
         """
         return [
             path(
-                f"{self.namespace}/{page.slug}/",
+                f"{page.slug}/",
                 page.view.as_view(page=page, contribution=self),
                 name=self.url_name(page),
             )

@@ -336,6 +336,27 @@ class TestSubscriptionPage:
         assert "Manage subscription" in content
         assert "Manage billing" not in content
 
+    def test_both_ways_onward_sit_in_one_row(self, subscriber_client):
+        """Stacked, they read as two unrelated things; side by side, as a choice.
+
+        Asserted structurally rather than by class name: both controls are
+        inside the same container, in the order the page declares them.
+        """
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        row = re.search(
+            r"<div[^>]*data-mvp-payments-subscription-actions[^>]*>(.*?)</div>\s*</div>",
+            content,
+            re.S,
+        )
+        assert row is not None
+        assert "Switch plans" in row.group(1)
+        assert "data-mvp-payments-portal-link" in row.group(1)
+        assert row.group(1).index("Switch plans") < row.group(1).index(
+            "data-mvp-payments-portal-link"
+        )
+
     def test_a_subscriber_is_offered_the_way_to_switch_plans(self, subscriber_client):
         """The plans page left the navigation, so this control is how it is reached."""
         response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))

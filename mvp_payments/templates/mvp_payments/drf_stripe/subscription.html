@@ -7,9 +7,16 @@
     {% empty %}
       <c-drf-stripe.no-subscription />
     {% endfor %}
-    <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
-    {% if subscriptions %}
-      <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
-    {% endif %}
+    {# Both ways onward sit on one line, wrapping onto two on a narrow screen.
+       `items-start` keeps the buttons aligned with each other rather than
+       stretched to match the portal control, which carries explanatory lines
+       beneath its own button. #}
+    <div class="flex flex-wrap items-start gap-3"
+         data-mvp-payments-subscription-actions>
+      <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
+      {% if subscriptions %}
+        <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+      {% endif %}
+    </div>
   </c-page>
 {% endblock account.content %}

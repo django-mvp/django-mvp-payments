@@ -40,7 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group, in place of three entries under a Payments group. The plans page is still there and is
   reached from a control on the subscription page.
 - `<c-drf-stripe.portal-link>` now reads "Manage subscription" rather than "Manage billing", since
-  no page is named for billing any more.
+  no page is named for billing any more. It sits in a row beside the way to the plans page rather
+  than beneath it.
+- **Addresses no longer carry the backend's name.** A page is at `<your prefix>/subscription/`
+  where it was at `<your prefix>/drf-stripe/subscription/`. Which library a project chose to talk
+  to its payment provider has no business in an address a person reads, and URL *names* still
+  carry the namespace, so nothing about collision safety changes. The demo now mounts the package
+  at `account/billing/`, inside the Account Center's own prefix.
 
 ### Removed
 

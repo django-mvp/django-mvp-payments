@@ -191,20 +191,20 @@ class TestPlansLink:
 
     def test_a_subscriber_is_offered_a_switch(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.plans-link", url="/payments/drf-stripe/plans/", subscribed=True
+            "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=True
         )
 
-        assert 'href="/payments/drf-stripe/plans/"' in html
+        assert 'href="/account/billing/plans/"' in html
         assert "Switch plans" in html
         assert "Choose a plan" not in html
 
     def test_somebody_on_no_plan_is_offered_a_choice(self, cotton_render):
         """ "Switch plans" reads as a mistake to a person who is not on one."""
         html = cotton_render(
-            "drf-stripe.plans-link", url="/payments/drf-stripe/plans/", subscribed=False
+            "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=False
         )
 
-        assert 'href="/payments/drf-stripe/plans/"' in html
+        assert 'href="/account/billing/plans/"' in html
         assert "Choose a plan" in html
         assert "Switch plans" not in html
 
