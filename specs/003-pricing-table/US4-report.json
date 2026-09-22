@@ -1,0 +1,152 @@
+{
+  "story": "US4",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T019",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestPlansPage::test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id",
+          "tests/test_views.py::TestPlansPage::test_states_plans_unavailable_and_emits_no_provider_element_without_a_publishable_key",
+          "tests/test_views.py::TestPlansPage::test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged"
+        ],
+        "criteria": ["SC-005"],
+        "commands": ["poetry run pytest tests/test_views.py::TestPlansPage -x"],
+        "exit_code": 1
+      },
+      "commits": ["4ad626adfd2565bb325d520d1d228451754b22de"]
+    },
+    {
+      "id": "T020",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPlansUnavailable::test_renders_its_sentence_given_nothing"
+        ],
+        "criteria": ["SC-005"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPlansUnavailable -v"
+        ],
+        "exit_code": 1
+      },
+      "commits": ["c3a4ccc99d6f88e30f83489d4f3151b14323bef7"]
+    },
+    {
+      "id": "T021",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_carries_a_hidden_could_not_be_loaded_message_and_its_marker"
+        ],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable::test_carries_a_hidden_could_not_be_loaded_message_and_its_marker -v"
+        ],
+        "exit_code": 1
+      },
+      "commits": ["4244a6a21750075371c93d988f103c9b0cca3b58"]
+    },
+    {
+      "id": "T022",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-005"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPlansUnavailable -v"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["4b89743840943159fd39107ad113e7192be1ba88"]
+    },
+    {
+      "id": "T023",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-005"],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestPlansPage -v",
+          "poetry run pytest tests/test_views.py -v"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["a0f2d86e7cf46724985fd75848df53b04664af72"]
+    },
+    {
+      "id": "T024",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v",
+          "poetry run pytest tests/test_views.py::TestPlansPage tests/test_app.py -v"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["449600625ee30ba23ccb491d5f32782f4a470084"]
+    },
+    {
+      "id": "T025",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run python manage.py findstatic mvp_payments/drf_stripe/pricing_table.js --settings=demo.settings"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["4bf75f8356e381da07cc2856d7472bf443151c09"]
+    },
+    {
+      "id": "T026",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_app.py tests/test_views.py -q",
+          "poetry run ruff check demo/views.py demo/urls.py",
+          "poetry run pytest tests/test_demo.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": [
+        "e40a7ca0f7e2674ab2a35e760a9dd6eeab00dce5",
+        "9c78a1540e0f5b253b2b36e1f97dc5bb6072ccbc"
+      ]
+    },
+    {
+      "id": "T027",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_app.py -q"],
+        "exit_code": 0
+      },
+      "commits": ["e4fece7828fb8f0bd10c50784f8bf12de0fd0ad9"]
+    }
+  ],
+  "deviations": [],
+  "concerns": [
+    "Acceptance scenario 1 (no pricing table identifier): TestPlansPage::test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id -- the page states plans are unavailable and emits no stripe-pricing-table element. Scenario 2 (no publishable key): the paired test, same assertions. Scenario 3 (library never arrived): TestPricingTable::test_carries_a_hidden_could_not_be_loaded_message_and_its_marker proves the hidden message and its marker are always present in the component's own markup (FR-010); pricing_table.js's load-time reveal has no automated test in this suite -- there is no JavaScript runtime here -- and was verified by reading it back against research.md's rejection of a timing-based check and against billing_portal.js's shape. Scenario 4 (MVP_PAYMENTS absent entirely): test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged -- nothing raises, and the heading and account navigation render unchanged alongside the unavailable sentence.",
+    "D9 (decisions.md): demo/templates/base.html (committed before this story, outside its file scope) loads pricing_table.js inside the same overridable provider_library block as the provider's own script. The demo's new no_library route empties that block exactly as base.html's own comment invites, which is literally what T026 asks for -- but it also drops pricing_table.js on that one page, so the hidden message cannot be seen being revealed live in a browser there. The guarantee itself (the message is present and hidden in the component's markup) is proven by T021's test regardless. Flagging for triage since demo/templates/base.html was out of this story's scope to edit.",
+    "The brief's environment note states the demo project is already serving this branch on port 8020. It is not: the process on port 8020 is running from /home/sam/projects/django-mvp/django-mvp-payments (a different worktree) on branch feat/account-center-navigation, not this worktree or feat/003-pricing-table. Did not restart or reassign it -- outside this story's authority. Verified T026's new routes instead with a throwaway Django test-client script against this worktree's own settings, never committed."
+  ],
+  "blocked": []
+}
