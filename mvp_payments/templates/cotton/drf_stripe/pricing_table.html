@@ -19,12 +19,21 @@
 {#                     so a purchase made under another address    #}
 {#                     attaches to nobody.                         #}
 {#                                                                #}
-{# Emits only the provider's element and its attributes above.   #}
-{# No script element and no figure about price: the provider     #}
-{# renders every price inside its own frame, and loading the     #}
-{# library that brings the element to life is the host project's #}
-{# decision, never this package's (Article XIII).                #}
+{# Emits the provider's element, its attributes above, and a     #}
+{# hidden could-not-be-loaded message with the marker             #}
+{# pricing_table.js binds to (T021, T024, FR-010). The message is #}
+{# rendered hidden and revealed, never injected — the same shape  #}
+{# portal_link.html uses for its own failure message — so         #}
+{# revealing it needs no string from JavaScript. No script        #}
+{# element and no figure about price: the provider renders every  #}
+{# price inside its own frame, and loading the library that       #}
+{# brings the element to life is the host project's decision,     #}
+{# never this package's (Article XIII).                           #}
 {# ============================================================ #}
+{% load i18n %}
 <c-vars table_id publishable_key customer_email />
 <stripe-pricing-table pricing-table-id="{{ table_id }}"
                        publishable-key="{{ publishable_key }}"{% if customer_email %} customer-email="{{ customer_email }}"{% elif request.user.is_authenticated and request.user.email %} customer-email="{{ request.user.email }}"{% endif %}></stripe-pricing-table>
+<p hidden data-mvp-payments-pricing-table-unavailable class="text-sm text-error">
+  {% translate "The plans could not be loaded. Try again later." %}
+</p>
