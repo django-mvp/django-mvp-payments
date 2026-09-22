@@ -291,6 +291,17 @@ class TestStandalone:
     def test_portal_link_renders_inside_an_unrelated_template(
         self, cotton_render_string
     ):
+        """Its markup comes from its attribute; its CSRF token does not.
+
+        Every other component here renders completely from what it is given. This one
+        also reads ``{{ csrf_token }}``, which Django's own context processor supplies,
+        so a render with no request behind it produces the control with an empty token.
+        That is the same dependency every CSRF-protected form in Django has, and making
+        a caller pass the token instead would invite them to pass a stale one — so it is
+        declared rather than removed, here and in the component and the documentation.
+        ``TestSubscriptionPage.test_the_portal_control_carries_a_usable_csrf_token``
+        proves it is populated when a request renders the page.
+        """
         html = cotton_render_string(
             '<nav><span>Account</span><c-drf-stripe.portal-link :endpoint="endpoint" /></nav>',
             context={"endpoint": "/api/stripe/customer-portal/"},
@@ -298,6 +309,7 @@ class TestStandalone:
 
         assert "Account" in html
         assert 'data-endpoint="/api/stripe/customer-portal/"' in html
+        assert 'data-csrf-token=""' in html
 
     def test_no_subscription_renders_inside_an_unrelated_template(
         self, cotton_render_string

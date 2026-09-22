@@ -376,3 +376,28 @@ running with `DEBUG = False` at worst.
 **Revisit if:** a later story adds a payment- or subscription-shaped icon to the registry, at which
 point this component should use it instead.
 **ADR:** none — which icon an empty state uses.
+
+## D16 — The portal control keeps reading its CSRF token from context, and says so
+
+Review found that `<c-drf-stripe.portal-link>` reads `{{ csrf_token }}` rather than taking it as
+an attribute, so rendered outside a request it produces a control with an empty token, which
+posts a request Django rejects. Every other component in this feature renders completely from
+what it is given, and the specification asks for exactly that (FR-012).
+
+Moving the token to a declared attribute was rejected. A caller would then have to pass it, which
+is a thing they can get wrong in a way that fails the same silent way, and a stale token passed
+deliberately is worse than a missing one. Every CSRF-protected form in Django reads this variable
+from context, and a project rendering the component from a view — which is every ordinary use,
+including an overridden page template — has it.
+
+So the dependency stays and stops being hidden. The component's own header names it, the
+documentation names it beside the component, the standalone test asserts the empty token rather
+than stepping around it, and a page-level test proves the token is populated when a request
+renders the page. The one thing that was actually wrong was that nothing said so and nothing
+tested it.
+
+**ADR:** none — a component-level requirement recorded where the component is documented, not a
+standing rule about this package.
+
+**Revisit if:** a second component needs the same thing, at which point the pattern is worth
+stating once rather than per component.

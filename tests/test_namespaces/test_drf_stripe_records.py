@@ -175,6 +175,22 @@ class TestPlanFeatures:
         assert {feature.identifier for feature in plan.features} == {"mine"}
 
 
+@pytest.mark.django_db
+class TestPlanAmountCasing:
+    """A price row carries the case the provider sent, which is not the case the
+    exponent tables are written in."""
+
+    def test_a_zero_decimal_price_recorded_in_lower_case_still_converts(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+        price = PriceFactory(price=2000, currency="jpy")
+        SubscriptionItemFactory(subscription=subscription, price=price)
+
+        (current,) = SubscriptionReader.for_user(user)
+
+        assert str(current.plans[0].amount) == "2,000 JPY"
+
+
 class TestPlanFrequencyDisplay:
     """``frequency_display`` renders the backend's ``interval_count`` encoding through ngettext,
     and shows an unrecognised one as itself (Article XVI).

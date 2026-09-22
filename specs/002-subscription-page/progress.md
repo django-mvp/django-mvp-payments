@@ -532,3 +532,47 @@ Verified after the correction: `forge verify --repo . --base origin/main` — al
 Next: the story set is complete. S4 exit, then convergence.
 
 Watch: none carried into S5 beyond the ADRs that D1 through D5, D11 and D14 defer to convergence.
+
+## 2026-09-22 — S6 REVIEW, both findings fixed
+
+Two findings, both verified against their stated evidence before acting rather than taken on the
+severity claimed.
+
+**REV-001, critical, confirmed and fixed.** `Money` decided a currency's exponent by membership in
+two upper-case sets, and the provider reports a currency code in lower case. The backend's own
+`StripeCurrency` enum is lower-case throughout and its webhook writes the field through verbatim,
+so a real price row holds `"jpy"`, never `"JPY"`. Reproduced: `Money(minor_units=2000,
+currency="jpy")` rendered `20.00 jpy` where `Money(..., currency="JPY")` rendered `2,000 JPY`. A
+zero-decimal amount came out a hundred times too small and a three-decimal one ten times too
+large, on the page, to the person paying it. Every test passed because every fixture and every
+assertion used upper case.
+
+`Money` now normalises the code at construction, so the exponent and the rendered code are both
+right whatever case it arrived in. Two tests at the money level and one at the reader level, the
+last using a price row recorded the way production records one. The reviewer checked the contents
+of both sets against the provider's published list and found them correct — sixteen and seven — so
+the table was right and only the comparison was wrong.
+
+**REV-002, medium, confirmed and fixed differently than suggested.** `<c-drf-stripe.portal-link>`
+reads `{{ csrf_token }}` from context rather than taking it as an attribute, so rendered without a
+request it produces a control with an empty token that posts a request Django rejects. The
+suggested remedy was to declare it as an attribute. Rejected: a caller who must pass the token can
+pass a stale one, which fails the same silent way and is harder to see, and every CSRF-protected
+form in Django reads this variable from context. The dependency is correct and was merely hidden.
+It is now stated in the component's own header, in the documentation beside the component, in the
+standalone test — which asserts the empty token rather than stepping around it — and in a
+page-level test proving the token is populated when a request renders the page. Recorded as D16.
+
+The reviewer's own clean findings are worth keeping: the withholding guarantee is enforced in the
+view rather than only in the template, so a project's overridden template cannot defeat it; the
+query count is constant in the number of items; and `frequency_display` already anticipates the
+provider's lower-case interval names, which is the same trap `Money` fell into.
+
+Verified: `forge verify --repo . --base origin/main` — all six steps green. `poetry run pytest` —
+123 passed.
+
+Next: the walkthrough.
+
+Watch: one note from the review left unfixed by choice — the portal control has no in-flight
+disabled state, so a double click posts twice. Harmless today and worth a guard if that file ever
+grows a second control.

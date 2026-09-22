@@ -84,7 +84,7 @@ code.
 | Member | What it does |
 |---|---|
 | `minor_units` | The integer the backend recorded. Stripe's `2000` is £20.00. |
-| `currency` | The three-letter code. |
+| `currency` | The three-letter code, held upper-case whatever case it arrived in. The provider reports it lower-case and the backend stores that verbatim, so the value you read here is not always the value in the database column. |
 | `amount` | The same figure in the currency's own unit, as a `Decimal`. |
 | `exponent` | How many decimal places this currency's minor unit sits at. |
 | `str(money)` | The amount under the active locale, followed by its currency code. |
@@ -101,8 +101,9 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Six components render the page, and each one renders on its own given its attributes. You can
-place any of them in a template of your own.
+Six components render the page. You can place any of them in a template of your own, and each
+renders from the attributes you give it — with one exception, noted against the component it
+applies to.
 
 ```html
 <c-drf-stripe.subscription :subscription="subscription" />
@@ -132,11 +133,15 @@ place any of them in a template of your own.
 `<c-drf-stripe.portal-link>`
 : Given an `endpoint`, a control that posts to it and follows the address the backend answers
   with, carrying the endpoint and a CSRF token as data. Given `None`, a statement that the
-  subscription is managed by the provider and the portal cannot be reached, with no control,
-  since there is nowhere for it to lead. Place it only where the reader has a subscription: that
-  second wording addresses somebody who has one and whose project has not set the endpoint, and
-  the shipped page renders the component only when there is a subscription for exactly that
-  reason.
+  subscription is managed by the provider and the portal cannot be reached, with no control, since
+  there is nowhere for it to lead. Place it only where the reader has a subscription: that second
+  wording addresses somebody who has one and whose project has not set the endpoint, and the
+  shipped page renders the component only when there is a subscription for exactly that reason.
+
+    This is the one component that needs more than its attributes. It reads `csrf_token` from the
+    template context, the way every CSRF-protected form in Django does, so render it from a view
+    rather than from a context you assembled yourself. Rendered without one the control looks
+    right and every post it makes is rejected.
 
 `<c-drf-stripe.no-subscription>`
 : Takes no attributes. States that there is no current subscription, for someone who never had one

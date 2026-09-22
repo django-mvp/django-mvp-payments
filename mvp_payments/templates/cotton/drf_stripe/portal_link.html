@@ -6,6 +6,12 @@
 {# Props:                                                        #}
 {#   endpoint – the backend's portal endpoint, or None            #}
 {#                                                                #}
+{# Also reads {{ csrf_token }} from context, which Django's own   #}
+{# context processor supplies. Rendered with no request behind    #}
+{# it, the control comes out with an empty token and every post   #}
+{# it makes is rejected. Taking the token as an attribute instead #}
+{# would invite a caller to pass a stale one.                     #}
+{#                                                                #}
 {# Absent for anyone with nothing current (D5): the backend's     #}
 {# endpoint creates a customer at the provider for whoever posts  #}
 {# to it, so no control is offered where there is nothing to      #}

@@ -24,6 +24,17 @@ class Money:
     minor_units: int
     currency: str = ""
 
+    def __post_init__(self) -> None:
+        """Hold the currency as the upper-case ISO code, whatever case it arrived in.
+
+        Stripe reports a currency as a lower-case code and the backend stores that field
+        verbatim, so a real record holds ``"jpy"``. The tables below are written in the
+        case the standard defines, and a lower-case code read against them silently falls
+        through to two decimal places — which renders a zero-decimal amount a hundred
+        times too small, on the page, to the person paying it.
+        """
+        object.__setattr__(self, "currency", self.currency.upper())
+
     #: Currencies Stripe records with no fractional unit: the amount recorded is already a whole
     #: number of the currency, not a multiple of one hundred.
     ZERO_DECIMAL: ClassVar[frozenset[str]] = frozenset(

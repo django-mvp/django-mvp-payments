@@ -327,6 +327,19 @@ class TestSubscriptionPage:
         assert control_index > status_index
         assert 'src="/static/mvp_payments/drf_stripe/billing_portal.js"' in content
 
+    def test_the_portal_control_carries_a_usable_csrf_token(self, subscriber_client):
+        """Empty here and the control posts a request Django rejects, every time.
+
+        The component reads the token from context rather than from an attribute, so
+        this is the assertion that the dependency is actually satisfied on a real page.
+        """
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        token = re.search(r'data-csrf-token="([^"]*)"', content)
+        assert token is not None
+        assert len(token.group(1)) > 20
+
     def _client_for(self, user):
         client = Client()
         client.force_login(user)
