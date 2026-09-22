@@ -25,10 +25,28 @@ It declares three attributes:
 |---|---|
 | `table_id` | Carried into the element's `pricing-table-id` attribute. Required. |
 | `publishable_key` | Carried into the element's `publishable-key` attribute. Required — and not a secret: it identifies the account, and the provider prints it in its own copy-paste examples. |
-| `customer_email` | Declared on the component. Not yet read — a later story wires it to the signed-in person's address. |
+| `customer_email` | Carried into the element's `customer-email` attribute when there is an address to carry. Optional — see below for where it comes from. |
 
 The component reads no settings and imposes no sign-in requirement, so it can be placed on any
 page of your own project, whether or not this package's Account Center pages are in use.
+
+### Where the address comes from
+
+The installed backend matches a provider customer to an application user by email address alone.
+A purchase made under a different address than the signed-in person's own attaches to nobody, so
+the component passes one wherever it can.
+
+An address supplied as the `customer_email` attribute wins. Otherwise the component reads
+`request.user` from the context and uses that person's address when they are signed in and hold
+one. Where there is neither — an anonymous visitor, or a signed-in person whose account carries no
+address — the `customer-email` attribute is omitted entirely rather than emitted empty: an empty
+`customer-email` is not the same instruction to the provider as an absent one.
+
+```html
+<c-drf-stripe.pricing-table :table_id="pricing_table_id"
+                             :publishable_key="publishable_key"
+                             customer_email="someone@example.com" />
+```
 
 ## The page
 
