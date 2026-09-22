@@ -88,6 +88,74 @@ print(json.dumps({
 }))
 """
 
+_COMPONENT_TEMPLATE_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import AnonymousUser
+from django.db import connection
+from django.template import Context, Template
+from django.test import RequestFactory
+from django.test.utils import CaptureQueriesContext, setup_test_environment
+from django_cotton.compiler_regex import CottonCompiler
+
+setup_test_environment()
+
+compiler = CottonCompiler()
+request = RequestFactory().get("/")
+request.user = AnonymousUser()
+
+compiled = compiler.process(
+    '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+    'publishable_key="pk_test_456" />'
+)
+template = Template(compiled)
+context = Context({"request": request})
+context.request = request
+
+with CaptureQueriesContext(connection) as captured:
+    html = template.render(context)
+
+print(json.dumps({"html": html, "query_count": len(captured)}))
+"""
+
+_PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.test import Client, override_settings
+from django.test.utils import setup_test_environment
+from django.urls import reverse
+
+setup_test_environment()
+call_command("migrate", verbosity=0, run_syncdb=True)
+
+User.objects.create_user(username="person", password="password")
+client = Client()
+client.login(username="person", password="password")
+
+with override_settings(
+    MVP_PAYMENTS={
+        "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+        "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+    }
+):
+    response = client.get(reverse("payments:drf-stripe-plans"))
+
+print(json.dumps({
+    "status_code": response.status_code,
+    "content": response.content.decode(),
+}))
+"""
+
 
 class TestPaymentPage:
     """A signed-in request renders; an anonymous one is sent to sign in."""
@@ -626,3 +694,51 @@ class TestTemplateOverride:
         assert "20.00 USD" in content
         assert "every month" in content
         assert "/api/stripe/customer-portal/" in content
+
+
+class TestPlansPageOverride:
+    """A project's own templates, found before this package's, replace the Plans page's
+    markup with no view and no query against the backend (T028, FR-012, FR-013, SC-007).
+
+    The app-directories template loader decides which application's copy of a name wins
+    from ``INSTALLED_APPS`` order, fixed at process start (D4, 001-pages-arrive-on-install) —
+    the same reason ``TestTemplateOverride`` above boots a fresh process rather than
+    reordering ``INSTALLED_APPS`` mid-test.
+    """
+
+    def test_a_projects_own_component_renders_with_no_view_and_no_query(self):
+        """Scenario 1: a project's own ``cotton/drf_stripe/pricing_table.html`` is what
+        appears. Scenario 3: rendering it costs no view and no query — the same
+        ``django_assert_num_queries(0)`` guarantee
+        ``TestPricingTable.test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor``
+        (T016) holds for the shipped component, now held for a project's own override.
+        """
+        result = run_probe(
+            _COMPONENT_TEMPLATE_OVERRIDE_PROBE,
+            "tests.settings_with_project_template_override",
+        )
+
+        assert result["query_count"] == 0
+        html = result["html"]
+        assert 'data-testid="the-hosting-projects-own-pricing-table"' in html
+        assert 'data-table-id="prctbl_test123"' in html
+        assert 'data-publishable-key="pk_test_456"' in html
+
+    def test_a_projects_own_page_template_receives_every_documented_context_name(self):
+        """Scenario 2: a project's own ``mvp_payments/drf_stripe/plans.html`` renders, and
+        both context names the shipped page would have used — ``pricing_table_id`` and
+        ``publishable_key`` — are available to it. The project's own template also places
+        ``<c-drf-stripe.pricing-table>``, so this run shows the component override (scenario
+        1) holding inside a page-template override too.
+        """
+        result = run_probe(
+            _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE,
+            "tests.settings_with_project_template_override",
+        )
+
+        assert result["status_code"] == 200
+        content = result["content"]
+        assert 'data-testid="the-hosting-projects-own-plans-page"' in content
+        assert '<p data-testid="pricing-table-id">prctbl_test123</p>' in content
+        assert '<p data-testid="publishable-key">pk_test_456</p>' in content
+        assert 'data-testid="the-hosting-projects-own-pricing-table"' in content
