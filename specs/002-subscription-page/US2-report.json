@@ -1,0 +1,132 @@
+{
+  "story": "US2",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T015",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestBillingPortalEndpoint::test_carries_the_endpoint_from_settings_for_a_current_subscriber",
+          "tests/test_views.py::TestBillingPortalEndpoint::test_is_none_when_the_setting_is_absent",
+          "tests/test_views.py::TestBillingPortalEndpoint::test_is_none_for_a_person_with_no_current_subscription_even_when_set"
+        ],
+        "criteria": ["SC-002"],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestBillingPortalEndpoint -x -q",
+          "poetry run pytest tests/test_views.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["9be9842ca13faa5f075e560ef720271d0d9a1881"]
+    },
+    {
+      "id": "T016",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPortalLink::test_given_an_endpoint_it_renders_a_control_carrying_it_and_a_csrf_token",
+          "tests/test_components/test_drf_stripe.py::TestPortalLink::test_given_no_endpoint_it_states_the_provider_manages_it_and_renders_no_control"
+        ],
+        "criteria": ["SC-006"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPortalLink -q",
+          "poetry run pytest tests/test_components/ -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["96a7808ab9ea4f9bbb768b7ba39310528b06032a"]
+    },
+    {
+      "id": "T017",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-002"],
+        "commands": [
+          "poetry run pytest tests/test_views.py -q",
+          "poetry run mypy mvp_payments/views.py"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["9be9842ca13faa5f075e560ef720271d0d9a1881"]
+    },
+    {
+      "id": "T018",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-002", "SC-006"],
+        "commands": [
+          "poetry run pytest tests/test_components/ -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["96a7808ab9ea4f9bbb768b7ba39310528b06032a"]
+    },
+    {
+      "id": "T019",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pre-commit run --files mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js",
+          "poetry run pytest tests/test_app.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["7b575047d0a924fe875fb074959001588ac03d56"]
+    },
+    {
+      "id": "T020",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestSubscriptionPage::test_the_portal_control_sits_beneath_the_subscriptions"
+        ],
+        "criteria": ["SC-002"],
+        "commands": [
+          "poetry run pytest tests/test_views.py tests/test_demo.py tests/test_app.py tests/test_urls.py -q",
+          "poetry run pytest tests/ -q",
+          "poetry run mypy demo/ mvp_payments/"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["529d5a13101d49c7bdfb19d97b143db8c98d1b56"]
+    }
+  ],
+  "deviations": [
+    {
+      "what": "T015/T017 committed as one commit (9be9842) rather than a separate red test commit and a separate green code commit; same for T016/T018 (96a7808).",
+      "why": "A test-only commit for a task marked 'Red before T0NN' leaves the tree red until the paired code task lands, which conflicts with craft-increments' 'tree is green between slices'. US-1 already established and recorded this pairing (D7) for tasks in exactly this 'red before' shape; this story follows the same precedent rather than re-litigating it.",
+      "decision_ref": "D7"
+    },
+    {
+      "what": "demo/urls.py mounts drf_stripe.urls conditionally on apps.is_installed('drf_stripe'), not unconditionally.",
+      "why": "Mounting it unconditionally broke tests/settings_without_backend.py's two tests: importing drf_stripe.urls imports its models, and a model with no explicit app_label needs its app installed to resolve one. A real project's own URLconf would never unconditionally include a backend it hadn't installed either.",
+      "decision_ref": "D9"
+    },
+    {
+      "what": "billing_portal.js never writes the backend's response text into the DOM. The failure message is static, translated text rendered by portal_link.html at page-render time; the script only toggles its hidden attribute.",
+      "why": "Article XII's 'no trust in what comes back' extended to the one piece of this feature that runs after the template has rendered, and it keeps the failure message translatable through {% translate %} rather than embedded as an English string in JavaScript.",
+      "decision_ref": "D10"
+    }
+  ],
+  "concerns": [
+    "T019 (mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js) has no Python test. It runs in the browser and this package cannot import it or call the backend's endpoint from Python (Article XII forbids a server-side call to it), so there is no seam in this repo's test suite to drive it from. Its coverage is the acceptance scenario it implements (US-2 scenario 2 and 3) and the demo's manual reachability, not an automated test.",
+    "The portal-link component's 'no endpoint' branch ('the provider manages the subscription and the portal cannot be reached') renders today for a person with no current subscription too, since billing_portal_endpoint is None for that case exactly as it is for a genuinely unconfigured setting — the component has no way to tell the two apart from the endpoint value alone. That wording overstates 'has a subscription' for someone who never subscribed. Not this story's to fix: the subscription page has no {% empty %} branch yet (US-4's, explicitly out of this story's scope per the brief's prohibitions), and that story's own empty-state template will replace this page's rendering for that case entirely. Left as a watch item in progress.md for US-4 to account for."
+  ],
+  "blocked": []
+}
