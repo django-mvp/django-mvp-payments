@@ -1,0 +1,436 @@
+{
+  "$schema": "../../../../.openclaw/workspaces/forge/engineering-org/kit/schemas/feature-state.schema.json",
+  "feature": "003-pricing-table",
+  "branch": "feat/003-pricing-table",
+  "repo": "django-mvp/django-mvp-payments",
+  "state": "PLAN",
+  "state_history": [
+    {
+      "state": "PLAN",
+      "at": "2026-09-22T13:45:00Z",
+      "note": "S3 opened from the feature queue; spec and decisions already on main"
+    }
+  ],
+  "gates": {
+    "spec": {
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-22T11:40:35Z",
+      "self_resolved": [
+        "specification pull request #26 merged as c6103c82cb7ba185499600e9d5ed65ba435ea502"
+      ]
+    },
+    "plan": {
+      "approved_by": null,
+      "at": null
+    },
+    "merge": {
+      "approved_by": null,
+      "at": null
+    }
+  },
+  "stories": [
+    {
+      "id": "US1",
+      "priority": "P1",
+      "issue": 27,
+      "worktree": null,
+      "status": "todo",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T001",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T002",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T003",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T004",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T005",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T006",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T007",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T008",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T009",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T010",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T011",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "US2",
+      "priority": "P1",
+      "issue": 28,
+      "worktree": null,
+      "status": "todo",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T012",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T013",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T014",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T015",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "US3",
+      "priority": "P2",
+      "issue": 29,
+      "worktree": null,
+      "status": "todo",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T016",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T017",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T018",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "US4",
+      "priority": "P2",
+      "issue": 30,
+      "worktree": null,
+      "status": "todo",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T019",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T020",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T021",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T022",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T023",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T024",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T025",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T026",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T027",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "US5",
+      "priority": "P3",
+      "issue": 31,
+      "worktree": null,
+      "status": "todo",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T028",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T029",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T030",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T031",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T032",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        },
+        {
+          "id": "T033",
+          "status": "todo",
+          "attempts": 0,
+          "evidence": {
+            "tests": [],
+            "commands": [],
+            "code": []
+          }
+        }
+      ]
+    }
+  ],
+  "budgets": {
+    "converge_cycles": {
+      "used": 0,
+      "max": 2
+    },
+    "review_cycles": {
+      "used": 0,
+      "max": 1
+    },
+    "design_review_cycles": {
+      "used": 0,
+      "max": 1
+    },
+    "tokens": {
+      "used": 0,
+      "max": 120
+    }
+  },
+  "pr": {
+    "number": null,
+    "draft": true
+  },
+  "escalations": []
+}
