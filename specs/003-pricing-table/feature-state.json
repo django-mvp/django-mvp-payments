@@ -372,97 +372,155 @@
       "priority": "P2",
       "issue": 30,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T019",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_views.py::TestPlansPage::test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id",
+              "tests/test_views.py::TestPlansPage::test_states_plans_unavailable_and_emits_no_provider_element_without_a_publishable_key",
+              "tests/test_views.py::TestPlansPage::test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestPlansPage -v"
+            ],
+            "code": [
+              "tests/test_views.py:204"
+            ]
           }
         },
         {
           "id": "T020",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPlansUnavailable::test_renders_its_sentence_given_nothing"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPlansUnavailable -v"
+            ],
+            "code": [
+              "tests/test_components/test_drf_stripe.py:349"
+            ]
           }
         },
         {
           "id": "T021",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPricingTable::test_carries_a_hidden_could_not_be_loaded_message_and_its_marker"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v"
+            ],
+            "code": [
+              "tests/test_components/test_drf_stripe.py:43"
+            ]
           }
         },
         {
           "id": "T022",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPlansUnavailable"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPlansUnavailable -v"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/plans_unavailable.html:1"
+            ]
           }
         },
         {
           "id": "T023",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_views.py::TestPlansPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py -v"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/plans.html:9"
+            ]
           }
         },
         {
           "id": "T024",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPricingTable",
+              "tests/test_app.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable tests/test_app.py -v"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/pricing_table.html:37"
+            ]
           }
         },
         {
           "id": "T025",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
             "tests": [],
-            "commands": [],
-            "code": []
+            "commands": [
+              "poetry run python manage.py findstatic mvp_payments/drf_stripe/pricing_table.js --settings=demo.settings"
+            ],
+            "code": [
+              "mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js:1"
+            ]
           }
         },
         {
           "id": "T026",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_demo.py::TestUnavailableStateRoutes"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_demo.py -q"
+            ],
+            "code": [
+              "demo/views.py:13",
+              "demo/urls.py:9",
+              "demo/templates/demo/no_library.html:1",
+              "demo/templates/demo/plans_unconfigured.html:1"
+            ]
           }
         },
         {
           "id": "T027",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_app.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_app.py -q"
+            ],
+            "code": [
+              "docs/plans-page.md:93"
+            ]
           }
         }
       ]
