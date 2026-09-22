@@ -18,7 +18,7 @@ from mvp.views import MVPTemplateView
 from .namespaces.drf_stripe_records import SubscriptionReader
 
 if TYPE_CHECKING:
-    from .contributions import Page
+    from .contributions import Contribution, Page
 
 
 class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
@@ -27,9 +27,13 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
     ``page`` must be set through ``as_view(page=...)`` — mirroring how
     ``BaseTemplateNameMixin`` requires ``base_template_name`` — because this
     class is never used directly, only built once per declared ``Page``.
+    ``contribution`` arrives the same way, and is how a page addresses a
+    sibling: not every page is in the navigation any more, so the ones that
+    are have to be able to link to the ones that are not.
     """
 
     page: Page | None = None
+    contribution: Contribution | None = None
 
     def get_page(self) -> Page:
         if self.page is None:
@@ -37,6 +41,14 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
                 f"{type(self).__name__} requires `page` to be set, via as_view(page=...)."
             )
         return self.page
+
+    def get_contribution(self) -> Contribution:
+        if self.contribution is None:
+            raise ImproperlyConfigured(
+                f"{type(self).__name__} requires `contribution` to be set, "
+                "via as_view(contribution=...)."
+            )
+        return self.contribution
 
     def get_template_names(self) -> list[str]:
         return [self.get_page().template_name]
@@ -56,6 +68,10 @@ class SubscriptionPageView(PaymentPageView):
     Suppressed for anyone with nothing current, never merely disabled — the backend's endpoint
     creates a customer at the provider for whoever posts to it, so offering the control to someone
     who never subscribed would create one by their clicking it (D5).
+
+    And ``plans_url``: the plans page is no longer in the Account Center's navigation, so this
+    page carries the way to it. Offered to everyone, unlike the portal, because somebody with no
+    subscription is exactly who needs it.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -67,6 +83,7 @@ class SubscriptionPageView(PaymentPageView):
             if subscriptions
             else None
         )
+        context["plans_url"] = self.get_contribution().page_url("plans")
         return context
 
 

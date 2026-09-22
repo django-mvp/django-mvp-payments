@@ -112,23 +112,25 @@ own, and it waits for an adopter to ask for it rather than being built on the gu
 Serves G1 and G2. Does not cover taking payment, which happens on the provider's pages, and does
 not cover building an alternative to the provider's embed.
 
-### R5 — A person can manage their billing
+### R5 — The handoff to the provider survives a page left open
 
 *resolve · advances G4*
 
-Changing a payment method, reading an invoice, cancelling, updating a tax ID: the provider already
-hosts all of it, localised and branded, and the backend exposes a way in. This item is the way in,
-placed where a person would look for it. It is deliberately small, and it is the reason this
-package never grows an invoice table or a cancellation flow of its own.
+Reaching the provider's own portal to change a payment method, read an invoice or cancel is a
+control on the subscription page, and it works. What is not built is the case where a person opens
+that page, goes away, and comes back to click, which is the ordinary way a page like this gets
+used. The control carries a token minted when the page rendered, so a session that has moved on
+since means the handoff fails, and what the reader is told is to try again later when reloading is
+what would actually help.
 
 **Deliverables:**
 
-- A person can reach the provider's billing management from the Account Center.
-- The handoff works for a person whose session has been open a while.
+- A person who left the page open and came back still reaches the provider.
+- Where that is not possible, what they are told is something they can act on.
 
-Serves G4. It lands in the first release because it is small and it completes what a subscriber
-can actually do. G4 as a whole still gates v1.0.0. Does not cover reproducing anything the
-provider's own pages already do.
+Serves G4. It is small, and it is the last thing between a subscriber and everything they can
+actually do. G4 as a whole still gates v1.0.0. Does not cover reproducing anything the provider's
+own pages already do.
 
 ## Expected goals: v1.0.0
 

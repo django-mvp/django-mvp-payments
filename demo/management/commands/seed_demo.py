@@ -8,7 +8,9 @@ rule ``mvp_payments/`` itself follows (Article XIII) — the demo shows the pack
 way a host project would use it, not a shortcut available only here.
 """
 
+import stripe
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
@@ -46,6 +48,45 @@ class Command(BaseCommand):
             self.stdout.write(f"{verb} {username} ({account['email']})")
 
         self._seed_subscriptions(user_model)
+
+    def _customer_id(self, email, fallback):
+        """A provider customer for this person, real where the demo has credentials.
+
+        The portal a subscriber is handed to is minted by the provider for a customer it knows
+        about, so an invented identifier gets as far as the button and no further: the control
+        posts, the backend asks the provider, and the reader is told the portal could not be
+        reached. With a sandbox key in ``demo/.env`` this creates a customer there, or reuses the
+        one already created for that address, and the handoff can be followed all the way to the
+        provider's own page.
+
+        Without credentials it returns the invented identifier and the demo behaves exactly as a
+        project that has not configured its backend, which is worth being able to look at too.
+        """
+        secret = getattr(settings, "DEV_ENV", {}).get("STRIPE_TEST_SECRET_KEY")
+        if not secret:
+            return fallback
+
+        stripe.api_key = secret
+        existing = stripe.Customer.list(email=email, limit=1).data
+        if existing:
+            return existing[0].id
+        return stripe.Customer.create(email=email, name=email.partition("@")[0]).id
+
+    def _stripe_user(self, stripe_user_model, user, fallback_customer_id):
+        """This person's backend customer record, with its identifier kept current.
+
+        ``get_or_create`` applies its defaults only when it creates, so a demo database seeded
+        before credentials were configured would keep its invented identifier forever and the
+        portal would go on failing for reasons nothing on screen explains.
+        """
+        customer_id = self._customer_id(user.email, fallback_customer_id)
+        stripe_user, created = stripe_user_model.objects.get_or_create(
+            user=user, defaults={"customer_id": customer_id}
+        )
+        if not created and stripe_user.customer_id != customer_id:
+            stripe_user.customer_id = customer_id
+            stripe_user.save(update_fields=["customer_id"])
+        return stripe_user
 
     def _seed_subscriptions(self, user_model):
         """Give the demo something for the subscription page to show.
@@ -117,8 +158,8 @@ class Command(BaseCommand):
         )
 
         regular_user = user_model.objects.get(username="regular.user")
-        regular_stripe_user, _ = stripe_user_model.objects.get_or_create(
-            user=regular_user, defaults={"customer_id": "cus_demo_regular"}
+        regular_stripe_user = self._stripe_user(
+            stripe_user_model, regular_user, "cus_demo_regular"
         )
         regular_subscription, _ = subscription_model.objects.get_or_create(
             subscription_id="sub_demo_regular",
@@ -146,8 +187,8 @@ class Command(BaseCommand):
         )
 
         staff_user = user_model.objects.get(username="staff.user")
-        staff_stripe_user, _ = stripe_user_model.objects.get_or_create(
-            user=staff_user, defaults={"customer_id": "cus_demo_staff"}
+        staff_stripe_user = self._stripe_user(
+            stripe_user_model, staff_user, "cus_demo_staff"
         )
         staff_subscription, _ = subscription_model.objects.get_or_create(
             subscription_id="sub_demo_staff",
@@ -172,8 +213,8 @@ class Command(BaseCommand):
         )
         other_user.set_password(PASSWORD)
         other_user.save()
-        other_stripe_user, _ = stripe_user_model.objects.get_or_create(
-            user=other_user, defaults={"customer_id": "cus_demo_other"}
+        other_stripe_user = self._stripe_user(
+            stripe_user_model, other_user, "cus_demo_other"
         )
         other_subscription, _ = subscription_model.objects.get_or_create(
             subscription_id="sub_demo_other",

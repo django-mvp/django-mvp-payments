@@ -22,7 +22,7 @@ disagree with the rest of your application on the day the backend's line moved.
 
 ## The context
 
-`SubscriptionPageView` adds two names to the template context:
+`SubscriptionPageView` adds three names to the template context:
 
 `subscriptions`
 : A tuple of `CurrentSubscription`, newest first, for the person making the request. Empty for
@@ -34,6 +34,11 @@ disagree with the rest of your application on the day the backend's line moved.
   absent, and `None` for a person with no current subscription even when it is set — the backend's
   endpoint creates a customer at the provider for whoever posts to it, so it is never offered to
   someone with nothing to manage.
+
+`plans_url`
+: Where the plans page is mounted. The plans page is not in the Account Center's navigation, so
+  this page carries the way to it. Unlike the portal, it is offered to everybody: a person with no
+  subscription is exactly who needs it.
 
 Everything else on the page is reached through those two names. If you override the template you
 have all of it, and you need no view, no context processor and no query of your own.
@@ -101,7 +106,7 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Six components render the page. You can place any of them in a template of your own, and each
+Seven components render the page. You can place any of them in a template of your own, and each
 renders from the attributes you give it — with one exception, noted against the component it
 applies to.
 
@@ -110,6 +115,7 @@ applies to.
 <c-drf-stripe.plan :plan="plan" />
 <c-drf-stripe.amount :amount="plan.amount" />
 <c-drf-stripe.features :features="plan.features" />
+<c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
 <c-drf-stripe.no-subscription />
 ```
@@ -129,6 +135,12 @@ applies to.
 `<c-drf-stripe.features>`
 : A plan's `features`, one line each, its description where the project gave one and its
   identifier otherwise. Given none, renders nothing at all — no heading and no empty list.
+
+`<c-drf-stripe.plans-link>`
+: Given a `url`, a control leading to the plans page. `subscribed` decides its wording: somebody
+  already on a plan is offered a switch, and somebody who is not is invited to choose one, because
+  "switch plans" reads as a mistake to a person with nothing to switch from. Given no `url` it
+  renders nothing at all rather than a control leading nowhere.
 
 `<c-drf-stripe.portal-link>`
 : Given an `endpoint`, a control that posts to it and follows the address the backend answers
@@ -155,15 +167,32 @@ stylesheet of their own.
 
 ## Reaching the billing portal
 
-The backend's billing-portal endpoint answers a `POST` with `{"url": ...}` and carries no route
-name of its own, so it cannot be linked to directly or reversed — you tell the page where you
-mounted it:
+The page hands a reader to an endpoint that answers a `POST` with `{"url": ...}`. It carries no
+route name of its own, so it cannot be linked to directly or reversed — you tell the page where
+you mounted it:
 
 ```python
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
 }
 ```
+
+### The backend's own endpoint raises after its first use
+
+`drf-stripe-subscription` ships that endpoint at `customer-portal/`, and today it succeeds exactly
+once per person. `get_or_create_stripe_user(user_id=...)` looks a customer record up by
+`(user_id, customer_id=None)`. The first call creates that record and then fills the second field
+in, so every call after it matches nothing, tries to insert a second record for a person who
+already has one, and the database refuses with a unique-constraint error. It is open on the
+backend's own tracker.
+
+Until that is fixed, point this setting at an endpoint of your own that does the same two things
+either side of the broken lookup — read the customer identifier the backend already keeps, and ask
+the provider for a session. `demo/views.py` has a working one, at about twenty lines.
+
+This package cannot ship that endpoint for you. It reaches a provider only through a backend's
+HTTP endpoints and imports no provider SDK at all, which Article XII of the constitution makes
+absolute and `tests/test_app.py` enforces. A project of your own is bound by neither.
 
 `<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
 JavaScript behaviour — so a small static file does it: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`.
@@ -178,7 +207,8 @@ package emits no `<script>` tag of its own:
 <script defer src="{% static 'mvp_payments/drf_stripe/billing_portal.js' %}"></script>
 ```
 
-The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`.
+The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`, and
+points the setting at its own endpoint rather than the backend's for the reason above.
 
 ## Replacing the page
 
@@ -202,6 +232,7 @@ precede `mvp` (see the README's Install step).
     {% empty %}
       <c-drf-stripe.no-subscription />
     {% endfor %}
+    <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
     {% if subscriptions %}
       <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
     {% endif %}

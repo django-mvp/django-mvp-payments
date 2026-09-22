@@ -1,0 +1,25 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.plans-link> — the way to the plans page        #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   url        – where the plans page is mounted                 #}
+{#   subscribed – whether this reader is on a plan already        #}
+{#                                                                #}
+{# The plans page is routed but not in the Account Center's      #}
+{# navigation, so this control is how a person reaches it.       #}
+{#                                                                #}
+{# Two wordings rather than one: "Switch plans" reads as a       #}
+{# mistake to somebody who is not on a plan yet, and they are    #}
+{# the readers who most need the link.                           #}
+{# ============================================================ #}
+<c-vars url subscribed=False />
+{% if url %}
+  <a href="{{ url }}" class="btn btn-outline">
+    {% if subscribed %}
+      {% translate "Switch plans" %}
+    {% else %}
+      {% translate "Choose a plan" %}
+    {% endif %}
+  </a>
+{% endif %}

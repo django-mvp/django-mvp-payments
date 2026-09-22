@@ -1,7 +1,12 @@
 from django.apps import apps
 from django.urls import include, path
 
-from demo.views import HomeView, NoLibraryView, PlansUnconfiguredView
+from demo.views import (
+    BillingPortalView,
+    HomeView,
+    NoLibraryView,
+    PlansUnconfiguredView,
+)
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
@@ -13,14 +18,18 @@ urlpatterns = [
         name="plans-unconfigured",
     ),
     path("no-library/", NoLibraryView.as_view(), name="no-library"),
+    # The one line a project adds to mount this package's pages (FR-001).
+    # Mounted inside the Account Center's own prefix, under the label the
+    # navigation uses, so the address bar agrees with where a reader thinks
+    # they are. Declared before the Account Center's own include so that this
+    # prefix is matched here rather than depending on `mvp.urls` declining it.
+    path("account/billing/", include("mvp_payments.urls")),
     # The Account Center is django-mvp's, and this package contributes pages to
     # it. A project mounts it once; so does this demo.
     path("account/", include("mvp.urls")),
     # Every page this package contributes requires a signed-in person, so the
     # demo needs somewhere to sign in.
     path("accounts/", include("django.contrib.auth.urls")),
-    # The one line a project adds to mount this package's pages (FR-001).
-    path("payments/", include("mvp_payments.urls")),
 ]
 
 if apps.is_installed("drf_stripe"):
@@ -33,3 +42,11 @@ if apps.is_installed("drf_stripe"):
     # raises before the module even loads (its models declare no app_label
     # of their own to fall back on).
     urlpatterns.append(path("api/stripe/", include("drf_stripe.urls")))
+    # And this project's own way through to the provider's billing portal,
+    # which the subscription page is pointed at instead of the backend's —
+    # see demo/views.py for why the backend's own raises. Alongside rather
+    # than over the top of it, so the address a reader is sent to is this
+    # project's and the backend's URLconf is left exactly as it ships.
+    urlpatterns.append(
+        path("api/billing-portal/", BillingPortalView.as_view(), name="billing-portal")
+    )

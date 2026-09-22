@@ -304,6 +304,39 @@ class TestFeatures:
         assert html.strip() == ""
 
 
+class TestPlansLink:
+    """``<c-drf-stripe.plans-link>`` — the way to the plans page.
+
+    That page left the Account Center's navigation, so this control is how a
+    person reaches it.
+    """
+
+    def test_a_subscriber_is_offered_a_switch(self, cotton_render):
+        html = cotton_render(
+            "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=True
+        )
+
+        assert 'href="/account/billing/plans/"' in html
+        assert "Switch plans" in html
+        assert "Choose a plan" not in html
+
+    def test_somebody_on_no_plan_is_offered_a_choice(self, cotton_render):
+        """ "Switch plans" reads as a mistake to a person who is not on one."""
+        html = cotton_render(
+            "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=False
+        )
+
+        assert 'href="/account/billing/plans/"' in html
+        assert "Choose a plan" in html
+        assert "Switch plans" not in html
+
+    def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
+        """A control leading nowhere is worse than no control (Article XVI)."""
+        html = cotton_render("drf-stripe.plans-link", url=None)
+
+        assert html.strip() == ""
+
+
 class TestPortalLink:
     """``<c-drf-stripe.portal-link>`` — the way through to the provider's billing
     portal (T016, D3, D5)."""
@@ -318,7 +351,7 @@ class TestPortalLink:
         assert 'data-endpoint="/api/stripe/customer-portal/"' in html
         assert re.search(r'data-csrf-token="[^"]+"', html)
         assert "<button" in html
-        assert "Manage billing" in html
+        assert "Manage subscription" in html
         assert re.search(r'aria-describedby="([\w-]+)"', html)
         note_id = re.search(r'aria-describedby="([\w-]+)"', html).group(1)
         assert f'id="{note_id}"' in html

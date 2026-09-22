@@ -1,9 +1,10 @@
 """The drf-stripe-subscription namespace's contribution.
 
-Three pages: the person's subscription, the plans available to them, and
-their billing management (FR-007). The subscription and plans pages are
-filled in; billing management is a later roadmap item (R5) — it still
-renders its heading and nothing else.
+One navigation entry, Subscription, under a Billing group. The plans page is
+routed but not listed, because it is reached from a control on the
+subscription page: somebody choosing a plan is already looking at the one
+they are on. A group holding a single entry is deliberate, and leaves an
+obvious place for invoices and payment methods to arrive later.
 """
 
 from django.utils.translation import gettext_lazy as _
@@ -28,14 +29,9 @@ drf_stripe = Contribution(
             icon="plan",
             template_name="mvp_payments/drf_stripe/plans.html",
             view=PlansPageView,
-        ),
-        Page(
-            slug="billing",
-            label=_("Billing"),
-            icon="payments",
-            template_name="mvp_payments/drf_stripe/billing.html",
+            in_navigation=False,
         ),
     ),
     card_template="mvp_payments/card.html",
-    group_label=_("Payments"),
+    group_label=_("Billing"),
 )

@@ -159,6 +159,10 @@ permanently; it does not mean the assembled page a host project's own shell prod
 appears relative to this package's markup — that would be a test of the demo project's own
 template, not of `mvp_payments`.
 
+**ADR:** none — where one success criterion is proved, recorded against the criterion it belongs
+to, the same as D4. The standard it tests is already Article XIII's; this decides the assertion's
+level, not the rule.
+
 ## D3 — US-1 triage: the Plans page's routing assertion was Forge's to update
 
 **Decision:** `tests/test_urls.py`'s parametrized list, which asserts which view each declared page
