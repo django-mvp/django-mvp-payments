@@ -5,6 +5,8 @@ dataclass straight through as a component attribute, which is exactly the guaran
 overriding this page's template, or placing one of these components elsewhere, relies on.
 """
 
+import re
+
 from django.utils import timezone
 
 from mvp_payments.money import Money
@@ -117,3 +119,34 @@ class TestSubscription:
         assert "badge-success" not in html
         assert "badge-info" not in html
         assert "badge-warning" not in html
+
+
+class TestPortalLink:
+    """``<c-drf-stripe.portal-link>`` — the way through to the provider's billing
+    portal (T016, D3, D5)."""
+
+    def test_given_an_endpoint_it_renders_a_control_carrying_it_and_a_csrf_token(
+        self, cotton_render
+    ):
+        html = cotton_render(
+            "drf-stripe.portal-link", endpoint="/api/stripe/customer-portal/"
+        )
+
+        assert 'data-endpoint="/api/stripe/customer-portal/"' in html
+        assert re.search(r'data-csrf-token="[^"]+"', html)
+        assert "<button" in html
+        assert "Manage billing" in html
+        assert re.search(r'aria-describedby="([\w-]+)"', html)
+        note_id = re.search(r'aria-describedby="([\w-]+)"', html).group(1)
+        assert f'id="{note_id}"' in html
+        assert "provider" in html.lower()
+        assert "hidden data-mvp-payments-portal-link-failure" in html
+
+    def test_given_no_endpoint_it_states_the_provider_manages_it_and_renders_no_control(
+        self, cotton_render
+    ):
+        html = cotton_render("drf-stripe.portal-link", endpoint=None)
+
+        assert "<button" not in html
+        assert "provider" in html.lower()
+        assert "cannot be reached" in html.lower()
