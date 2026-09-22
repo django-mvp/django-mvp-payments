@@ -31,8 +31,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configured by two settings, `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` and
   `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]`. `docs/plans-page.md` documents the component, the
   two settings, and how to replace either the component or the page with your own.
+- The pricing table carries the signed-in person's email address, so a purchase reaches the
+  account that made it — the backend matches a customer to a user by address and reads no other
+  identifier. An address passed as an attribute wins; where there is neither, the attribute is
+  omitted rather than sent empty.
+- `<c-drf-stripe.plans-unavailable>`, and the plans page's two ways of saying there is nothing to
+  show: the sentence it renders when either setting is missing, and a message revealed in the
+  browser when the provider's library never arrived. Both are translatable, and neither leaves a
+  reader looking at empty space.
 
 ### Changed
+
+- The rule forbidding a publishable key to be read from Django settings now applies to a
+  component rather than to the whole package. A page this package ships may read it and pass it
+  to a component as an attribute; a component still never reads it. Without that distinction a
+  shipped, configurable page could not exist, because every project would have to build and route
+  the page itself to supply the attribute.
 
 - `mvp_payments` now goes **before** `mvp` in `INSTALLED_APPS`. The package ships its own copy of
   the Account Center's overview template and extends the name from inside it, which only resolves

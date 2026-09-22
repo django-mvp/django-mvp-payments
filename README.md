@@ -16,10 +16,12 @@ than leaving you to build and route them.
 
 ## Status
 
-Version 0.0.1. The `drf-stripe` namespace contributes three pages, of which the subscription page
-is built: it shows a signed-in person what they are currently subscribed to, what each plan grants
-them, and the way through to the provider's billing portal. The plans and billing pages are routed
-and reachable but do not show anything yet. Nothing here is stable.
+Version 0.0.1. The `drf-stripe` namespace contributes three pages, of which two are built. The
+subscription page shows a signed-in person what they are currently subscribed to, what each plan
+grants them, and the way through to the provider's billing portal. The plans page mounts the
+provider's own pricing table, configured by two settings, and says so plainly when it has not been
+configured or the provider's library never arrived. The billing page is routed and reachable but
+does not show anything yet. Nothing here is stable.
 
 ## Requirements
 
