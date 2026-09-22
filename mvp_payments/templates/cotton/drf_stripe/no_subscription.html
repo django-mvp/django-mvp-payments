@@ -1,0 +1,12 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.no-subscription> — nothing current to show      #}
+{# (D5, D11, T027)                                                #}
+{#                                                                #}
+{# Takes no props. The backend reports "never subscribed" and    #}
+{# "subscription ended" alike, and this package has no way to    #}
+{# tell them apart, so it names neither (FR-008).                #}
+{# ============================================================ #}
+{% translate "No current subscription" as heading %}
+{% translate "You have no subscription that is currently active." as message %}
+<c-page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
