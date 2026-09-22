@@ -431,3 +431,26 @@ name raises with `DEBUG = False`, it does not render empty.
 Next: the story's completion report and the full verify run.
 
 Watch: none.
+
+## 2026-09-22T05:44:46Z · Implementer US-5 · T028
+
+Did: `tests/test_views.py::TestTemplateOverride` — a project's own copy of
+`mvp_payments/drf_stripe/subscription.html`, found before this package's on the app-directories
+template loader's search path, renders every documented context value (`subscriptions`,
+`billing_portal_endpoint`) with no view, no context processor and no query of its own (FR-011,
+SC-005). `tests/project_app` is a bare test application supplying only that template, arranged
+and worded differently from the shipped page to prove it is a genuine override rather than a
+copy. `tests/settings_with_project_template_override.py` puts it before `mvp_payments` in
+`INSTALLED_APPS`, following `settings_with_another_card`'s precedent of a fresh-process settings
+module: the app-directories loader's order is fixed at process start (D4,
+001-pages-arrive-on-install), so `run_probe` boots a new interpreter under it rather than
+reordering `INSTALLED_APPS` mid-test.
+
+Verified: confirmed red first by temporarily reverting the settings module's `INSTALLED_APPS`
+insertion — the shipped template rendered instead and the test's marker assertion failed for
+that reason, not an error. Restored, then `poetry run pytest tests/test_views.py::TestTemplateOverride`
+— 1 passed.
+
+Next: T029, the standalone-component guarantee.
+
+Watch: none.
