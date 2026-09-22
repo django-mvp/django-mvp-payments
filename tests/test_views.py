@@ -201,6 +201,50 @@ class TestPlansPage:
 
         importlib.reload(views_module)
 
+    def test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id(
+        self, logged_in_client
+    ):
+        """Scenario 1: no pricing table identifier configured (FR-007, SC-005)."""
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "stripe-pricing-table" not in content
+        assert "Plans not available" in content
+
+    def test_states_plans_unavailable_and_emits_no_provider_element_without_a_publishable_key(
+        self, logged_in_client
+    ):
+        """Scenario 2: no publishable key configured (FR-007, SC-005)."""
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "stripe-pricing-table" not in content
+        assert "Plans not available" in content
+
+    def test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged(
+        self, logged_in_client, settings
+    ):
+        """Scenario 4: nothing raises, and the rest of the page — its heading, the
+        account navigation — renders unchanged, alongside the unavailable sentence."""
+        del settings.MVP_PAYMENTS
+
+        response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert re.search(r"<h1[^>]*>\s*Plans\s*</h1>", content)
+        assert 'aria-label="Account navigation"' in content
+        assert "stripe-pricing-table" not in content
+        assert "Plans not available" in _content_region(content)
+
 
 class TestAccountCenterOverview:
     """The overview carries the installed backend's card, and keeps whatever
