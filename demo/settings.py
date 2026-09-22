@@ -106,11 +106,16 @@ DRF_STRIPE = {
     "FRONT_END_BASE_URL": DEV_ENV.get("DEMO_BASE_URL", "http://localhost:8020"),
 }
 
-# Where this project mounted the backend's own billing-portal endpoint
-# (demo/urls.py). The endpoint carries no route name, so the subscription
-# page has to be told where it is rather than assuming (D3, FR-006).
+# Where this project mounted the endpoint the subscription page hands a reader
+# to (demo/urls.py). Neither candidate carries a route name, so the page has to
+# be told where it is rather than assuming (D3, FR-006).
+#
+# This project's own rather than the backend's, because the backend's raises
+# for anybody who has used it before — demo/views.py has the whole of it. Which
+# of the two a project points at is exactly the decision this setting exists to
+# let a project make.
 MVP_PAYMENTS = {
-    "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
+    "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
 }
 
 SITE_ID = 1

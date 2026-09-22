@@ -3,6 +3,7 @@
 import re
 
 import pytest
+from django.conf import settings
 from django.db import connection
 from django.test import Client, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -563,4 +564,7 @@ class TestTemplateOverride:
         assert "Premium" in content
         assert "20.00 USD" in content
         assert "every month" in content
-        assert "/api/stripe/customer-portal/" in content
+        # Read from the configuration rather than written out here: which endpoint a
+        # project hands a reader to is the project's to choose, and what this proves is
+        # that the value reaches the project's own template, not what the value is.
+        assert settings.MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"] in content

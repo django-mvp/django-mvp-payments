@@ -167,15 +167,32 @@ stylesheet of their own.
 
 ## Reaching the billing portal
 
-The backend's billing-portal endpoint answers a `POST` with `{"url": ...}` and carries no route
-name of its own, so it cannot be linked to directly or reversed — you tell the page where you
-mounted it:
+The page hands a reader to an endpoint that answers a `POST` with `{"url": ...}`. It carries no
+route name of its own, so it cannot be linked to directly or reversed — you tell the page where
+you mounted it:
 
 ```python
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
 }
 ```
+
+### The backend's own endpoint raises after its first use
+
+`drf-stripe-subscription` ships that endpoint at `customer-portal/`, and today it succeeds exactly
+once per person. `get_or_create_stripe_user(user_id=...)` looks a customer record up by
+`(user_id, customer_id=None)`. The first call creates that record and then fills the second field
+in, so every call after it matches nothing, tries to insert a second record for a person who
+already has one, and the database refuses with a unique-constraint error. It is open on the
+backend's own tracker.
+
+Until that is fixed, point this setting at an endpoint of your own that does the same two things
+either side of the broken lookup — read the customer identifier the backend already keeps, and ask
+the provider for a session. `demo/views.py` has a working one, at about twenty lines.
+
+This package cannot ship that endpoint for you. It reaches a provider only through a backend's
+HTTP endpoints and imports no provider SDK at all, which Article XII of the constitution makes
+absolute and `tests/test_app.py` enforces. A project of your own is bound by neither.
 
 `<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
 JavaScript behaviour — so a small static file does it: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`.
@@ -190,7 +207,8 @@ package emits no `<script>` tag of its own:
 <script defer src="{% static 'mvp_payments/drf_stripe/billing_portal.js' %}"></script>
 ```
 
-The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`.
+The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`, and
+points the setting at its own endpoint rather than the backend's for the reason above.
 
 ## Replacing the page
 
