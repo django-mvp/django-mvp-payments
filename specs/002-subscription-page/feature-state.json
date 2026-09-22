@@ -3,7 +3,7 @@
   "feature": "002-subscription-page",
   "branch": "002-subscription-page",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "REVIEW",
+  "state": "PR_READY",
   "state_history": [
     {
       "state": "PLAN",
@@ -29,6 +29,11 @@
       "state": "REVIEW",
       "at": "2026-09-22T05:59:19Z",
       "note": "S5 exit green: 15 decisions verdicted, 5 graduated to ADRs"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-09-22T08:32:42Z",
+      "note": "walkthrough approved by Sam; PR #23 out of draft"
     }
   ],
   "gates": {
@@ -55,6 +60,11 @@
         "DR-001 recorded as decision D5: the portal endpoint creates a customer rather than failing, so withholding the control is a safety property",
         "DR-003 carried as a US-1 watch item rather than invented into the page"
       ]
+    },
+    "walkthrough": {
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-22T08:32:03Z",
+      "self_resolved": []
     }
   },
   "stories": [
@@ -512,7 +522,7 @@
   },
   "pr": {
     "number": 23,
-    "draft": true
+    "draft": false
   },
   "escalations": []
 }
