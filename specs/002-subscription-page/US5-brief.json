@@ -1,0 +1,109 @@
+{
+  "story": "US5",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 22,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T028",
+    "T029",
+    "T030",
+    "T031"
+  ],
+  "context": {
+    "why": "The last story, and the one that decides whether the page is a starting point or a limit. Four stories have built a default subscription page. This one proves a project can replace it cheaply, and writes down how.\n\nTwo different things make replacing it cheap and they are not the same thing. A project that wants different wording or a different arrangement overrides the template, and needs every value the shipped page renders to be in the context already under a name it can use \u2014 otherwise overriding the template also means writing a view, and the package has given away nothing. A project that wants one piece of this page somewhere else entirely needs that piece to render from its attributes alone, with no dependence on this page's view having run. Both are invisible from the rendered page, which is exactly why they are requirements rather than something left to the implementation: a page can look right and be impossible to override.\n\ndocs/subscription-page.md already exists and already covers most of the surface, because each story documented what it added rather than leaving it all to this one. T030 is therefore completion and correction, not authorship: read the page against the branch as it now stands, make every statement true, fill what is missing, and check that its examples would actually run. T031's README and CHANGELOG work is still all yours.\n\nThe backend is drf-stripe-subscription 1.2.2, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/drf_stripe. Never import it from mvp_payments/ or from tests/.",
+    "spec_sections": [
+      "User Scenarios & Testing -> User Story 5 - A project makes the page its own",
+      "Requirements -> FR-011",
+      "Requirements -> FR-012",
+      "Requirements -> FR-013",
+      "Success Criteria -> SC-005",
+      "Success Criteria -> SC-006"
+    ],
+    "plan_sections": [
+      "Design -> The page and its context",
+      "Design -> Components"
+    ],
+    "prior_decisions": [
+      "Decisions.md 'Why the page ships components and context rather than only markup' - overriding the template must need no view, no context processor and no query, and a component must render from its attributes with no dependence on this page's view. Both are requirements because both are invisible from the rendered page.",
+      "D11 - the page renders the portal component only where there is a subscription behind it. If you document the override example, the example must keep that guard, because a project copying it otherwise ships the defect D11 fixed.",
+      "D5 - the portal control is withheld from a person with nothing current because the backend's endpoint creates a customer at the provider for whoever posts to it. Any documentation of the override must not invite a project to offer it unconditionally."
+    ],
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root, which is the repository root - this story runs in the main checkout, not a separate worktree. Tests: 'poetry run pytest'. Full verify: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main' - run it once, at your report. The demo project serves this branch on port 8020 with autoreload.",
+    "glossary_terms": [
+      "Payment component",
+      "Host project",
+      "Namespace",
+      "Theme",
+      "Delivery",
+      "Plan",
+      "Subscription"
+    ],
+    "conventions": "AGENTS.md -> 'Component layout' and 'Releasing' (CHANGELOG entries stay under ## [Unreleased] - never write a versioned heading by hand, it makes the next push tag and release it). CONSTITUTION.md Article XII, Article XIII, Article XVI. The suite already drives a settings module with its own template directories for override cases - follow how it does that rather than inventing a mechanism.",
+    "verified_base": {
+      "commit": "f7ec0d8c48af9b6973d365c560353b9048354473",
+      "verified_at": "2026-09-22T07:45:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "All six verify steps green on this commit, which is your HEAD. 'poetry run pytest' collects and passes 112. This brief file itself is uncommitted in your worktree - commit it with your first task. If the tree is red on arrival, stop and report it rather than working around it."
+    },
+    "acceptance": [
+      {
+        "task": "T028",
+        "given_when_then": "Given a project supplying its own template for the subscription page, earlier on the template search path than this package, when that template renders, then every value the shipped page shows is available to it under a documented name, and it needs no view, no context processor and no query against the backend of its own."
+      },
+      {
+        "task": "T029",
+        "given_when_then": "Given each component this feature added, when it is placed in an unrelated template and given its attributes, then it renders correctly - gathered here as the single guarantee SC-006 names, including the components earlier stories already asserted."
+      },
+      {
+        "task": "T030",
+        "given_when_then": "Given someone who has never read this repository, when they read docs/subscription-page.md against the branch as it stands, then every statement on it is true, every documented name exists, the examples would run, and nothing the feature added is missing."
+      },
+      {
+        "task": "T031",
+        "given_when_then": "Given the README's namespace section, when it describes the drf-stripe namespace, then it links the subscription page's documentation and does not claim the page shows nothing; and the CHANGELOG records the new components, context names and setting under its Unreleased heading."
+      }
+    ]
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story. Gathering the standalone guarantee in T029 means adding cases, never rewriting the ones earlier stories wrote.",
+    "Do not change any component's behaviour or any template's output in this story. If documenting the surface reveals a defect, report it in concerns and leave it - it is mine to triage, not yours to fix under a documentation task.",
+    "Do not remove or weaken the {% if subscriptions %} guard around the portal component (D11).",
+    "Do not write a versioned CHANGELOG heading. New entries go under ## [Unreleased]; a hand-written version heading makes the next push cut a release.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
+    "Do not import drf_stripe anywhere - not in mvp_payments/, not in tests/, not in demo/ outside its settings and its URLconf.",
+    "Do not document a context name, component attribute or setting that does not exist, and do not write an example you have not run.",
+    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template."
+  ]
+}

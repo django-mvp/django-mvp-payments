@@ -49,6 +49,45 @@ print(json.dumps({
 }))
 """
 
+_TEMPLATE_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.test import Client
+from django.test.utils import setup_test_environment
+from django.urls import reverse
+
+from tests.factories import (
+    PriceFactory,
+    StripeUserFactory,
+    SubscriptionFactory,
+    SubscriptionItemFactory,
+)
+
+setup_test_environment()
+call_command("migrate", verbosity=0, run_syncdb=True)
+
+user = User.objects.create_user(username="person", password="password")
+stripe_user = StripeUserFactory(user=user)
+subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+price = PriceFactory(product__name="Premium", price=2000, currency="USD", freq="month_1")
+SubscriptionItemFactory(subscription=subscription, price=price)
+
+client = Client()
+client.login(username="person", password="password")
+response = client.get(reverse("payments:drf-stripe-subscription"))
+
+print(json.dumps({
+    "status_code": response.status_code,
+    "content": response.content.decode(),
+}))
+"""
+
 
 class TestPaymentPage:
     """A signed-in request renders; an anonymous one is sent to sign in."""
@@ -414,3 +453,34 @@ class TestNoCurrentSubscription:
         client = Client()
         client.force_login(user)
         return client
+
+
+class TestTemplateOverride:
+    """A project's own template, found before this package's, renders every value the
+    shipped page had — with no view, no context processor and no query of its own (T028,
+    FR-011, SC-005).
+
+    The app-directories template loader decides which application's copy of a name wins
+    from ``INSTALLED_APPS`` order, fixed at process start (D4, 001-pages-arrive-on-install) —
+    the same reason ``TestAccountCenterOverview`` above boots a fresh process rather than
+    reordering ``INSTALLED_APPS`` mid-test.
+    """
+
+    def _open_the_overridden_page(self) -> dict:
+        return run_probe(
+            _TEMPLATE_OVERRIDE_PROBE, "tests.settings_with_project_template_override"
+        )
+
+    def test_every_documented_context_value_reaches_the_projects_own_template(self):
+        result = self._open_the_overridden_page()
+
+        assert result["status_code"] == 200
+        content = result["content"]
+        # The marker only the project's own template carries — proves this rendered
+        # instead of the shipped page, not merely that the page rendered at all.
+        assert 'data-testid="the-hosting-projects-own-subscription-page"' in content
+        assert "active" in content
+        assert "Premium" in content
+        assert "20.00 USD" in content
+        assert "every month" in content
+        assert "/api/stripe/customer-portal/" in content
