@@ -158,3 +158,41 @@ permanently; it does not mean the assembled page a host project's own shell prod
 **Revisit if:** a future story needs to assert something about *where* a host project's own script
 appears relative to this package's markup — that would be a test of the demo project's own
 template, not of `mvp_payments`.
+
+## D3 — US-1 triage: the Plans page's routing assertion was Forge's to update
+
+**Decision:** `tests/test_urls.py`'s parametrized list, which asserts which view each declared page
+routes to, now names `PlansPageView` for `drf-stripe-plans`. The Implementer correctly refused to
+touch it and reported it as a concern.
+
+**Why:** that test is a pre-existing one the story did not author, and the hard prohibition on
+editing such a test exists so a builder cannot make its own work pass by moving the goalposts. The
+change here is not that: the test is a registry of which page uses which view, the previous feature
+added `SubscriptionPageView` to it the same way, and routing the Plans page through its own view is
+what T007's acceptance criterion and the approved plan both require. Updating it is the mechanical
+consequence of a design the review approved with no findings, and the party that signs the story
+off is the right one to make it.
+
+**Revisit if:** a story ever reports a pre-existing test as blocking where the correct resolution
+is not obvious from the approved plan. That one goes back to the maintainer, not through triage.
+
+**ADR:** none — a test registry updated to follow a routing decision ADR 0006 already records.
+
+## D4 — SC-002 is a guarantee about this package's output, not about the demonstration project's page
+
+**Decision:** D2's reading stands. The no-provider-script guarantee is held by the static scan over
+every template this package ships, and no assertion is made against the demonstration project's
+full rendered response.
+
+**Why:** the specification's own Assumptions section settles it — "The project loads the provider's
+pricing table library itself. The demonstration project does it with a tag pointing at the
+provider's own network, labelled as a demonstration convenience rather than a recommendation." A
+runtime assertion that the demonstration project's page carries no such tag would contradict the
+thing the specification says that project is expected to do. SC-002 is about what this package
+contributes, and the static scan covers that exhaustively and for every template added after this
+feature, which a single page's response assertion never would.
+
+**Revisit if:** this package ever ships a page that does not extend a host project's own shell, in
+which case a response-level assertion becomes meaningful again.
+
+**ADR:** none — how one success criterion is tested, recorded against the criterion it belongs to.

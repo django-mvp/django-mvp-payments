@@ -1,0 +1,152 @@
+{
+  "story": "US1",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 27,
+  "worktree": "/home/sam/projects/worktrees/dmp-003-pricing-table",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T001",
+    "T002",
+    "T003",
+    "T004",
+    "T005",
+    "T006",
+    "T007",
+    "T008",
+    "T009",
+    "T010",
+    "T011"
+  ],
+  "context": {
+    "why": "This package is a user-interface layer over payment backends. Its drf-stripe namespace already contributes three pages to django-mvp's Account Center; the subscription page was filled in by the previous feature and the Plans page is still an empty heading. This story fills it, and it fills it with the payment provider's own embeddable pricing table rather than markup of ours.\n\nThat choice was made at the specification gate and is not yours to revisit. What it means concretely: you build one Cotton component that emits the provider's `<stripe-pricing-table>` custom element and its attributes, and a view that hands that component two values read from the project's settings. You build nothing that knows what a plan costs. No amount, no currency, no billing frequency, no plan name is produced anywhere by this package \u2014 every price a reader sees is rendered by the provider inside its own frame.\n\nThe component takes its values as attributes and reads no settings, because a project must be able to place it on any page of its own. The shipped Plans page is the one that reads settings, because nobody is passing it attributes \u2014 a project writes no template for that page, which is the whole point of it.\n\nThis story stops short of four things that belong to later stories, and you must not build them: the signed-in person's email address (US-2), the placement on the demonstration project's landing page (US-3), the state where nothing is configured yet (US-4), and the override documentation and constitution amendment (US-5).",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root /home/sam/projects/worktrees/dmp-003-pricing-table, which is a git worktree on branch feat/003-pricing-table. Tests: 'poetry run pytest'. Narrow scope: 'poetry run pytest tests/test_views.py::TestPlansPage'. The full verify command, to run ONCE at your report: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main'. The demonstration project is already serving this branch on port 8020 with autoreload, so a broken template is visible immediately at http://127.0.0.1:8020/payments/drf-stripe/plans/ \u2014 you do not need to start it and must not restart it.\n\nTHE PROVIDER'S ELEMENT \u2014 The provider is Stripe and the element is <stripe-pricing-table>. Its attributes, confirmed against the provider's published guide and recorded in research.md: 'pricing-table-id' (required), 'publishable-key' (required), 'customer-email' (optional, wired in US-2, NOT in this story), 'client-reference-id' (deliberately unused \u2014 the installed backend reads it nowhere). The element is brought to life by https://js.stripe.com/v3/pricing-table.js, which THIS PACKAGE NEVER EMITS. The demonstration project loads it, labelled as a demonstration convenience.\n\nCOMPONENTS AVAILABLE \u2014 django-mvp 0.23.0 ships the Cotton components the pages are assembled from, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-HngT1IMg-py3.14/lib/python3.14/site-packages/mvp \u2014 read its templates/cotton/ directory rather than guessing at attributes. This package's own components live in mvp_payments/templates/cotton/drf_stripe/ and are used as <c-drf-stripe.name>. mvp_payments/templates/cotton/drf_stripe/portal_link.html is the closest existing example of a component of ours: read it for the header-comment shape and for how it reads csrf_token out of the context rather than taking it as an attribute.",
+    "spec_sections": [
+      "User Story 1 - Plans arrive on the page without building one",
+      "Requirements: FR-001, FR-002, FR-003, FR-004, FR-006, FR-008, FR-011, FR-013",
+      "Success Criteria: SC-001, SC-002, SC-007",
+      "Key Entities"
+    ],
+    "plan_sections": [
+      "Design",
+      "Project Structure",
+      "Technical Context",
+      "Constitution Check"
+    ],
+    "prior_decisions": [
+      "The provider's embed is the default and no plan selection is built from the backend's records. The maintainer ruled on this at the specification gate. Do not build a plan grid, do not read Price or Product, do not touch the backend's models at all \u2014 this story reads two settings and nothing else.",
+      "The script element is never emitted. Article XIII of CONSTITUTION.md: a package that injected a script tag would add a third-party origin to every project that installed it. The component emits the mount point; the host project loads the library however it already manages its frontend. T004 makes this a repository-wide test so it stays true for every template added after yours.",
+      "The page may read a publishable key from settings and the component may not. The split preserves the property those rules exist for: the component stays free of hidden configuration so it renders anywhere a template author places it. CONSTITUTION.md still carries the older, stricter wording \u2014 narrowing it is T032 in US-5, NOT your task. Do not edit CONSTITUTION.md in this story.",
+      "A publishable key is not a secret. It identifies an account, the provider prints it in its own copy-paste examples, and it is designed to sit in markup a browser downloads. Treat it as configuration, and never confuse it with an API key or a webhook signing secret, which remain forbidden everywhere in this package.",
+      "WATCH \u2014 The design review returned approve with zero findings, so you carry no watch items from it.",
+      "WATCH \u2014 The word 'Plans' appears in the Account Center's navigation as well as on the page itself, and django-mvp draws that navigation twice. tests/markup.py exists to narrow an assertion to one region \u2014 use it rather than counting a string across the whole page.",
+      "WATCH \u2014 Settings are read at render time, never at import. tests/settings_without_backend.py and the existing SubscriptionPageView show the shape: getattr(settings, 'MVP_PAYMENTS', {}).get(...). T003 is the test that holds this."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Plan",
+      "Checkout",
+      "Delivery",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md \u2014 Development workflow. CONSTITUTION.md Article I (test-first), VI (public API changes ship their docs in the same change), VIII (every user-facing string translatable \u2014 gettext_lazy in Python, {% translate %} in templates), X (test modules mirror the source tree; Test<Subject> classes; component tests go under the declared non-mirror path tests/test_components/), XII (an interface layer and nothing else \u2014 no payment logic in any language), XIII (no backend import, no provider script emitted), XIV (nothing at import time reads settings or reverses a URL), XVI (assert against rendered output, never against the presence of a class name).",
+    "verified_base": {
+      "commit": "fc6edee744d4005d59a7466fb0f6cac4ed48cd8c",
+      "verified_at": "2026-09-22T13:52:42Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "poetry:lint",
+        "poetry:typecheck",
+        "poetry:test",
+        "poetry:build"
+      ],
+      "note": "Green on the commit you are starting from: 123 tests passed, lint, typecheck, build, conformance and docs all clean. Expect to reproduce those 123 before your own tests are added. If the tree is red on arrival, or your HEAD is not this commit, stop and report blocked \u2014 do not work around it."
+    },
+    "acceptance": [
+      {
+        "task": "T001",
+        "given_when_then": "Given the component rendered in a bare template with table_id and publishable_key, when the output is read, then it contains a stripe-pricing-table element carrying pricing-table-id and publishable-key with those values, contains no '<script' anywhere, and contains no figure that could read as an amount."
+      },
+      {
+        "task": "T002",
+        "given_when_then": "Given a project with both settings supplied, when a signed-in person opens the Plans page, then the page's context carries pricing_table_id and publishable_key and its content region renders the provider's element with both; and the rendered page contains no script element referencing the provider; and a visitor who is not signed in is redirected to the sign-in page."
+      },
+      {
+        "task": "T003",
+        "given_when_then": "Given MVP_PAYMENTS absent from settings entirely, when the Plans page renders, then nothing raises; and importing mvp_payments.views with settings unconfigured raises nothing."
+      },
+      {
+        "task": "T004",
+        "given_when_then": "Given every template shipped under mvp_payments/templates/, when each is read, then none contains a script element with a src attribute pointing at any host."
+      },
+      {
+        "task": "T005",
+        "given_when_then": "Given the component file exists, when it is rendered, then it emits only the provider's element and its two attributes \u2014 no script, no style, no wrapper this story does not need."
+      },
+      {
+        "task": "T006",
+        "given_when_then": "Given PlansPageView, when it builds its context, then pricing_table_id and publishable_key are read from settings.MVP_PAYMENTS at render time, each defaulting to None, and its docstring names both as the surface a project overriding the page relies on."
+      },
+      {
+        "task": "T007",
+        "given_when_then": "Given the drf-stripe contribution, when its Plans page is routed, then it uses PlansPageView; and the subscription and billing pages keep routing exactly as they do now."
+      },
+      {
+        "task": "T008",
+        "given_when_then": "Given the Plans page template, when it renders, then it places the component with the two context values."
+      },
+      {
+        "task": "T009",
+        "given_when_then": "Given demo/settings.py, when the demonstration project runs, then MVP_PAYMENTS carries DRF_STRIPE_PRICING_TABLE_ID and DRF_STRIPE_PUBLISHABLE_KEY with clearly-fake values, commented as a demonstration's rather than a project's."
+      },
+      {
+        "task": "T010",
+        "given_when_then": "Given demo/templates/base.html, when a demonstration page renders, then a provider_library block loads the provider's pricing-table library from the provider's own network and this package's own static file, with a comment saying the choice is the host project's; and the block can be emptied by a template that extends base.html."
+      },
+      {
+        "task": "T011",
+        "given_when_then": "Given docs/plans-page.md, when someone reads it, then they find the component, its attributes, the two settings the Plans page reads, and the statement that loading the provider's library is the project's own responsibility \u2014 and every example on the page runs against this branch."
+      }
+    ]
+  },
+  "budgets": {
+    "attempts_per_task": 5,
+    "wallclock_minutes": 90
+  },
+  "rituals": [
+    "Load craft-tdd and craft-increments by name before anything else, and copy each RECEIPT line verbatim out of the file you read.",
+    "Read this brief in full, then your tasks T001-T011 in specs/003-pricing-table/tasks.md \u2014 your tasks only.",
+    "Read the plan.md sections this brief names by heading, and stop there.",
+    "Read the CONTEXT.md glossary entries named above and use that vocabulary in code, tests and commit messages.",
+    "git log --oneline -10.",
+    "Do NOT run the suite to check your starting point \u2014 context.verified_base is the assurance, already given. Confirm your HEAD equals that commit and start."
+  ],
+  "prohibitions": [
+    "Never modify or delete a test you did not author in this story. If a pre-existing test genuinely must change, mark the task blocked and say why in concerns.",
+    "Never touch files outside this story's scope: mvp_payments/templates/cotton/drf_stripe/pricing_table.html, mvp_payments/views.py, mvp_payments/namespaces/drf_stripe.py, mvp_payments/templates/mvp_payments/drf_stripe/plans.html, demo/settings.py, demo/templates/base.html, docs/plans-page.md, tests/test_views.py, tests/test_components/test_drf_stripe.py, tests/test_app.py, and the progress.md and decisions.md of this feature.",
+    "Do NOT edit CONSTITUTION.md. The amendment is T032 in US-5.",
+    "Do NOT emit a script element, or anything that causes the provider's library to be fetched, from any template under mvp_payments/.",
+    "Do NOT produce, read or render any amount, currency, billing frequency or plan name anywhere in this package.",
+    "Do NOT build the email address (US-2), the landing-page placement (US-3), the unavailable state or the could-not-be-loaded message (US-4), or the override documentation (US-5).",
+    "Never edit feature-state.json beyond flipping your own tasks' status, attempts and evidence. Not the top-level state, not state_history, not your story's status, not any gate.",
+    "You do not review, accept, merge or push your own story. No git merge, no bot-push, no gh, no token. Your story ends at a clean committed worktree and a report.",
+    "Never write a decisions.md entry, progress note or commit message that asserts a check you did not personally run, and never write one in Forge's voice.",
+    "Never weaken assertions, add skips or xfails, or special-case code to make a test pass.",
+    "No GitHub operations, no network beyond the package registry, never commit secrets."
+  ]
+}

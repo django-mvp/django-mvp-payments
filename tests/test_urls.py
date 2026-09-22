@@ -3,7 +3,7 @@
 import pytest
 from django.urls import NoReverseMatch, resolve, reverse
 
-from mvp_payments.views import PaymentPageView, SubscriptionPageView
+from mvp_payments.views import PaymentPageView, PlansPageView, SubscriptionPageView
 
 
 class TestPaymentURLs:
@@ -13,7 +13,7 @@ class TestPaymentURLs:
         ("name", "view_class"),
         [
             ("drf-stripe-subscription", SubscriptionPageView),
-            ("drf-stripe-plans", PaymentPageView),
+            ("drf-stripe-plans", PlansPageView),
             ("drf-stripe-billing", PaymentPageView),
         ],
     )
