@@ -1,10 +1,18 @@
 from django.apps import apps
 from django.urls import include, path
 
-from demo.views import HomeView
+from demo.views import HomeView, NoLibraryView, PlansUnconfiguredView
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    # US-4 scenarios 1, 2 and 3: neither value configured, and the library
+    # never having arrived — both the demonstration project's own routes.
+    path(
+        "plans-unconfigured/",
+        PlansUnconfiguredView.as_view(),
+        name="plans-unconfigured",
+    ),
+    path("no-library/", NoLibraryView.as_view(), name="no-library"),
     # The Account Center is django-mvp's, and this package contributes pages to
     # it. A project mounts it once; so does this demo.
     path("account/", include("mvp.urls")),

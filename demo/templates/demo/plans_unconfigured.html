@@ -1,0 +1,9 @@
+{% extends "mvp_payments/drf_stripe/plans.html" %}
+{% comment %}
+  The package's own Plans template, reached here through ordinary template
+  inheritance with neither `pricing_table_id` nor `publishable_key` in
+  context — this route's view supplies neither, unlike `PlansPageView`
+  (US-4 scenarios 1 and 2). Nothing under mvp_payments/ is edited or
+  extended to do this: reusing the shipped template is exactly what a host
+  project reaching this same state would do.
+{% endcomment %}
