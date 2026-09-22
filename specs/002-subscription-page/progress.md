@@ -141,3 +141,38 @@ load-bearing. Removed it and pointed T002's ledger evidence at the tests that no
 
 Verified: `poetry run pytest tests/` — 94 passed (one fewer than before, the coverage it added is
 subsumed). `forge verify --repo .` re-run after — see the completion report for the full result.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (resumed: docs gate red, and two plan corrections)
+
+The run stopped between the US-1 completion report and the story's exit gate. Nothing was lost:
+all fourteen tasks were committed, their tests green. Two things were not true yet.
+
+`forge verify` was red on the docs step: six public names this story introduced — `Money`,
+`SubscriptionReader`, `SubscriptionPageView`, `CurrentSubscription`, `Plan`, `PlanFeature` — that
+no page documented. The plan put every documentation task in US-5 (T030, T031), which makes the
+docs step red at every story boundary from here to the end of the feature. That is a planning
+defect rather than a defect in the work: documentation ships with the code it describes, so each
+story documents its own surface and US-5 extends the page rather than creating it.
+
+Wrote `docs/subscription-page.md` covering what exists today: what counts as current and why the
+backend decides it, the `subscriptions` context name, the shape of each value, the three
+components, how to replace the template, and the two classes underneath. Linked it from the
+README's namespace section, which also stopped claiming the subscription page shows nothing yet.
+T030 and T031 now extend this page for the portal control, the feature list and the override
+guarantee as those stories land.
+
+Second correction: `_build_plan`, `_describe_frequency` and `_FREQUENCY_TRANSLATORS` carried
+leading underscores, against the standing rule that nothing in this organisation marks a name
+private that way. Both helpers also had a subject and belonged on it (Article XI). The frequency
+table is now `Plan.FREQUENCY_TRANSLATORS` with the parsing inlined into `Plan.frequency_display`,
+which is its only caller, and `_build_plan` is `SubscriptionReader.build_plan`. Behaviour is
+unchanged.
+
+Verified: `forge verify --repo . --base origin/main` — conformance, docs, lint, typecheck, test
+and build all green. `poetry run pytest` — 92 passed. The committed tree before these changes also
+collected 92, so the "94 passed" in the T014 entry and the completion report was miscounted rather
+than a coverage loss.
+
+Next: US-2.
+
+Watch: none.

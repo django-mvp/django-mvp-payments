@@ -8,9 +8,10 @@ would silently go stale the day the backend's own list changes (D1).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from django.apps import apps
 from django.contrib.auth.models import AbstractBaseUser
@@ -37,6 +38,14 @@ class Plan:
     quantity: int
     features: tuple[PlanFeature, ...] = ()
 
+    #: How each interval the backend can report reads in words, singular and plural.
+    FREQUENCY_TRANSLATORS: ClassVar[dict[str, Callable[[int], str]]] = {
+        "day": lambda n: ngettext("every day", "every %(count)d days", n),
+        "week": lambda n: ngettext("every week", "every %(count)d weeks", n),
+        "month": lambda n: ngettext("every month", "every %(count)d months", n),
+        "year": lambda n: ngettext("every year", "every %(count)d years", n),
+    }
+
     @property
     def frequency_display(self) -> str:
         """The billing frequency in words, or the raw value where it is not recognised.
@@ -46,7 +55,17 @@ class Plan:
         what this module already knows about the backend's vocabulary, and it is shown as itself
         rather than dropped when it is not one this table holds (Article XVI).
         """
-        return _describe_frequency(self.frequency)
+        if not self.frequency:
+            return ""
+        interval, separator, count_text = self.frequency.rpartition("_")
+        if not separator or not count_text.isdigit():
+            return self.frequency
+        translator = self.FREQUENCY_TRANSLATORS.get(interval)
+        if translator is None:
+            return self.frequency
+        count = int(count_text)
+        text = translator(count)
+        return text if count == 1 else text % {"count": count}
 
 
 @dataclass(frozen=True)
@@ -90,7 +109,9 @@ class SubscriptionReader:
             if subscription not in plans_by_subscription:
                 plans_by_subscription[subscription] = []
                 subscriptions.append(subscription)
-            plans_by_subscription[subscription].append(_build_plan(item))
+            plans_by_subscription[subscription].append(
+                SubscriptionReader.build_plan(item)
+            )
 
         return tuple(
             CurrentSubscription(
@@ -102,42 +123,21 @@ class SubscriptionReader:
             for subscription in subscriptions
         )
 
-
-def _build_plan(item) -> Plan:
-    price = item.price
-    return Plan(
-        name=price.nickname or price.product.name,
-        amount=Money(minor_units=price.price, currency=price.currency),
-        frequency=price.freq,
-        quantity=item.quantity,
-        features=tuple(
-            PlanFeature(
-                identifier=product_feature.feature.feature_id,
-                description=product_feature.feature.description
-                or product_feature.feature.feature_id,
-            )
-            for product_feature in price.product.linked_features.all()
-        ),
-    )
-
-
-_FREQUENCY_TRANSLATORS = {
-    "day": lambda n: ngettext("every day", "every %(count)d days", n),
-    "week": lambda n: ngettext("every week", "every %(count)d weeks", n),
-    "month": lambda n: ngettext("every month", "every %(count)d months", n),
-    "year": lambda n: ngettext("every year", "every %(count)d years", n),
-}
-
-
-def _describe_frequency(frequency: str | None) -> str:
-    if not frequency:
-        return ""
-    interval, separator, count_text = frequency.rpartition("_")
-    if not separator or not count_text.isdigit():
-        return frequency
-    translator = _FREQUENCY_TRANSLATORS.get(interval)
-    if translator is None:
-        return frequency
-    count = int(count_text)
-    text = translator(count)
-    return text if count == 1 else text % {"count": count}
+    @staticmethod
+    def build_plan(item) -> Plan:
+        """One subscription line item, as the ``Plan`` a template reads."""
+        price = item.price
+        return Plan(
+            name=price.nickname or price.product.name,
+            amount=Money(minor_units=price.price, currency=price.currency),
+            frequency=price.freq,
+            quantity=item.quantity,
+            features=tuple(
+                PlanFeature(
+                    identifier=product_feature.feature.feature_id,
+                    description=product_feature.feature.description
+                    or product_feature.feature.feature_id,
+                )
+                for product_feature in price.product.linked_features.all()
+            ),
+        )

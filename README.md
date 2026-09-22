@@ -77,12 +77,16 @@ fields from a subscription in the next.
 Shipped today: `drf-stripe`, built against
 [drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
 webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
-contributes three pages — subscription, plans and billing — which are routed and reachable but do
-not show anything yet. Namespaces for other backends are welcome and do not need this one's
-agreement about anything: adding one is adding it beside the ones already installed, and changes
-nothing about their navigation entries, their card or their pages.
+contributes three pages — subscription, plans and billing. The subscription page shows what a
+person is currently subscribed to; the other two are routed and reachable but do not show anything
+yet. Namespaces for other backends are welcome and do not need this one's agreement about
+anything: adding one is adding it beside the ones already installed, and changes nothing about
+their navigation entries, their card or their pages.
 
-[docs/namespaces.md](docs/namespaces.md) is how you add one: what a namespace declares, the two
+[docs/subscription-page.md](docs/subscription-page.md) covers the subscription page: what it puts
+in the template context, the components it is built from, and how to replace it with your own.
+
+[docs/namespaces.md](docs/namespaces.md) is how you add a namespace: what one declares, the two
 questions it answers about itself, and what it may not do.
 
 ## JavaScript
