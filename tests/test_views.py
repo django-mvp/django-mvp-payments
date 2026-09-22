@@ -11,7 +11,9 @@ from django.utils import timezone
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
 from tests.factories import (
+    FeatureFactory,
     PriceFactory,
+    ProductFeatureFactory,
     StripeUserFactory,
     SubscriptionFactory,
     SubscriptionItemFactory,
@@ -353,3 +355,62 @@ class TestBillingPortalEndpoint:
         assert "data-mvp-payments-portal-link" not in content
         assert "managed by the provider" not in content
         assert "cannot be reached" not in content
+
+
+@pytest.mark.django_db
+class TestNoCurrentSubscription:
+    """Nobody the backend reports nothing current for is left with a hole where a plan
+    would have been (T025, US-4, FR-008, D5, D11).
+
+    Two different people reach this with nothing: one the backend holds no customer
+    record for at all, and one whose subscriptions exist but none of them are current.
+    ``SubscriptionReader.for_user`` returns an empty tuple for both, so the page reads
+    the same way for each — this class proves that for both paths, not only one.
+    """
+
+    def test_a_person_whose_subscription_has_ended_is_told_there_is_none(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        ended_subscription = SubscriptionFactory(
+            stripe_user=stripe_user, status="canceled"
+        )
+        ended_subscription.period_start = timezone.now()
+        ended_subscription.period_end = timezone.now()
+        ended_subscription.save()
+        feature = FeatureFactory(description="Priority support")
+        price = PriceFactory(
+            product__name="Nobody's Plan Anymore",
+            price=999999,
+            currency="GBP",
+            freq="year_1",
+        )
+        ProductFeatureFactory(product=price.product, feature=feature)
+        SubscriptionItemFactory(subscription=ended_subscription, price=price)
+
+        client = self._client_for(user)
+        response = client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert "No current subscription" in content
+        assert "Nobody's Plan Anymore" not in content
+        assert "9,999.99 GBP" not in content
+        assert "every year" not in content
+        assert "canceled" not in content
+        assert str(ended_subscription.period_start.year) not in content
+        assert "Priority support" not in content
+        assert "data-mvp-payments-portal-link" not in content
+
+    def test_a_person_with_no_customer_record_at_all_reaches_the_same_page(
+        self, logged_in_client
+    ):
+        response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "No current subscription" in content
+        assert "data-mvp-payments-portal-link" not in content
+
+    def _client_for(self, user):
+        client = Client()
+        client.force_login(user)
+        return client

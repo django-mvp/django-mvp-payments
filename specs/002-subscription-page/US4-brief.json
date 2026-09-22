@@ -1,0 +1,103 @@
+{
+  "story": "US4",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 21,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T025",
+    "T026",
+    "T027"
+  ],
+  "context": {
+    "why": "Three stories in, the subscription page serves a subscriber well. This story is for everybody else, which on most projects is the majority of readers: somebody who has never subscribed, and somebody whose subscription has ended. They open the page and it should say so plainly, on a page that looks finished rather than one with a hole where a plan would have been.\n\nPart of this is already true and you must not undo it. The page currently renders the portal control only where there is a subscription behind it (D11), so a person with nothing sees no control and no sentence about a subscription they do not have. What they see instead is currently nothing at all \u2014 a title and empty space. That gap is what this story fills. The {% empty %} branch you add owns everything that reader sees.\n\nThe backend is drf-stripe-subscription 1.2.2, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/drf_stripe. Read it there when you need to; never import it from mvp_payments/ or from tests/. Two different people reach this page with nothing: one the backend holds no customer record for at all, and one whose subscriptions exist but are none of them current. SubscriptionReader.for_user returns an empty tuple for both and raises for neither, so the page treats them the same \u2014 but test both, because the first goes down a different code path in the reader.\n\nT025 says to assert the absence of each region rather than the absence of a class name. That is the point of the task: a test that asserts 'badge-success' is missing proves nothing once somebody changes the palette. Assert that no plan name, amount, frequency, status, period or feature the fixtures created appears in the rendered page.\n\nDocumentation: docs/subscription-page.md is this feature's page. Add what a reader needs about the empty state and the component that renders it. The documentation check reads the pages; a docstring and a changelog entry count for nothing.",
+    "spec_sections": [
+      "User Scenarios & Testing -> User Story 4 - Nothing current to show",
+      "User Scenarios & Testing -> Edge Cases",
+      "Requirements -> FR-008",
+      "Success Criteria -> SC-004"
+    ],
+    "plan_sections": [
+      "Design -> The page and its context",
+      "Design -> Components"
+    ],
+    "prior_decisions": [
+      "D5 - The portal control is withheld from a person with no current subscription because the backend's endpoint creates a customer at the provider for whoever posts to it. Never offer it to this reader, in any form, including as a disabled control or a link with an explanation.",
+      "D11 - The page renders the portal component only where there is a subscription behind it, because the component cannot tell an unconfigured project from a reader with nothing. Keep that guard. Your {% empty %} branch owns what this reader sees; do not reintroduce the portal component into it.",
+      "D1 - What counts as current is the backend's own answer. A person whose subscriptions are all cancelled or ended simply has none current. Nothing in this story names a status."
+    ],
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root, which is the repository root - this story runs in the main checkout, not a separate worktree. Tests: 'poetry run pytest'. Full verify: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main' - run it once, at your report. The demo project serves this branch on port 8020 with autoreload; the subscription page is at http://127.0.0.1:8020/payments/drf-stripe/subscription/ and the demo signs in as regular.user@example.com with password 'password'.",
+    "glossary_terms": [
+      "Subscription",
+      "Plan",
+      "Backend",
+      "Provider",
+      "Host project",
+      "Payment component"
+    ],
+    "conventions": "AGENTS.md -> 'Component layout'. CONSTITUTION.md Article XII, Article XVI. django-mvp ships <c-page.list.empty> for exactly this shape - supply its icon, heading and message rather than writing empty-state markup from scratch; read how the shell's other empty states use it before inventing anything. Existing components to follow for shape: cotton/drf_stripe/subscription.html, plan.html, features.html, portal_link.html.",
+    "verified_base": {
+      "commit": "55819521864ce2163316acd00b4c9e8b5a0cb6e0",
+      "verified_at": "2026-09-22T07:35:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "All six verify steps green on this commit, which is your HEAD. 'poetry run pytest' collects and passes 109. This brief file itself is uncommitted in your worktree - commit it with your first task. If the tree is red on arrival, stop and report it rather than working around it."
+    },
+    "acceptance": [
+      {
+        "task": "T025",
+        "given_when_then": "Given a signed-in person the backend records no current subscription for, when they open the page, then it says there is none; and no plan name, amount, frequency, status, period or feature appears anywhere on it; and no portal control appears. Given a person the backend holds no customer record for at all, then they reach the same page rather than an error."
+      },
+      {
+        "task": "T026",
+        "given_when_then": "Given nothing, when the component renders on its own, then it carries its heading and its message."
+      },
+      {
+        "task": "T027",
+        "given_when_then": "Given the page renders for a person with nothing current, when the subscriptions loop finds none, then the empty branch renders the component, which takes its shape from the shell's own empty-state component and supplies its icon, heading and message."
+      }
+    ]
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Extend docs/subscription-page.md for the surface this story adds, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story.",
+    "Do not touch files outside this story's scope. Specifically: no template-override test and no README or CHANGELOG edit - US-5 owns those. Nothing about the billing portal, its setting, its component or its static file beyond leaving the existing guard alone. Extending docs/subscription-page.md for your own surface is required, not forbidden.",
+    "Do not remove or weaken the {% if subscriptions %} guard around the portal component (D11), and do not put the portal component inside the empty branch in any form.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
+    "Do not import drf_stripe anywhere - not in mvp_payments/, not in tests/, not in demo/ outside its settings and its URLconf.",
+    "Do not assert the absence of a CSS class name as the proof that a region is missing. Assert the absence of the data that region would have shown.",
+    "Do not name a subscription status in any module under mvp_payments/, and do not distinguish 'never subscribed' from 'subscription ended' in what the page says - the backend reports both as nothing current and this package does not have the information to tell a reader more.",
+    "Do not add a model, migration, form, admin or serializer to mvp_payments/.",
+    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template."
+  ]
+}
