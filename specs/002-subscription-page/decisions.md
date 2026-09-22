@@ -110,7 +110,7 @@ The cost is that a current subscription with no priced items would not appear. T
 a subscription's items from the provider's own line items, so a subscription without them is not a
 state the provider produces.
 
-**ADR:** to be recorded at convergence.
+**ADR:** docs/adr/0003-current-is-the-backends-own-answer.md — graduated to an architectural decision record.
 
 ## D2 — An amount's minor-unit exponent is a table in this package
 
@@ -128,7 +128,7 @@ producing a number the backend did not record — a total, a proration, a conver
 currencies. Rendering 2000 minor units of a two-decimal currency as 20.00 is the same value written
 the way the currency is written, and rendering it any other way would be wrong.
 
-**ADR:** to be recorded at convergence.
+**ADR:** docs/adr/0004-currency-exponents-are-a-table-here.md — graduated to an architectural decision record.
 
 ## D3 — The portal is reached by posting to the backend, from a static file
 
@@ -147,7 +147,7 @@ that posts, follows the address that comes back, and reveals a message when it c
 already provides for exactly this: logic a component needs of its own arrives as a small static
 file with no build step, and the project includes it the way it includes everything else.
 
-**ADR:** to be recorded at convergence.
+**ADR:** docs/adr/0005-the-portal-is-reached-by-posting-to-the-backend.md — graduated to an architectural decision record.
 
 ## D4 — `Page` learns which view renders it
 
@@ -159,7 +159,7 @@ alternative — a second URL configuration for the pages that need their own vie
 namespace's routes in two places and break the property the previous feature was built around, that
 a contribution declares everything it contributes and one condition decides all of it.
 
-**ADR:** to be recorded at convergence.
+**ADR:** docs/adr/0006-a-page-declares-the-view-that-renders-it.md — graduated to an architectural decision record.
 
 ## D5 — Withholding the portal control is a safety property, not only a courtesy
 
@@ -176,7 +176,7 @@ recorded here, and in `research.md`, so that a later reader tempted to "fix" the
 offering the link anyway can see what it would cost. The specification's own sentence is wrong in
 its reasoning rather than in what it requires, so it is left alone and the correction lives here.
 
-**ADR:** to be recorded at convergence.
+**ADR:** docs/adr/0007-the-portal-control-is-offered-only-to-a-current-subscriber.md — graduated to an architectural decision record.
 
 ## D6 — Design review outcome
 
@@ -221,6 +221,8 @@ anything) reverts to the tasks-as-written granularity, and T012–T014 follow it
 in that case the pairing would need undoing, which a fresh commit splitting the diff can still do
 without touching history.
 
+**ADR:** none — a commit-granularity choice inside one story, not a decision anyone reading this package later needs.
+
 ## D8 — Updating `tests/test_urls.py`'s pre-existing parametrized assertion
 
 `tests/test_urls.py::TestPaymentURLs::test_declared_page_name_reverses_to_a_page_view`, written for
@@ -242,6 +244,8 @@ the other two cases are untouched. Recorded here, and flagged in the completion 
 **Revisit if:** a future page gains its own view and this parametrize list needs a fourth case — the
 pattern (assert per-page, not one class for all three) already supports it.
 
+**ADR:** none — the consequence of D4, which carries the decision. ADR 0006 records it.
+
 ## D9 — US-2 implementation: mounting the backend's own URLs in the demo, conditionally
 
 T020 needed the demo to mount `drf_stripe.urls` so `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`
@@ -260,6 +264,8 @@ story gave it something behind that endpoint worth reaching.
 **Revisit if:** the demo comes to need more than one backend's own URLs mounted this way — the
 same guard generalises per backend.
 
+**ADR:** none — how the demo project mounts a backend it may not have installed. Demo wiring, not the package's design.
+
 ## D10 — US-2 implementation: the failure message is static text, revealed rather than written
 
 `billing_portal.js` (T019) never writes the backend's response into the DOM. The failure message
@@ -277,6 +283,8 @@ piece of copy on this page goes through.
 **Revisit if:** a future failure needs to distinguish *why* the request failed (network error vs.
 the backend's own 4xx/5xx) — the single generic message would need to become several, still static,
 selected by the script rather than written by it.
+
+**ADR:** none — the rule it states (nothing from the backend's answer reaches the document) is part of the handoff pattern and is recorded in ADR 0005.
 
 ## D11 — The page renders the portal control only where there is a subscription behind it
 
@@ -300,6 +308,8 @@ page until then. The guard is one line in a template this story already owns.
 the subscriptions, or a second attribute — at which point the guard belongs inside it rather than
 at the call site.
 
+**ADR:** none — the same decision as D5 seen from the call site. ADR 0007 records both halves.
+
 ## D12 — `plan.html`'s border moved to an outer wrapper when features were added
 
 `plan.html`'s per-plan separator (`border-b ... last:border-b-0`) lived on the same element as the
@@ -315,6 +325,8 @@ existing test's perspective.
 **Revisit if:** a plan gains a third block beneath features — the wrapper already generalises to
 that; no further change to this decision.
 
+**ADR:** none — where a border sits in one component's markup.
+
 ## D13 — `features.html` renders `feature.description|default:feature.identifier`, not a fallback baked into `PlanFeature`
 
 `build_plan` already falls back to the identifier when constructing `PlanFeature` (T009), so every
@@ -327,6 +339,8 @@ is still correct if it is ever handed a `PlanFeature` built by hand with an empt
 
 **Revisit if:** `PlanFeature` itself grows validation that makes an empty `description` impossible
 to construct — at which point the template's fallback becomes dead code and can be dropped.
+
+**ADR:** none — a template filter choice inside one component.
 
 ## D14 — The tamper flag on this story is the file-level heuristic, not a weakened test
 
@@ -342,6 +356,8 @@ Approved on that basis.
 
 **Revisit if:** the flag fires often enough on additions that the noise costs more than the
 granularity saves, at which point the check should compare test function names rather than files.
+
+**ADR:** none — triage of a tooling flag on one story, not a decision about this package.
 
 ## D15 — `no_subscription.html`'s icon is `info`, because no payment-shaped icon is registered
 
@@ -359,3 +375,4 @@ running with `DEBUG = False` at worst.
 
 **Revisit if:** a later story adds a payment- or subscription-shaped icon to the registry, at which
 point this component should use it instead.
+**ADR:** none — which icon an empty state uses.
