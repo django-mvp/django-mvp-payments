@@ -282,3 +282,41 @@ class TestSubscriptionPage:
 
     def _another_user(self):
         return UserFactory()
+
+
+@pytest.mark.django_db
+class TestBillingPortalEndpoint:
+    """``billing_portal_endpoint`` in the subscription page's context (T015)."""
+
+    def test_carries_the_endpoint_from_settings_for_a_current_subscriber(
+        self, subscriber_client
+    ):
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
+        ):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+
+        assert (
+            response.context["billing_portal_endpoint"]
+            == "/api/stripe/customer-portal/"
+        )
+
+    def test_is_none_when_the_setting_is_absent(self, subscriber_client):
+        with override_settings(MVP_PAYMENTS={}):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+
+        assert response.context["billing_portal_endpoint"] is None
+
+    def test_is_none_for_a_person_with_no_current_subscription_even_when_set(
+        self, logged_in_client
+    ):
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.context["billing_portal_endpoint"] is None
