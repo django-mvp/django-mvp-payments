@@ -448,3 +448,40 @@ consistent with `craft-increments`' scope discipline.
 
 **ADR:** none — a documentation-accuracy correction local to the sentence this task already
 touches.
+
+## D14 — main moved under this branch mid-run, and the integration takes main's structure with this feature's content
+
+**Decision:** `origin/main` is merged into `feat/003-pricing-table` at convergence rather than at
+the merge gate. Where the two disagree, main's decisions about *where the plans page sits* stand,
+and this feature's work on *what the page contains* is layered on top.
+
+**Why:** pull request #34 merged at 16:03Z on 2026-09-22, after this branch was cut and while this
+run was not executing. It changed the same surface this feature builds on: the plans page left the
+Account Center's navigation and is now reached from a control on the subscription page, `Page`
+gained `in_navigation`, a page's view now receives its `Contribution`, the billing page and its
+address were deleted, and addresses stopped carrying the backend's name — a page is at
+`<prefix>/subscription/`, not `<prefix>/drf-stripe/subscription/`.
+
+Read against main, the branch appeared to have *deleted* `Page.in_navigation`, the billing page's
+tests and a repository-wide template-comment guardrail. It had deleted nothing. Those are main's
+own later additions, absent from a branch cut before them, and the difference is only visible by
+comparing against the merge base rather than against the branch diff.
+
+**What the integration resolved, and on whose terms:**
+
+- The namespace declares two pages, not three. The plans page keeps `in_navigation=False` from
+  main and gains `view=PlansPageView` from this feature.
+- The demo mounts the package at `account/billing/` and keeps this feature's two unavailable-state
+  routes at the project root, where they belong to the demo rather than the package.
+- The demo's settings keep main's billing-portal endpoint, the project's own rather than the
+  backend's, and add this feature's pricing table identifier and publishable key.
+- `tests/test_views.py` keeps both sides: main's check that a view built without its
+  `Contribution` says so, and this feature's plans-page and override tests. The subscription
+  page's portal assertion reads the endpoint from configuration, per main, rather than naming it.
+- The changelog and the README describe one package, not two histories: one navigation entry, a
+  plans page reached from the subscription page, and that page now mounting the provider's table.
+
+**Revisit if:** nothing. This is a record of an integration, not a rule.
+
+**ADR:** none — a branch integration specific to this run. The decisions it adopts are main's and
+are already recorded with the work that made them.
