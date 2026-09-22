@@ -53,73 +53,153 @@
       "tasks": [
         {
           "id": "T001",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_factories.py::TestFactories"],
+            "commands": ["poetry run pytest tests/test_factories.py"],
+            "code": ["tests/factories.py:1"]
+          }
         },
         {
           "id": "T002",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_conftest.py::TestSubscriberClientFixture"],
+            "commands": ["poetry run pytest tests/test_conftest.py"],
+            "code": ["tests/conftest.py:34"]
+          }
         },
         {
           "id": "T003",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_demo.py::TestSeedDemoCommand"],
+            "commands": ["poetry run pytest tests/test_demo.py"],
+            "code": ["demo/management/commands/seed_demo.py:50"]
+          }
         },
         {
           "id": "T004",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_money.py::TestMoney"],
+            "commands": ["poetry run pytest tests/test_money.py"],
+            "code": ["mvp_payments/money.py:1"]
+          }
         },
         {
           "id": "T005",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader",
+              "tests/test_namespaces/test_drf_stripe_records.py::TestNoStatusIsNamed"
+            ],
+            "commands": ["poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"],
+            "code": ["mvp_payments/namespaces/drf_stripe_records.py:61"]
+          }
         },
         {
           "id": "T006",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_contributions.py::TestPageView"],
+            "commands": ["poetry run pytest tests/test_contributions.py"],
+            "code": ["mvp_payments/contributions.py:36"]
+          }
         },
         {
           "id": "T007",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_views.py::TestSubscriptionPage"],
+            "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
+            "code": ["tests/test_views.py:162"]
+          }
         },
         {
           "id": "T008",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_money.py::TestMoney"],
+            "commands": ["poetry run pytest tests/test_money.py"],
+            "code": ["mvp_payments/money.py:20"]
+          }
         },
         {
           "id": "T009",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader"],
+            "commands": ["poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"],
+            "code": ["mvp_payments/namespaces/drf_stripe_records.py:64"]
+          }
         },
         {
           "id": "T010",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_contributions.py::TestPageView"],
+            "commands": ["poetry run pytest tests/test_contributions.py"],
+            "code": ["mvp_payments/contributions.py:37", "mvp_payments/contributions.py:84"]
+          }
         },
         {
           "id": "T011",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_views.py::TestSubscriptionPage"],
+            "commands": ["poetry run pytest tests/test_views.py tests/test_urls.py"],
+            "code": ["mvp_payments/views.py:47", "mvp_payments/namespaces/drf_stripe.py:19"]
+          }
         },
         {
           "id": "T012",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage",
+              "tests/test_components/test_drf_stripe.py"
+            ],
+            "commands": ["poetry run pytest tests/test_views.py tests/test_components/"],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/amount.html:1",
+              "mvp_payments/templates/cotton/drf_stripe/plan.html:1",
+              "mvp_payments/templates/cotton/drf_stripe/subscription.html:1"
+            ]
+          }
         },
         {
           "id": "T013",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_views.py::TestSubscriptionPage"],
+            "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
+            "code": ["mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1"]
+          }
         },
         {
           "id": "T014",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": ["tests/test_components/test_drf_stripe.py"],
+            "commands": ["poetry run pytest tests/test_components/"],
+            "code": ["tests/test_components/test_drf_stripe.py:1"]
+          }
         }
       ]
     },
