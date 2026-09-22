@@ -7,6 +7,20 @@
   and because it is the one place a project-wide override would go.
 {% endcomment %}
 {% block extra_js %}
+  {% block provider_library %}
+    {% comment %}
+      The provider's own pricing-table library. Self-hosting it is forbidden
+      by the provider's own terms, so every project that needs it loads it
+      from the provider's network, however that project already manages its
+      frontend — this package emits no script tag for it (Article XIII).
+      This is a demonstration convenience, not a recommendation. A template
+      extending this one can empty this block to show the mount point with
+      the library never having arrived.
+    {% endcomment %}
+    <script defer src="https://js.stripe.com/v3/pricing-table.js"></script>
+    <script defer
+            src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
+  {% endblock provider_library %}
   {% comment %}
     <c-drf-stripe.portal-link>'s own logic. Loaded here the way this project
     already loads its other static assets — the package emits no script tag

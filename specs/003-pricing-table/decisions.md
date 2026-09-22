@@ -135,3 +135,26 @@ replacement text keeps the first package-wide and untouched, because a careless 
 surrounding sentence would loosen it.
 
 **ADR:** none — a record of this run's design review, not a standing rule.
+
+---
+
+## D2 — SC-002's script-absence guarantee is held at the template source, not the response
+
+**Decision:** the guarantee behind SC-002 — no script element referencing the provider — is
+tested once, statically, against every template this package ships
+(`tests.test_app.TestNoProviderScript`, T004). No corresponding assertion is made against the
+Plans page's full rendered HTTP response.
+
+**Why:** T004 was written and green before T010 existed. Once T010 adds the demo project's own
+`{% block provider_library %}` to `demo/templates/base.html` — loading
+`https://js.stripe.com/v3/pricing-table.js`, exactly as Article XIII and the plan's design say a
+host project is free to — every page the demo serves inherits that script through the base
+template every page extends, the Plans page included. A runtime assertion against the full
+response reads that script and fails, not because this package emitted it, but because the demo,
+standing in for a host project, correctly did. SC-002's own wording — "every page and placement in
+this feature" — means this package's contribution, which T004 already covers exhaustively and
+permanently; it does not mean the assembled page a host project's own shell produces around it.
+
+**Revisit if:** a future story needs to assert something about *where* a host project's own script
+appears relative to this package's markup — that would be a test of the demo project's own
+template, not of `mvp_payments`.
