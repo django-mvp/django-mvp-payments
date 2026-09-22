@@ -66,6 +66,14 @@ The provider-hosted page where a customer changes payment method, reads invoices
 checkout, a component sends them there rather than reproducing it.
 _Avoid_: billing page, account centre, customer centre.
 
+**Billing**:
+The Account Center section this package's pages sit under, and nothing else. It is a navigation
+category, where breadth is the point: a reader looking for anything to do with what they pay finds
+it under one heading, and invoices or payment methods have somewhere obvious to arrive later. In
+running prose it still says too little to be useful on its own, so name the specific thing — the
+billing portal, the subscription, the provider's invoices.
+_Avoid_: using it for a page, a record or an amount.
+
 **Host project**:
 The Django project that installs this package. It owns the theme, the base template, the URLs,
 who is allowed to see what, and how a provider's script reaches the browser.
@@ -92,9 +100,6 @@ Say which backend, or say *per-backend namespace*.
 **Paywall**: names an access-control decision — who may see what, and what happens when they may
 not. That is the host project's, enforced in its views. Using the word here invites requests for
 permission logic this package will not have.
-
-**Billing**: too broad to mean anything on its own; it covers the provider's invoicing, the
-backend's records and the pages a customer reads. Name which one.
 
 **Payment method**: only ever a provider's stored instrument. This package never collects, stores
 or displays card details, so the term should appear here only when describing what happens

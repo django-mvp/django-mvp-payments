@@ -9,11 +9,14 @@ browser.
 """
 
 import re
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.urls import reverse
 
 
 class TestHomePage:
@@ -165,3 +168,111 @@ class TestSeedDemoCommand:
         assert StripeUser.objects.count() == StripeUser.objects.distinct().count()
         stripe_user = self._stripe_user_for("regular.user")
         assert Subscription.objects.filter(stripe_user=stripe_user).count() == 1
+
+
+@pytest.mark.django_db
+class TestBillingPortalHandoff:
+    """The demo's own way through to the provider's hosted portal.
+
+    It exists because the backend's equivalent raises for anybody who has used it before, so
+    what matters here is not that one call works but that the second one does. These never
+    reach the provider: the session is a network call, and the thing under test is which
+    customer it is asked for and what comes back to the page.
+    """
+
+    ENDPOINT = "/api/billing-portal/"
+
+    @pytest.fixture
+    def subscriber(self, client):
+        """Somebody the backend holds a customer record for, signed in."""
+        user = get_user_model().objects.create_user(
+            username="subscriber", password="password"
+        )
+        apps.get_model("drf_stripe", "StripeUser").objects.create(
+            user=user, customer_id="cus_a_real_looking_one"
+        )
+        client.force_login(user)
+        return user
+
+    def test_a_subscriber_is_given_the_address_the_provider_minted(
+        self, client, subscriber
+    ):
+        with patch(
+            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
+            return_value=SimpleNamespace(url="https://billing.example.com/session"),
+        ):
+            response = client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+        assert response.json() == {"url": "https://billing.example.com/session"}
+
+    def test_it_keeps_working_on_every_call_after_the_first(self, client, subscriber):
+        """The defect this endpoint stands in for, asserted directly.
+
+        The backend's own endpoint succeeds exactly once per person and raises an integrity
+        error after that, because it looks its customer record up by an identifier it filled
+        in on the first call. A single-call test would pass against that too.
+        """
+        with patch(
+            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
+            return_value=SimpleNamespace(url="https://billing.example.com/session"),
+        ):
+            statuses = [client.post(self.ENDPOINT).status_code for _ in range(3)]
+
+        assert statuses == [200, 200, 200]
+
+    def test_the_provider_is_asked_for_this_persons_own_customer(
+        self, client, subscriber
+    ):
+        """Whose portal it is, which is the one thing a mistake here would leak."""
+        with patch(
+            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
+            return_value=SimpleNamespace(url="https://billing.example.com/session"),
+        ) as create:
+            client.post(self.ENDPOINT)
+
+        assert create.call_args.kwargs["customer"] == "cus_a_real_looking_one"
+
+    def test_the_reader_is_sent_back_to_the_subscription_page(self, client, subscriber):
+        """The backend's default return address is a frontend on another port.
+
+        A wrong one strands somebody on the provider's site with no way back that leads here.
+        """
+        with patch(
+            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
+            return_value=SimpleNamespace(url="https://billing.example.com/session"),
+        ) as create:
+            client.post(self.ENDPOINT)
+
+        assert create.call_args.kwargs["return_url"].endswith(
+            reverse("payments:drf-stripe-subscription")
+        )
+
+    def test_somebody_with_no_customer_record_gets_no_portal(self, client):
+        """And no customer is created for them by their asking (D7).
+
+        The control is already absent for this person, so arriving here means a stale page or
+        a direct post. Creating a customer for whoever asks is the backend behaviour that
+        earned the suppression in the first place.
+        """
+        user = get_user_model().objects.create_user(
+            username="nobody", password="password"
+        )
+        client.force_login(user)
+
+        with patch(
+            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
+        ) as create:
+            response = client.post(self.ENDPOINT)
+
+        assert response.status_code == 409
+        create.assert_not_called()
+
+    def test_signing_in_is_required(self, client):
+        with patch(
+            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
+        ) as create:
+            response = client.post(self.ENDPOINT)
+
+        assert response.status_code == 302
+        create.assert_not_called()

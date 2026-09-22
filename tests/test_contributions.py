@@ -90,6 +90,69 @@ class TestContribution:
             "register-count-fixture-two",
         ]
 
+    def test_a_page_kept_out_of_the_navigation_is_routed_but_not_listed(
+        self, account_center_menu
+    ):
+        """Being reachable and being somewhere a person is sent are two things.
+
+        The plans page is reached from a control on the subscription page, so
+        it needs its route and no entry beside it.
+        """
+        contribution = Contribution(
+            backend_app_name="drf_stripe",
+            namespace="unnavigated-fixture",
+            pages=(
+                Page(
+                    slug="one",
+                    label="One",
+                    icon="overview",
+                    template_name="mvp_payments/drf_stripe/subscription.html",
+                ),
+                Page(
+                    slug="two",
+                    label="Two",
+                    icon="overview",
+                    template_name="mvp_payments/drf_stripe/plans.html",
+                    in_navigation=False,
+                ),
+            ),
+            card_template="mvp_payments/card.html",
+            group_label="Fixture payments",
+        )
+
+        assert {pattern.name for pattern in contribution.url_patterns()} == {
+            "unnavigated-fixture-one",
+            "unnavigated-fixture-two",
+        }
+
+        contribution.register()
+
+        group = account_center_menu.children[-1]
+        assert [child.name for child in group.children] == ["unnavigated-fixture-one"]
+
+    def test_asking_for_a_page_that_does_not_exist_says_which_one(self):
+        """A page addresses a sibling by slug, so a typo has to name itself.
+
+        Without this the failure is whatever the lookup happens to raise,
+        somewhere inside a template render, naming nothing useful.
+        """
+        contribution = _make_contribution(namespace="page-url-fixture")
+
+        with pytest.raises(LookupError, match="no page with slug 'three'"):
+            contribution.page_url("three")
+
+    def test_the_shipped_namespace_offers_one_entry_under_one_group(self):
+        """What a person actually sees in the Account Center for this backend.
+
+        One destination rather than three. The pages behind the other two are
+        either reached from it or gone, so a menu listing all three was
+        offering a choice nobody had to make.
+        """
+        navigated = [page for page in drf_stripe.pages if page.in_navigation]
+
+        assert [page.slug for page in navigated] == ["subscription"]
+        assert str(drf_stripe.group_label) == "Billing"
+
 
 class TestPageView:
     """A ``Page`` built without a ``view`` routes to ``PaymentPageView``; one given a ``view``
@@ -184,11 +247,15 @@ class TestRepeatedRegistration:
         assert len(regions) == 2
         for region in regions:
             for page in drf_stripe.pages:
+                # A navigated page renders once per region; one kept out of
+                # the navigation renders in neither, however often the
+                # contribution registered.
+                expected = 1 if page.in_navigation else 0
                 assert (
                     region.count(
                         f'href="{reverse(f"payments:drf-stripe-{page.slug}")}"'
                     )
-                    == 1
+                    == expected
                 )
 
 
@@ -267,7 +334,6 @@ reverses = {}
 for name in (
     "payments:drf-stripe-subscription",
     "payments:drf-stripe-plans",
-    "payments:drf-stripe-billing",
     "payments:second-namespace-overview",
 ):
     try:
@@ -307,14 +373,13 @@ class TestNamespaceIndependence:
             marker = f"<span>{page.label}</span>"
             assert alongside["content"].count(marker) == alone["content"].count(marker)
 
-        card_href = 'href="/payments/drf-stripe/subscription/"'
+        card_href = 'href="/account/billing/subscription/"'
         assert card_href in alone["content"]
         assert card_href in alongside["content"]
 
         for name in (
             "payments:drf-stripe-subscription",
             "payments:drf-stripe-plans",
-            "payments:drf-stripe-billing",
         ):
             assert alongside["reverses"][name] == alone["reverses"][name]
 

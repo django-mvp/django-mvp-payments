@@ -16,10 +16,11 @@ than leaving you to build and route them.
 
 ## Status
 
-Version 0.0.1. The `drf-stripe` namespace contributes three pages, of which the subscription page
-is built: it shows a signed-in person what they are currently subscribed to, what each plan grants
-them, and the way through to the provider's billing portal. The plans and billing pages are routed
-and reachable but do not show anything yet. Nothing here is stable.
+Version 0.0.1. The `drf-stripe` namespace contributes one entry to the Account Center,
+Subscription, under a Billing group. That page is built: it shows a signed-in person what they are
+currently subscribed to, what each plan grants them, the way to switch plans, and the way through
+to the provider's billing portal. The plans page it leads to is routed and reachable but does not
+show anything yet. Nothing here is stable.
 
 ## Requirements
 
@@ -53,9 +54,15 @@ Then mount its URLs wherever you like:
 ```python
 urlpatterns = [
     ...,
-    path("payments/", include("mvp_payments.urls")),
+    path("account/billing/", include("mvp_payments.urls")),
 ]
 ```
+
+Mount it where a reader would expect to find it. These are Account Center pages, so inside the
+Account Center's own prefix and under the label the navigation gives them is the natural place.
+Addresses carry no backend name: a page is at `<your prefix>/subscription/`, never
+`<your prefix>/some-library-name/subscription/`, because which library you chose to talk to your
+payment provider is not a person's business while they read their own subscription.
 
 That line is the only wiring. From there, every backend you have installed contributes its own
 section of the Account Center's navigation and its own card to the Account Center's overview, and a
@@ -79,10 +86,11 @@ fields from a subscription in the next.
 Shipped today: `drf-stripe`, built against
 [drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
 webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
-contributes three pages — subscription, plans and billing. The subscription page shows what a
-person is currently subscribed to, reading the backend's own records directly and calling one of
-its HTTP endpoints — `customer-portal/`, to hand the reader to Stripe's own billing portal; the
-other two are routed and reachable but do not show anything yet. Namespaces for other backends
+contributes a subscription page and a plans page, of which only the first is in the navigation.
+The subscription page shows what a person is currently subscribed to, reading the backend's own
+records directly and calling one of its HTTP endpoints, `customer-portal/`, to hand the reader to
+Stripe's own billing portal. It also carries the way to the plans page, which is routed and
+reachable but does not show anything yet. Namespaces for other backends
 are welcome and do not need this one's agreement about anything: adding one is adding it beside
 the ones already installed, and changes nothing about their navigation entries, their card or
 their pages.

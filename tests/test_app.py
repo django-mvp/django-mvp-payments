@@ -36,7 +36,7 @@ client.login(username="person", password="password")
 response = client.get(reverse("account-center"))
 
 reverses = {}
-for name in ("drf-stripe-subscription", "drf-stripe-plans", "drf-stripe-billing"):
+for name in ("drf-stripe-subscription", "drf-stripe-plans"):
     try:
         reverse(f"payments:{name}")
         reverses[name] = True
@@ -189,7 +189,6 @@ class TestNothingWithoutABackend:
         assert result["reverses"] == {
             "drf-stripe-subscription": False,
             "drf-stripe-plans": False,
-            "drf-stripe-billing": False,
         }
 
     def test_account_center_shows_no_card_from_the_absent_backend(self) -> None:
@@ -200,4 +199,33 @@ class TestNothingWithoutABackend:
         # link a card would carry into the backend's first page.
         result = self._open_the_account_center_without_the_backend()
 
-        assert 'href="/payments/drf-stripe/subscription/"' not in result["content"]
+        assert 'href="/account/billing/subscription/"' not in result["content"]
+
+
+class TestTemplateComments:
+    """Django's ``{# #}`` is a single-line tag, and the failure is silent.
+
+    A ``{# #}`` opened on one line and closed on another is not a comment.
+    Django's lexer only recognises the single-line form, so the first line
+    disappears and every line after it is served to the reader as page text.
+    Nothing raises, no test that asserts what *is* on a page notices, and the
+    words land in the middle of the layout. It happened in this package's own
+    subscription page: four lines about flexbox rendered above the buttons
+    they described.
+
+    The multi-line form is ``{% comment %}``. This is asserted over every
+    template the package ships rather than left to review, because review is
+    exactly what missed it.
+    """
+
+    def test_no_template_opens_a_comment_it_does_not_close_on_the_same_line(
+        self,
+    ) -> None:
+        package = Path(mvp_payments.__file__).parent
+        offenders = sorted(
+            f"{path.relative_to(package)}:{number}"
+            for path in package.rglob("*.html")
+            for number, line in enumerate(path.read_text().splitlines(), start=1)
+            if line.count("{#") != line.count("#}")
+        )
+        assert offenders == []

@@ -4,9 +4,40 @@ Demonstration target, never deployed. It runs on the development server so the
 components can be looked at in a browser while they are being built.
 """
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _dev_env() -> dict[str, str]:
+    """Values from `demo/.env`, which is untracked and never committed.
+
+    It holds the provider sandbox credentials that make the provider's own
+    hosted pages reachable from this demo, so the handoff to them can be
+    exercised rather than described. Without the file the demo still runs, on
+    values that are obviously not real, which is what a fresh clone and the
+    test suite get. Nothing here reaches a project that installs the package:
+    a demo project is a demonstration target and ships to nobody.
+    """
+    values: dict[str, str] = {}
+    env_file = BASE_DIR / "demo" / ".env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            key, separator, value = line.partition("=")
+            if separator and not key.lstrip().startswith("#"):
+                values[key.strip()] = value.strip().strip("\"'")
+    values.update(
+        {
+            key: os.environ[key]
+            for key in ("STRIPE_TEST_SECRET_KEY", "DEMO_BASE_URL")
+            if key in os.environ
+        }
+    )
+    return values
+
+
+DEV_ENV = _dev_env()
 
 SECRET_KEY = "django-insecure-demo-project-only"
 
@@ -57,20 +88,34 @@ INSTALLED_APPS = [
 ]
 
 # The backend reads every one of its settings through defaults, so nothing here
-# is required to make it start. What is set is what the demo would get wrong by
-# accident: keys that are obviously not real, and a return address on this site
-# rather than the backend's default of a frontend on port 3000.
+# is required to make it start. The secret comes from `demo/.env` where that
+# file exists, which is what lets the subscription page's handoff actually
+# arrive at the provider's hosted portal instead of failing; without it the
+# value is obviously not a real key and the handoff reports that it could not
+# be reached, which is the same thing a misconfigured project would see.
+#
+# The return address is this site rather than the backend's default of a
+# frontend on port 3000, and it is overridable because the development server
+# is reached by hostname on some machines and by localhost on others. The
+# provider sends a reader back to it, so a wrong value strands them.
 DRF_STRIPE = {
-    "STRIPE_API_SECRET": "sk_test_not_a_real_key",
+    "STRIPE_API_SECRET": DEV_ENV.get(
+        "STRIPE_TEST_SECRET_KEY", "sk_test_not_a_real_key"
+    ),
     "STRIPE_WEBHOOK_SECRET": "whsec_not_a_real_secret",
-    "FRONT_END_BASE_URL": "http://localhost:8020",
+    "FRONT_END_BASE_URL": DEV_ENV.get("DEMO_BASE_URL", "http://localhost:8020"),
 }
 
-# Where this project mounted the backend's own billing-portal endpoint
-# (demo/urls.py). The endpoint carries no route name, so the subscription
-# page has to be told where it is rather than assuming (D3, FR-006).
+# Where this project mounted the endpoint the subscription page hands a reader
+# to (demo/urls.py). Neither candidate carries a route name, so the page has to
+# be told where it is rather than assuming (D3, FR-006).
+#
+# This project's own rather than the backend's, because the backend's raises
+# for anybody who has used it before — demo/views.py has the whole of it. Which
+# of the two a project points at is exactly the decision this setting exists to
+# let a project make.
 MVP_PAYMENTS = {
-    "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
+    "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
 }
 
 SITE_ID = 1
