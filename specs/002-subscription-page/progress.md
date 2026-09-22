@@ -495,3 +495,21 @@ No component behaviour or template output touched, per this story's prohibition.
 Next: T031, the README and CHANGELOG.
 
 Watch: none.
+
+## 2026-09-22T05:51:43Z · Implementer US-5 · T031
+
+Did: checked the README's namespace section against its acceptance criterion — it already
+linked `docs/subscription-page.md` and already said the subscription page "shows what a person
+is currently subscribed to," so neither needed correcting. Added the one thing Article XVII
+requires that was missing: which of the backend's endpoints this namespace calls,
+`customer-portal/`. CHANGELOG.md had not been touched since FS-001 merged (confirmed by `git log
+--oneline -- CHANGELOG.md`), so this is the first entry for the whole feature: the six
+components, the two context names (`subscriptions`, `billing_portal_endpoint`), and
+`MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, added under the existing `## [Unreleased]` heading —
+no version heading written by hand.
+
+Verified: `poetry run pytest` — 119 passed (112 baseline + 7 from T028/T029).
+
+Next: the story's completion report and the full verify run.
+
+Watch: none.
