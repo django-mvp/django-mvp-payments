@@ -92,3 +92,71 @@ shipping a page that deliberately withholds its most useful link for several wee
 R5 is rewritten to whatever remains of it, or retired, rather than left in the roadmap describing
 work this feature has done. That is a roadmap change and it is recorded here because this feature
 is what caused it.
+
+## D1 — "Current" is read from the backend's own property, not from a status filter of ours
+
+The specification says the page takes the backend's definition of current (FR-001). The backend
+offers two ways to honour that. Its `StripeUser` exposes `current_subscription_items`, which
+filters on the status set it uses everywhere else; or a caller can filter subscriptions on that
+same set directly, which means naming the statuses.
+
+The page reads the property and groups its rows by subscription. The status set then lives in
+exactly one place — the backend's — and the day it changes there, this page changes with it. The
+alternative puts a copy of that list in a package that has no way to know it has gone stale, which
+is precisely the disagreement between page and application the specification's first clarification
+was written to prevent.
+
+The cost is that a current subscription with no priced items would not appear. The backend records
+a subscription's items from the provider's own line items, so a subscription without them is not a
+state the provider produces.
+
+**ADR:** to be recorded at convergence.
+
+## D2 — An amount's minor-unit exponent is a table in this package
+
+Article XVI forbids assuming two decimal places, and the backend records only an integer of minor
+units and a three-letter code. Something has to hold the exponent.
+
+`babel` holds it, along with a localised currency pattern, and was rejected. It is a runtime
+dependency with a data bundle attached, for a table of nineteen currency codes this package can
+state in nine lines, and Article VII asks for a justification that does not exist here. The
+consequence accepted with it is that the currency renders as its code beside a localised number
+rather than as a symbol inside the locale's own pattern.
+
+Converting minor units for display is not the figure FR-007 forbids. That requirement is about
+producing a number the backend did not record — a total, a proration, a conversion between
+currencies. Rendering 2000 minor units of a two-decimal currency as 20.00 is the same value written
+the way the currency is written, and rendering it any other way would be wrong.
+
+**ADR:** to be recorded at convergence.
+
+## D3 — The portal is reached by posting to the backend, from a static file
+
+The backend's portal endpoint answers a POST, returns the address in JSON, and carries no route
+name, so it can be neither linked to directly nor reversed. Three routes were available.
+
+A server-side view of ours that called the endpoint and redirected was rejected: it would make this
+package call a backend endpoint on a reader's behalf, and Article XII reserves that for the
+backend.
+
+A form posting straight at the endpoint was rejected because the endpoint answers with JSON rather
+than a redirect, so the reader would land on a page of JSON.
+
+What ships is a control carrying the endpoint and a CSRF token as data, and a small static file
+that posts, follows the address that comes back, and reveals a message when it cannot. Article XIII
+already provides for exactly this: logic a component needs of its own arrives as a small static
+file with no build step, and the project includes it the way it includes everything else.
+
+**ADR:** to be recorded at convergence.
+
+## D4 — `Page` learns which view renders it
+
+Until now every contributed page was the same view with a different template, which was right while
+the pages were empty. This one needs context the generic view cannot supply.
+
+`Page` gains a `view` field defaulting to the existing one, and the routes are built from it. The
+alternative — a second URL configuration for the pages that need their own view — would put one
+namespace's routes in two places and break the property the previous feature was built around, that
+a contribution declares everything it contributes and one condition decides all of it.
+
+**ADR:** to be recorded at convergence.
