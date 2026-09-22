@@ -63,6 +63,16 @@
       it was decided by the backend or by the project installing this.
     </c-text>
   </c-section>
+  <c-section title="The same component, on a page of the project's own" icon="payments">
+    <c-text>
+      This is the same <code>&lt;c-drf-stripe.pricing-table&gt;</code> component the Account
+      Center's Plans page renders — placed here, on this landing page, with nothing behind it
+      but its own two attributes. There is no view of ours behind this page and no sign-in
+      requirement, and the component needs neither.
+    </c-text>
+    <c-drf-stripe.pricing-table table_id="prctbl_not_a_real_table"
+                                 publishable_key="pk_test_not_a_real_key" />
+  </c-section>
   <c-section title="Where the components will appear" icon="overview">
     <c-alert variant="info" soft>
       <span>
