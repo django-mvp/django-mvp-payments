@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/subscription-page.md` documents both.
 - `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, telling the subscription page where a project
   mounted the backend's billing-portal endpoint (`customer-portal/`).
+- The plans page now mounts the provider's own pricing table with `<c-drf-stripe.pricing-table>`,
+  configured by two settings, `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` and
+  `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]`. `docs/plans-page.md` documents the component, the
+  two settings, and how to replace either the component or the page with your own.
 
 ### Changed
 
