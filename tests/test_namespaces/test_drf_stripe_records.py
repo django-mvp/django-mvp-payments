@@ -155,7 +155,16 @@ class TestPlanFeatures:
         assert plan.features == ()
 
     def test_a_feature_recorded_against_a_different_product_never_appears(self, user):
+        """Asserted as "exactly its own", not "none".
+
+        A plan whose product has no features of its own would read empty whether the
+        other product's feature leaked or the reading returned nothing at all, so the
+        plan's product carries one here and the assertion names it.
+        """
         product = ProductFactory()
+        ProductFeatureFactory(
+            product=product, feature=FeatureFactory(feature_id="mine")
+        )
         other_product = ProductFactory()
         ProductFeatureFactory(
             product=other_product, feature=FeatureFactory(feature_id="other_only")
@@ -163,7 +172,7 @@ class TestPlanFeatures:
 
         plan = self._subscribe(user, product)
 
-        assert plan.features == ()
+        assert {feature.identifier for feature in plan.features} == {"mine"}
 
 
 class TestPlanFrequencyDisplay:

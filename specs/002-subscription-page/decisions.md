@@ -327,3 +327,18 @@ is still correct if it is ever handed a `PlanFeature` built by hand with an empt
 
 **Revisit if:** `PlanFeature` itself grows validation that makes an empty `description` impossible
 to construct — at which point the template's fallback becomes dead code and can be dropped.
+
+## D14 — The tamper flag on this story is the file-level heuristic, not a weakened test
+
+`tamper-check` flagged `tests/test_components/test_drf_stripe.py` as a modified pre-existing test
+file. Reading the diff: the change is two new test methods added to the existing `TestPlan` class,
+one new `TestFeatures` class, and one import line. No assertion was relaxed, no test was renamed,
+and none was deleted.
+
+The tool flags at file granularity, and a new method on an existing class is indistinguishable
+from an edit to an existing one at that granularity. Its own policy says adding test functions is
+fine and that a legitimate case is approved with an entry here rather than by loosening the check.
+Approved on that basis.
+
+**Revisit if:** the flag fires often enough on additions that the noise costs more than the
+granularity saves, at which point the check should compare test function names rather than files.

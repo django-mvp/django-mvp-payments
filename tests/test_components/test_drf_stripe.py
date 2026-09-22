@@ -176,10 +176,10 @@ class TestFeatures:
         assert "priority_support" in html
 
     def test_renders_nothing_at_all_when_given_none(self, cotton_render):
+        """Nothing at all, heading included — an empty section is worse than no section."""
         html = cotton_render("drf-stripe.features", features=())
 
-        assert "<ul" not in html
-        assert "<li" not in html
+        assert html.strip() == ""
 
 
 class TestPortalLink:

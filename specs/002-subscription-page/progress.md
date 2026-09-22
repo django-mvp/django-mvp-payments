@@ -374,3 +374,34 @@ change turned it green.
 Next: the story's completion report and the full verify run.
 
 Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US3 accepted, with two tests strengthened
+
+Verified independently: receipts green against the dispatched brief, `forge verify --repo . --base
+origin/main` green on all six steps, 109 tests passing. `tamper-check` raised one flag, triaged and
+approved as D14 — the diff to the flagged test file is purely additive and the tool flags at file
+granularity.
+
+T023 changed no production code, which is the right outcome and was reported as such. The reading
+layer built at T009 already populated a plan's features correctly, and the story's job there was to
+prove it rather than to rebuild it.
+
+Two tests strengthened before accepting, both authored by this story:
+
+`test_a_feature_recorded_against_a_different_product_never_appears` gave the plan's own product no
+features, so it asserted an empty result. That passes whether the other product's feature leaks or
+the reading returns nothing at all — an always-empty implementation would have satisfied it. The
+plan's product now carries a feature of its own and the assertion names it, so the test fails in
+both directions.
+
+`test_renders_nothing_at_all_when_given_none` asserted only that no list markup appeared, while its
+name promised more. The component does render nothing, heading included, so the assertion now says
+so directly.
+
+Verified: `poetry run pytest` — 109 passed. `forge verify --repo . --base origin/main` — all six
+steps green.
+
+Next: US-4.
+
+Watch: US-4 inherits D11. The page renders the portal component only where there is a subscription,
+so the empty-state branch owns everything a person with nothing sees.
