@@ -158,6 +158,15 @@ class TestPackagedApp:
         assert added_by_this_feature <= scanned
 
 
+class TestDocumentationLinkedFromReadme:
+    """A page's documentation is reachable from the README, the way every other
+    documentation page this package ships already is (T029, FR-013)."""
+
+    def test_the_plans_page_documentation_is_linked(self) -> None:
+        readme = (Path(__file__).resolve().parent.parent / "README.md").read_text()
+        assert "[docs/plans-page.md](docs/plans-page.md)" in readme
+
+
 class TestNoProviderScript:
     """No template this package ships fetches a script from any host (T004, Article XIII, FR-002).
 
