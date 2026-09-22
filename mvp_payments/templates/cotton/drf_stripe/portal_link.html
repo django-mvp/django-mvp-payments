@@ -1,0 +1,41 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.portal-link> — the way through to the provider's #}
+{# billing portal (D3)                                            #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   endpoint – the backend's portal endpoint, or None            #}
+{#                                                                #}
+{# Also reads {{ csrf_token }} from context, which Django's own   #}
+{# context processor supplies. Rendered with no request behind    #}
+{# it, the control comes out with an empty token and every post   #}
+{# it makes is rejected. Taking the token as an attribute instead #}
+{# would invite a caller to pass a stale one.                     #}
+{#                                                                #}
+{# Absent for anyone with nothing current (D5): the backend's     #}
+{# endpoint creates a customer at the provider for whoever posts  #}
+{# to it, so no control is offered where there is nothing to      #}
+{# manage. billing_portal.js binds the control and posts it.      #}
+{# ============================================================ #}
+<c-vars endpoint />
+{% if endpoint %}
+  <div data-mvp-payments-portal-link
+       data-endpoint="{{ endpoint }}"
+       data-csrf-token="{{ csrf_token }}">
+    <button type="button"
+            class="btn btn-primary"
+            aria-describedby="mvp-payments-portal-link-note">
+      {% translate "Manage billing" %}
+    </button>
+    <p id="mvp-payments-portal-link-note" class="text-sm text-base-content/60">
+      {% translate "Opens the provider's own site." %}
+    </p>
+    <p hidden data-mvp-payments-portal-link-failure class="text-sm text-error">
+      {% translate "The billing portal could not be reached. Try again later." %}
+    </p>
+  </div>
+{% else %}
+  <p class="text-sm text-base-content/60">
+    {% translate "Your subscription is managed by the provider. The billing portal cannot be reached right now." %}
+  </p>
+{% endif %}

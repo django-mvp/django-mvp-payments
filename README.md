@@ -16,8 +16,10 @@ than leaving you to build and route them.
 
 ## Status
 
-Version 0.0.1. The build pipeline, the test harness and the demo project are in place; no
-components are written yet. Nothing here is stable.
+Version 0.0.1. The `drf-stripe` namespace contributes three pages, of which the subscription page
+is built: it shows a signed-in person what they are currently subscribed to, what each plan grants
+them, and the way through to the provider's billing portal. The plans and billing pages are routed
+and reachable but do not show anything yet. Nothing here is stable.
 
 ## Requirements
 
@@ -77,12 +79,18 @@ fields from a subscription in the next.
 Shipped today: `drf-stripe`, built against
 [drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
 webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
-contributes three pages — subscription, plans and billing — which are routed and reachable but do
-not show anything yet. Namespaces for other backends are welcome and do not need this one's
-agreement about anything: adding one is adding it beside the ones already installed, and changes
-nothing about their navigation entries, their card or their pages.
+contributes three pages — subscription, plans and billing. The subscription page shows what a
+person is currently subscribed to, reading the backend's own records directly and calling one of
+its HTTP endpoints — `customer-portal/`, to hand the reader to Stripe's own billing portal; the
+other two are routed and reachable but do not show anything yet. Namespaces for other backends
+are welcome and do not need this one's agreement about anything: adding one is adding it beside
+the ones already installed, and changes nothing about their navigation entries, their card or
+their pages.
 
-[docs/namespaces.md](docs/namespaces.md) is how you add one: what a namespace declares, the two
+[docs/subscription-page.md](docs/subscription-page.md) covers the subscription page: what it puts
+in the template context, the components it is built from, and how to replace it with your own.
+
+[docs/namespaces.md](docs/namespaces.md) is how you add a namespace: what one declares, the two
 questions it answers about itself, and what it may not do.
 
 ## JavaScript

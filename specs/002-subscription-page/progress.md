@@ -1,0 +1,578 @@
+# Progress — 002 Show a person the subscription they are on
+
+A narrative of the run, newest entry at the bottom. The ledger
+(`feature-state.json`) is the machine record; this file is what a person reads to understand how
+the feature got where it is.
+
+## 2026-09-22 — S3 PLAN
+
+Opened from the feature queue, which reported the feature ready with no dependencies outstanding
+and no feature delivered in this repository since the specification landed, so there was nothing to
+re-read the specification against.
+
+The branch starts at `a5ac07fc3fdf0853787f41ee3eacff5101f2c182`, which is the merge of the
+specification pull request (#17) and the current tip of the default branch. The verifier was green
+on that commit before anything was written: lint, typecheck, the full suite, build and conformance
+all passed.
+
+Planning read the backend's models, its URL configuration and its billing-portal view, django-mvp's
+component library, and this repository's standards document. What came out of it is in
+`research.md`; the three readings that shaped the design were that the backend already exposes its
+own definition of a current subscription as a property, that an amount arrives as an integer in a
+currency's minor unit with no rendering attached, and that the portal endpoint answers a POST and
+carries no route name, so it cannot be reversed and has to be supplied by the project.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (T001–T003, foundational)
+
+Did: `tests/factories.py` — one `DjangoModelFactory` per backend model the page reads, resolved by
+string `Meta.model` through `apps.get_model`. `tests/conftest.py` — `stripe_user`, `current_subscription`
+(one active subscription, one priced item) and `subscriber_client` fixtures wrapping them.
+`demo/management/commands/seed_demo.py` — extended to seed `regular.user` with an active
+subscription covering two priced items in different currencies on products that each carry a
+feature, `staff.user` with a trialing one, `super.user` with none, and an unlisted fourth person's
+subscription that must never appear on `regular.user`'s page.
+
+Verified: `poetry run pytest tests/test_factories.py tests/test_conftest.py tests/test_demo.py` —
+26 passed. `poetry run pre-commit run --all-files` clean on each commit.
+
+Next: T004 — `money.py`.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (T004–T006, T008–T010 paired)
+
+Did: `money.py` (`Money`, the currency-exponent table, `amount`, `__str__`) against its own new
+`tests/test_money.py`; `namespaces/drf_stripe_records.py` (`PlanFeature`, `Plan`,
+`CurrentSubscription`, `SubscriptionReader.for_user`, `frequency_display` through `ngettext`)
+against `tests/test_namespaces/test_drf_stripe_records.py`; `Page.view` and `url_patterns()`
+building from it against a new `TestPageView` class in `tests/test_contributions.py`. Each pair's
+test was written and run first, confirmed failing for the right reason (`ModuleNotFoundError` /
+`TypeError: unexpected keyword argument`), then the minimal implementation followed in the same
+commit — see `decisions.md` D7 for why these three landed as one commit per pair rather than a
+separate red and green commit each.
+
+Verified: `poetry run pytest tests/test_money.py tests/test_namespaces/test_drf_stripe_records.py
+tests/test_contributions.py` — 25 passed, including every pre-existing case. `mypy`, `ruff check`,
+`ruff format --check` clean on each commit.
+
+Next: T007, then T011 (the view itself needs all three pieces, so this one reverts to a red test
+committed on its own).
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (T007 test + T011 view/wiring)
+
+Did: `tests/test_views.py::TestSubscriptionPage` — the view-level test covering plan name, amount,
+frequency, status, period, two-item rendering with no third figure, an unrecognised status,
+cross-user isolation and a fixed query count. Confirmed it fails for the right reason (the page
+still only renders its heading). `views.py` — `SubscriptionPageView(PaymentPageView)` putting
+`subscriptions` into the context via `SubscriptionReader.for_user`; `namespaces/drf_stripe.py` —
+the subscription `Page` now names it (D4).
+
+This intentionally stays red after T011 alone — the full rendered-output assertions also need
+T012's components and T013's page loop, which is the next commit.
+
+Verified: `poetry run pytest tests/test_views.py tests/test_namespaces/test_drf_stripe.py
+tests/test_contributions.py` — 4 of `TestSubscriptionPage`'s 7 still red as expected (rendering
+not wired yet), everything else green (27 passed). `mypy` clean after fixing an
+`Any`-return warning on `get_context_data`.
+
+Next: T012, T013.
+
+Watch: the query-count test's first draft compared two sequential requests in one test and got a
+false failure (6 vs 5 queries) from process-wide cache warmup (Site, ContentType) on the first
+request — fixed by issuing one throwaway warmup request per client before capturing either.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (T012 components + T013 page template)
+
+Did: the three Cotton components — `amount.html` (a `Money`, or nothing without a currency),
+`plan.html` (name, amount, frequency through `frequency_display`, quantity when above one),
+`subscription.html` (a `<c-card>` with the status as a `<c-badge>` — a semantic variant for the
+three statuses the reader can return, neutral otherwise — and the period through
+`<c-data_field>`). The page template's `{% for %}` loop over `subscriptions`.
+
+Hit `TemplateSyntaxError: 'blocktranslate' doesn't allow other block tags inside it` from
+`{% blocktranslate count counter=plan.quantity %}` with no `{% plural %}` clause — Django requires
+one whenever `count` is used. "Quantity: N" needs no plural form, so switched to
+`{% blocktranslate with quantity=plan.quantity %}` instead of chasing a `count`/`plural` pair for
+text that would say the same thing either way.
+
+`tests/test_views.py::TestSubscriptionPage` went fully green here, and running the whole suite
+surfaced one pre-existing failure: `tests/test_urls.py`'s parametrized assertion that every
+declared page resolves to the generic `PaymentPageView`, written before `Page.view` existed. D4
+(already reviewed) is exactly the decision this story changes for the subscription page — updated
+the test to assert `SubscriptionPageView` for it and `PaymentPageView` for the other two; recorded
+as D8 rather than silently changed.
+
+Verified: `poetry run pytest tests/` — 87 passed, 0 failed. `mypy`, `ruff check`,
+`ruff format --check` clean.
+
+Next: T014.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (T014 component tests)
+
+Did: `tests/test_components/test_drf_stripe.py` — each of the three components rendered standalone
+through the `cotton_render` fixture (a bare request, no view, no login), given its attributes
+directly as the dataclasses they are in production. Declared `tests/test_components/` under
+`[tool.forge.conformance] non-mirror-paths` in `pyproject.toml` (was not yet covered).
+
+All eight cases passed on the first run — expected, since they exercise the components T012 already
+built from a different angle (standalone rendering) rather than driving new behaviour.
+
+Verified: `poetry run pytest tests/` — 95 passed, 0 failed. `mypy`, `ruff check`,
+`ruff format --check`, `deptry` clean.
+
+Next: the story's completion report and the full `forge verify` run.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (verify: conformance failure on tests/test_conftest.py)
+
+`forge verify --repo .` failed conformance: `tests/test_conftest.py` (added at T002 to prove the
+fixtures) mirrors no source module — Article X's exception list covers `tests/factories.py` →
+`tests/test_factories.py` by name, not a `conftest.py` test file, and the conformance tool's own
+message says a cross-cutting test belongs as another `Test*` class in the module of its subject
+rather than a file of its own. `tests/test_views.py::TestSubscriptionPage`, written for T007,
+already exercises `subscriber_client` and `current_subscription` through real use (signed-in
+request, period mutation, cross-user isolation), so the standalone file was redundant rather than
+load-bearing. Removed it and pointed T002's ledger evidence at the tests that now cover it.
+
+Verified: `poetry run pytest tests/` — 94 passed (one fewer than before, the coverage it added is
+subsumed). `forge verify --repo .` re-run after — see the completion report for the full result.
+
+## 2026-09-22 — S4 IMPLEMENT · US1 (resumed: docs gate red, and two plan corrections)
+
+The run stopped between the US-1 completion report and the story's exit gate. Nothing was lost:
+all fourteen tasks were committed, their tests green. Two things were not true yet.
+
+`forge verify` was red on the docs step: six public names this story introduced — `Money`,
+`SubscriptionReader`, `SubscriptionPageView`, `CurrentSubscription`, `Plan`, `PlanFeature` — that
+no page documented. The plan put every documentation task in US-5 (T030, T031), which makes the
+docs step red at every story boundary from here to the end of the feature. That is a planning
+defect rather than a defect in the work: documentation ships with the code it describes, so each
+story documents its own surface and US-5 extends the page rather than creating it.
+
+Wrote `docs/subscription-page.md` covering what exists today: what counts as current and why the
+backend decides it, the `subscriptions` context name, the shape of each value, the three
+components, how to replace the template, and the two classes underneath. Linked it from the
+README's namespace section, which also stopped claiming the subscription page shows nothing yet.
+T030 and T031 now extend this page for the portal control, the feature list and the override
+guarantee as those stories land.
+
+Second correction: `_build_plan`, `_describe_frequency` and `_FREQUENCY_TRANSLATORS` carried
+leading underscores, against the standing rule that nothing in this organisation marks a name
+private that way. Both helpers also had a subject and belonged on it (Article XI). The frequency
+table is now `Plan.FREQUENCY_TRANSLATORS` with the parsing inlined into `Plan.frequency_display`,
+which is its only caller, and `_build_plan` is `SubscriptionReader.build_plan`. Behaviour is
+unchanged.
+
+Verified: `forge verify --repo . --base origin/main` — conformance, docs, lint, typecheck, test
+and build all green. `poetry run pytest` — 92 passed. The committed tree before these changes also
+collected 92, so the "94 passed" in the T014 entry and the completion report was miscounted rather
+than a coverage loss.
+
+Next: US-2.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T015+T017 paired)
+
+Did: `tests/test_views.py::TestBillingPortalEndpoint` — `billing_portal_endpoint` carries the
+endpoint from `settings.MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` for a current subscriber, is
+`None` when the setting is absent, and is `None` for a person with no current subscription even
+when it is set. Confirmed it failed for the right reason (`KeyError` — the context carried no such
+name). `views.py` — `SubscriptionPageView.get_context_data` reads it at render time and suppresses
+it against the `subscriptions` tuple it already builds, never against a status. Landed together
+per D7's precedent, so the tree stayed green between commits.
+
+Verified: `poetry run pytest tests/test_views.py` — 16 passed. `mypy mvp_payments/views.py` clean.
+`poetry run pre-commit run --files tests/test_views.py mvp_payments/views.py` clean (one
+reformat by `ruff-format`, re-verified after).
+
+Next: T016+T018.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T016+T018 paired)
+
+Did: `tests/test_components/test_drf_stripe.py::TestPortalLink` — given an endpoint, the component
+carries it and a CSRF token as data, has an accessible control, an `aria-describedby` note that it
+leads to the provider's site, and a failure message element that starts hidden; given none, it
+states the provider manages the subscription and renders no control. Confirmed it failed for the
+right reason (`TemplateDoesNotExist: cotton/drf_stripe/portal_link.html` — Cotton's fallback
+lookup, not a missing file inside an existing namespace directory). `portal_link.html` — the
+control and both branches, translated throughout.
+
+Verified: `poetry run pytest tests/test_components/` — 10 passed. `poetry run pre-commit run
+--files tests/test_components/test_drf_stripe.py mvp_payments/templates/cotton/drf_stripe/portal_link.html`
+clean.
+
+Next: T019.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T019)
+
+Did: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js` — binds every portal-link
+control on the page, posts to its `data-endpoint` with its `data-csrf-token` as the `X-CSRFToken`
+header, follows `data.url` on success, reveals the control's own hidden failure message on any
+failure (non-2xx response, malformed JSON, or a missing `url`). No build step, no bundler, no
+external origin (Article XIII). Deliberately does not write the backend's own response into the
+DOM — the failure message is static, translated text already in the template, and this file only
+toggles its `hidden` attribute, consistent with Article XII's "no trust in what comes back".
+
+No Python test: this file runs in the browser and this package cannot import it or call the
+endpoint from Python (Article XII), so nothing here is unit-testable the way the rest of the
+story is — recorded in the completion report's `concerns` rather than left unsaid.
+
+Verified: `poetry run pre-commit run --files mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`
+clean (no lint/format/type hooks apply to `.js`). `poetry run pytest tests/test_app.py` — 9 passed
+(confirms the new static file changes nothing about the package's dependency or import
+guarantees).
+
+Next: T020.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T020)
+
+Did: `tests/test_views.py::TestSubscriptionPage::test_the_portal_control_sits_beneath_the_subscriptions`
+— against the demo's real settings (no `override_settings`), the control appears after the
+rendered subscriptions and the demo's page loads the static file. Confirmed it failed for the
+right reason (`ValueError: substring not found` — the control wasn't on the page yet).
+`mvp_payments/templates/mvp_payments/drf_stripe/subscription.html` — placed the control beneath
+the loop. `demo/settings.py` — `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` pointed at where the
+demo mounts the backend's portal endpoint. `demo/templates/base.html` — loads
+`billing_portal.js` at the `extra_js` block django-mvp's shell already exposes, the way the demo
+already loads its other assets. `demo/urls.py` — mounted `drf_stripe.urls` under `api/stripe/`.
+
+That last one surfaced a real defect on the first run: mounting it unconditionally broke
+`tests/settings_without_backend.py`'s two tests (`RuntimeError: Model class
+drf_stripe.models.StripeUser doesn't declare an explicit app_label` — importing `drf_stripe.urls`
+imports its models, and a model with no explicit `app_label` needs its app installed to get one).
+A real project's own URLconf would never unconditionally include a backend's routes it hadn't
+installed either, so gated it on `apps.is_installed("drf_stripe")`, matching the property
+`tests/settings_without_backend.py` already exists to prove.
+
+Verified: `poetry run pytest tests/` — 98 passed, 0 failed (run in full given how much of this
+task's diff sat in demo/ wiring rather than the package). `mypy demo/ mvp_payments/` clean.
+`poetry run pre-commit run --files tests/test_views.py demo/urls.py demo/settings.py
+demo/templates/base.html mvp_payments/templates/mvp_payments/drf_stripe/subscription.html` clean
+(one reformat, re-verified after). Extended `docs/subscription-page.md` for
+`billing_portal_endpoint`, the portal-link component, the `MVP_PAYMENTS` setting and loading the
+static file.
+
+Next: the story's completion report and the full verify run.
+
+Watch: the "no endpoint" branch's fallback text ("the provider manages the subscription and the
+portal cannot be reached") renders today for anyone with no current subscription too, since
+`billing_portal_endpoint` is `None` for that case as well as for a genuinely unconfigured setting
+— the component cannot tell the two apart from the prop alone. That wording is imprecise for
+someone who never subscribed (US-4 territory, not this story's to fix: the page has no `{% empty
+%}` branch yet, and building one is explicitly out of this story's scope). Flagged in the
+completion report's `concerns` for US-4 to account for when it replaces this page's empty-list
+behaviour.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 accepted, with one finding fixed
+
+Verified the story independently rather than on its report: receipts green against the brief it
+was dispatched with, `tamper-check` clean over `2fa817c..HEAD`, and `forge verify --repo . --base
+origin/main` green on all six steps with 98 tests passing. The three declared deviations are all
+sound — the paired commits follow US-1's D7, the conditional mount in `demo/urls.py` is what a
+real project's URLconf does and the unconditional version genuinely broke the no-backend settings
+module, and keeping the failure message as rendered translated text rather than writing the
+backend's response into the DOM is the right call twice over.
+
+One finding, which the story had flagged as a watch item and deferred to US-4: the page rendered
+the portal component unconditionally, so a signed-in person with no subscription read that their
+subscription is managed by the provider and that the portal cannot be reached. Both halves are
+untrue for that reader. Deferring it was defensible — US-4 does replace what that page shows — but
+it leaves a false statement on a live page in the meantime, and the fix is a one-line guard in a
+template this story already owns. Fixed here rather than carried: `{% if subscriptions %}` around
+the component, a page-level test that fails without it, and the documentation corrected to say
+which reader the no-endpoint wording addresses. Recorded as D11.
+
+The story's own component-level tests were left alone. They assert the component's behaviour given
+an endpoint and given none, and both remain correct — the case they never covered was the page's,
+which is where the new test sits.
+
+Verified: `poetry run pytest` — 99 passed. `forge verify --repo . --base origin/main` — all six
+steps green.
+
+Next: US-3.
+
+Watch: `billing_portal.js` has no automated test and cannot have one in this suite — the only
+seam is a browser. It is covered by the walkthrough, not by pytest. The portal component's note
+carries a fixed element id, so placing two of them on one page would duplicate it; the shipped
+page places one, and US-5's standalone-rendering work should not introduce a second.
+
+## 2026-09-22T05:12:09Z · Implementer US3 · T021
+
+Did: wrote `TestPlanFeatures` in `tests/test_namespaces/test_drf_stripe_records.py` — a product's
+features are carried onto its plan, a feature's own description is carried, one with none carries
+its identifier, a product with none carries an empty tuple, and a feature recorded against a
+different product never appears. All five passed on first run against `build_plan` as it stands.
+
+Probed rather than trusted the pass, per `craft-tdd`'s "before you call a task done": zeroed
+`Plan.features` in `build_plan` and reran — three of five failed for the right reason (the two that
+stayed green assert an empty collection, which zeroing also produces). Restored, then mutated the
+query to pull every product's `ProductFeature` rows instead of `price.product.linked_features` —
+the different-product isolation test failed exactly as it should, asserting a leaked feature. File
+restored to its original state before committing; the diff is test-only.
+
+Verified: `poetry run pytest tests/test_namespaces/test_drf_stripe_records.py` — 16 passed.
+
+Next: T022.
+
+Watch: none.
+
+## 2026-09-22T05:12:09Z · Implementer US3 · T022
+
+Did: wrote `TestFeatures` in `tests/test_components/test_drf_stripe.py` — given features it lists
+their descriptions, given one with no description it shows the identifier, given none it renders
+no `<ul>` and no `<li>` at all.
+
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestFeatures` — red,
+`TemplateDoesNotExist: cotton/drf_stripe/features/index.html`, the right reason (the component
+doesn't exist yet). T024 adds it.
+
+Next: T023.
+
+Watch: none.
+
+## 2026-09-22T05:12:09Z · Implementer US3 · T023
+
+Did: nothing — T021's probes already show `build_plan` carries the right features, correctly
+isolated per product, with the right fallback. No production change. This is the acceptance
+criterion's own stated correct outcome, not a shortfall.
+
+Verified: no new commands beyond T021's.
+
+Next: T024.
+
+Watch: none.
+
+## 2026-09-22T05:30:00Z · Implementer US3 · T024
+
+Did: added `cotton/drf_stripe/features.html` (T022's `TestFeatures` now green) and extended
+`plan.html` to render it beneath the plan, with an outer wrapper carrying the per-plan border so
+the divider separates whole plan+features blocks rather than sitting inside one plan (D12). Added
+two `TestPlan` cases proving the integration and the no-features case. Extended
+`docs/subscription-page.md`: the component to the components table and list, its row in `Plan`'s
+attribute table already existed, and a new note on how drf-stripe-subscription records features
+against a product (space-delimited metadata key) since a reader would need it and nothing
+documented it yet. Recorded D12 (wrapper) and D13 (template-level fallback, independent of
+`build_plan`'s own) in `decisions.md`.
+
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py tests/test_views.py` — 33
+passed. `TestPlan::test_its_features_render_beneath_it` observed red first
+(`TemplateDoesNotExist`... then a missing-text assertion) before `features.html` and the `plan.html`
+change turned it green.
+
+Next: the story's completion report and the full verify run.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US3 accepted, with two tests strengthened
+
+Verified independently: receipts green against the dispatched brief, `forge verify --repo . --base
+origin/main` green on all six steps, 109 tests passing. `tamper-check` raised one flag, triaged and
+approved as D14 — the diff to the flagged test file is purely additive and the tool flags at file
+granularity.
+
+T023 changed no production code, which is the right outcome and was reported as such. The reading
+layer built at T009 already populated a plan's features correctly, and the story's job there was to
+prove it rather than to rebuild it.
+
+Two tests strengthened before accepting, both authored by this story:
+
+`test_a_feature_recorded_against_a_different_product_never_appears` gave the plan's own product no
+features, so it asserted an empty result. That passes whether the other product's feature leaks or
+the reading returns nothing at all — an always-empty implementation would have satisfied it. The
+plan's product now carries a feature of its own and the assertion names it, so the test fails in
+both directions.
+
+`test_renders_nothing_at_all_when_given_none` asserted only that no list markup appeared, while its
+name promised more. The component does render nothing, heading included, so the assertion now says
+so directly.
+
+Verified: `poetry run pytest` — 109 passed. `forge verify --repo . --base origin/main` — all six
+steps green.
+
+Next: US-4.
+
+Watch: US-4 inherits D11. The page renders the portal component only where there is a subscription,
+so the empty-state branch owns everything a person with nothing sees.
+
+## 2026-09-22T05:30:54Z · Implementer US4 · T025-T027
+
+Did: T025 — `TestNoCurrentSubscription` in `tests/test_views.py`, covering both paths to nothing
+current: a person whose subscription is `canceled` (fixtures carry a distinctive plan name,
+amount, frequency, feature and period, each asserted absent from the rendered page) and a person
+the backend holds no `StripeUser` for at all. T026 — `TestNoSubscription` in
+`tests/test_components/test_drf_stripe.py`, the component rendering its heading and message given
+no attributes. T027 — `cotton/drf_stripe/no_subscription.html`, delegating to
+`<c-page.list.empty>` with its own icon/heading/message, and the `{% empty %}` branch of the
+page's loop over `subscriptions`. The `{% if subscriptions %}` guard around the portal component
+(D11) is untouched.
+
+Verified: `poetry run pytest tests/test_views.py::TestNoCurrentSubscription
+tests/test_components/test_drf_stripe.py::TestNoSubscription` — both red before T027 (missing
+text, then `TemplateDoesNotExist`), 3 passed after. `poetry run pytest tests/test_views.py
+tests/test_components/test_drf_stripe.py` — 36 passed, confirming D11's guard and every existing
+scenario still hold.
+
+Non-obvious choice recorded as D15: the icon registry has nothing shaped like a subscription, so
+the component uses `"info"`, checked against the registry rather than guessed — an unregistered
+name raises with `DEBUG = False`, it does not render empty.
+
+Next: the story's completion report and the full verify run.
+
+Watch: none.
+
+## 2026-09-22T05:44:46Z · Implementer US-5 · T028
+
+Did: `tests/test_views.py::TestTemplateOverride` — a project's own copy of
+`mvp_payments/drf_stripe/subscription.html`, found before this package's on the app-directories
+template loader's search path, renders every documented context value (`subscriptions`,
+`billing_portal_endpoint`) with no view, no context processor and no query of its own (FR-011,
+SC-005). `tests/project_app` is a bare test application supplying only that template, arranged
+and worded differently from the shipped page to prove it is a genuine override rather than a
+copy. `tests/settings_with_project_template_override.py` puts it before `mvp_payments` in
+`INSTALLED_APPS`, following `settings_with_another_card`'s precedent of a fresh-process settings
+module: the app-directories loader's order is fixed at process start (D4,
+001-pages-arrive-on-install), so `run_probe` boots a new interpreter under it rather than
+reordering `INSTALLED_APPS` mid-test.
+
+Verified: confirmed red first by temporarily reverting the settings module's `INSTALLED_APPS`
+insertion — the shipped template rendered instead and the test's marker assertion failed for
+that reason, not an error. Restored, then `poetry run pytest tests/test_views.py::TestTemplateOverride`
+— 1 passed.
+
+Next: T029, the standalone-component guarantee.
+
+Watch: none.
+
+## 2026-09-22T05:46:15Z · Implementer US-5 · T029
+
+Did: `tests/test_components/test_drf_stripe.py::TestStandalone` — every component this feature
+added (`amount`, `plan`, `subscription`, `features`, `portal-link`, `no-subscription`), placed
+inside markup unrelated to the shipped page (an `<article>`, a `<section>`, an `<aside>`, a
+`<footer>`, a `<nav>`, a `<main>`), rendering correctly from its attributes alone via
+`cotton_render_string` (T029, FR-012, SC-006). Additive: the existing `TestAmount`/`TestPlan`/
+etc. classes and their `cotton_render` assertions are untouched.
+
+Verified: confirmed red first by temporarily blanking `amount.html` and running
+`test_amount_renders_inside_an_unrelated_template` alone — failed on the missing figure while
+the unrelated wrapper markup (`<article><h2>Order summary</h2>`) still rendered, proving the
+test genuinely exercises the component rather than the surrounding template. Restored, then
+`poetry run pytest tests/test_components/test_drf_stripe.py` — 22 passed.
+
+Next: T030, bringing docs/subscription-page.md up to date against the branch as it stands.
+
+Watch: none.
+
+## 2026-09-22T05:49:33Z · Implementer US-5 · T030
+
+Did: read `docs/subscription-page.md` against the code as this branch stands and checked every
+statement: the two context names against `SubscriptionPageView.get_context_data`, every
+attribute table against `CurrentSubscription`/`Plan`/`PlanFeature`/`Money`'s actual dataclass
+fields and properties, every component's documented props against its own `<c-vars>` line, the
+feature-metadata claim against `drf_stripe`'s installed source (`ProductFeature.feature`, "a
+space delimited strings in Stripe.product.metadata.features"), and the shipped override
+template against `mvp_payments/templates/mvp_payments/drf_stripe/subscription.html` byte for
+byte. Everything was already true — no name, attribute or example needed correcting.
+
+Filled one gap: "earlier on the template search path" never explained the mechanism. Added two
+sentences to "Replacing the page" naming the app-directories loader's `INSTALLED_APPS` order,
+the same mechanism the README already states for this package preceding `mvp`, and the one
+T028's test exercises.
+
+No component behaviour or template output touched, per this story's prohibition.
+
+Next: T031, the README and CHANGELOG.
+
+Watch: none.
+
+## 2026-09-22T05:51:43Z · Implementer US-5 · T031
+
+Did: checked the README's namespace section against its acceptance criterion — it already
+linked `docs/subscription-page.md` and already said the subscription page "shows what a person
+is currently subscribed to," so neither needed correcting. Added the one thing Article XVII
+requires that was missing: which of the backend's endpoints this namespace calls,
+`customer-portal/`. CHANGELOG.md had not been touched since FS-001 merged (confirmed by `git log
+--oneline -- CHANGELOG.md`), so this is the first entry for the whole feature: the six
+components, the two context names (`subscriptions`, `billing_portal_endpoint`), and
+`MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, added under the existing `## [Unreleased]` heading —
+no version heading written by hand.
+
+Verified: `poetry run pytest` — 119 passed (112 baseline + 7 from T028/T029).
+
+Next: the story's completion report and the full verify run.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US5 accepted, with the README's status corrected
+
+Verified independently: receipts green against the dispatched brief, `tamper-check` clean over
+`f7ec0d8..HEAD`, `forge verify --repo . --base origin/main` green on all six steps, 119 tests
+passing. No production file changed, which is what this story was told to do — the whole diff is
+tests, documentation, the README, the CHANGELOG and the record.
+
+The story reported one thing it had deliberately not fixed: the README's Status section still said
+no components are written yet, which has been false since the previous feature. It was right not to
+fix it under a task whose scope named only the namespace section, and right to say so. Corrected
+here — a pull request whose README tells a reader the package ships no components while adding five
+of them is not one to send. It now says which pages are built and which are still empty.
+
+Verified after the correction: `forge verify --repo . --base origin/main` — all six steps green.
+
+Next: the story set is complete. S4 exit, then convergence.
+
+Watch: none carried into S5 beyond the ADRs that D1 through D5, D11 and D14 defer to convergence.
+
+## 2026-09-22 — S6 REVIEW, both findings fixed
+
+Two findings, both verified against their stated evidence before acting rather than taken on the
+severity claimed.
+
+**REV-001, critical, confirmed and fixed.** `Money` decided a currency's exponent by membership in
+two upper-case sets, and the provider reports a currency code in lower case. The backend's own
+`StripeCurrency` enum is lower-case throughout and its webhook writes the field through verbatim,
+so a real price row holds `"jpy"`, never `"JPY"`. Reproduced: `Money(minor_units=2000,
+currency="jpy")` rendered `20.00 jpy` where `Money(..., currency="JPY")` rendered `2,000 JPY`. A
+zero-decimal amount came out a hundred times too small and a three-decimal one ten times too
+large, on the page, to the person paying it. Every test passed because every fixture and every
+assertion used upper case.
+
+`Money` now normalises the code at construction, so the exponent and the rendered code are both
+right whatever case it arrived in. Two tests at the money level and one at the reader level, the
+last using a price row recorded the way production records one. The reviewer checked the contents
+of both sets against the provider's published list and found them correct — sixteen and seven — so
+the table was right and only the comparison was wrong.
+
+**REV-002, medium, confirmed and fixed differently than suggested.** `<c-drf-stripe.portal-link>`
+reads `{{ csrf_token }}` from context rather than taking it as an attribute, so rendered without a
+request it produces a control with an empty token that posts a request Django rejects. The
+suggested remedy was to declare it as an attribute. Rejected: a caller who must pass the token can
+pass a stale one, which fails the same silent way and is harder to see, and every CSRF-protected
+form in Django reads this variable from context. The dependency is correct and was merely hidden.
+It is now stated in the component's own header, in the documentation beside the component, in the
+standalone test — which asserts the empty token rather than stepping around it — and in a
+page-level test proving the token is populated when a request renders the page. Recorded as D16.
+
+The reviewer's own clean findings are worth keeping: the withholding guarantee is enforced in the
+view rather than only in the template, so a project's overridden template cannot defeat it; the
+query count is constant in the number of items; and `frequency_display` already anticipates the
+provider's lower-case interval names, which is the same trap `Money` fell into.
+
+Verified: `forge verify --repo . --base origin/main` — all six steps green. `poetry run pytest` —
+123 passed.
+
+Next: the walkthrough.
+
+Watch: one note from the review left unfixed by choice — the portal control has no in-flight
+disabled state, so a double click posts twice. Harmless today and worth a guard if that file ever
+grows a second control.

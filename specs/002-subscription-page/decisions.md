@@ -92,3 +92,312 @@ shipping a page that deliberately withholds its most useful link for several wee
 R5 is rewritten to whatever remains of it, or retired, rather than left in the roadmap describing
 work this feature has done. That is a roadmap change and it is recorded here because this feature
 is what caused it.
+
+## D1 — "Current" is read from the backend's own property, not from a status filter of ours
+
+The specification says the page takes the backend's definition of current (FR-001). The backend
+offers two ways to honour that. Its `StripeUser` exposes `current_subscription_items`, which
+filters on the status set it uses everywhere else; or a caller can filter subscriptions on that
+same set directly, which means naming the statuses.
+
+The page reads the property and groups its rows by subscription. The status set then lives in
+exactly one place — the backend's — and the day it changes there, this page changes with it. The
+alternative puts a copy of that list in a package that has no way to know it has gone stale, which
+is precisely the disagreement between page and application the specification's first clarification
+was written to prevent.
+
+The cost is that a current subscription with no priced items would not appear. The backend records
+a subscription's items from the provider's own line items, so a subscription without them is not a
+state the provider produces.
+
+**ADR:** docs/adr/0003-current-is-the-backends-own-answer.md — graduated to an architectural decision record.
+
+## D2 — An amount's minor-unit exponent is a table in this package
+
+Article XVI forbids assuming two decimal places, and the backend records only an integer of minor
+units and a three-letter code. Something has to hold the exponent.
+
+`babel` holds it, along with a localised currency pattern, and was rejected. It is a runtime
+dependency with a data bundle attached, for a table of twenty-three currency codes this package can
+state in a dozen lines, and Article VII asks for a justification that does not exist here. The
+consequence accepted with it is that the currency renders as its code beside a localised number
+rather than as a symbol inside the locale's own pattern.
+
+Converting minor units for display is not the figure FR-007 forbids. That requirement is about
+producing a number the backend did not record — a total, a proration, a conversion between
+currencies. Rendering 2000 minor units of a two-decimal currency as 20.00 is the same value written
+the way the currency is written, and rendering it any other way would be wrong.
+
+**ADR:** docs/adr/0004-currency-exponents-are-a-table-here.md — graduated to an architectural decision record.
+
+## D3 — The portal is reached by posting to the backend, from a static file
+
+The backend's portal endpoint answers a POST, returns the address in JSON, and carries no route
+name, so it can be neither linked to directly nor reversed. Three routes were available.
+
+A server-side view of ours that called the endpoint and redirected was rejected: it would make this
+package call a backend endpoint on a reader's behalf, and Article XII reserves that for the
+backend.
+
+A form posting straight at the endpoint was rejected because the endpoint answers with JSON rather
+than a redirect, so the reader would land on a page of JSON.
+
+What ships is a control carrying the endpoint and a CSRF token as data, and a small static file
+that posts, follows the address that comes back, and reveals a message when it cannot. Article XIII
+already provides for exactly this: logic a component needs of its own arrives as a small static
+file with no build step, and the project includes it the way it includes everything else.
+
+**ADR:** docs/adr/0005-the-portal-is-reached-by-posting-to-the-backend.md — graduated to an architectural decision record.
+
+## D4 — `Page` learns which view renders it
+
+Until now every contributed page was the same view with a different template, which was right while
+the pages were empty. This one needs context the generic view cannot supply.
+
+`Page` gains a `view` field defaulting to the existing one, and the routes are built from it. The
+alternative — a second URL configuration for the pages that need their own view — would put one
+namespace's routes in two places and break the property the previous feature was built around, that
+a contribution declares everything it contributes and one condition decides all of it.
+
+**ADR:** docs/adr/0006-a-page-declares-the-view-that-renders-it.md — graduated to an architectural decision record.
+
+## D5 — Withholding the portal control is a safety property, not only a courtesy
+
+The specification's clarification for FR-008 reasons that a person with no customer record has
+"nothing on the other side of the link". The design review checked that against the backend as it
+is actually installed, and it is not what happens. The portal endpoint calls
+`get_or_create_stripe_user`, which creates the missing row and then creates a **new customer at the
+provider** before minting a session for it. A person who had never subscribed would, by clicking,
+acquire a customer record at Stripe.
+
+The requirement is unchanged and no behaviour moves: the page already withholds the control from
+anyone with nothing current, which covers the narrower case. What changes is why. The reason is
+recorded here, and in `research.md`, so that a later reader tempted to "fix" the empty state by
+offering the link anyway can see what it would cost. The specification's own sentence is wrong in
+its reasoning rather than in what it requires, so it is left alone and the correction lives here.
+
+**ADR:** docs/adr/0007-the-portal-control-is-offered-only-to-a-current-subscriber.md — graduated to an architectural decision record.
+
+## D6 — Design review outcome
+
+One reviewer, three lenses, one round. Verdict `approve`, no critical or high findings, so no
+re-plan.
+
+Three findings, each recorded rather than escalated:
+
+- **DR-001** (medium, verified) — the false premise behind FR-008, above. Recorded as D5; no task
+  changed.
+- **DR-002** (medium, likely) — the reader's queryset was described as reaching only the product,
+  while the grouping reads `item.subscription` from every row, which is a query per item. `plan.md`
+  and T009 now name `select_related("subscription", "price__product")`, and T007 holds it with a
+  query-count assertion rather than leaving it to inspection.
+- **DR-003** (low, likely) — `Price.nickname` and `Product.name` are both nullable, so a plan can
+  in principle have no name at all, where the parallel case for a feature has a stated fallback.
+  Carried as a watch item on US-1 rather than invented into the page: the provider requires a
+  product name at creation, so the gap is a schema possibility and not a path a reader reaches.
+
+Two editorial corrections were made in the same pass: a miscount of the currency table, and wording
+that read as though stories shared one working tree.
+
+**ADR:** none — a record of this run's design review, not a standing rule.
+
+## D7 — US-1 implementation: three task pairs committed together rather than as separate red and
+green commits
+
+`tasks.md` splits Phase 1 into "Tests first" (T004–T007) and "Then the code" (T008–T011), and each
+test task names the code task that turns it green ("Red before T008", etc.). For T004/T008
+(`money.py`), T005/T009 (`drf_stripe_records.py`) and T006/T010 (`Page.view`), the failing test was
+written, run and confirmed red, and the minimal implementation was written immediately after in the
+same working cycle — but committed together under the earlier task's id rather than as two commits.
+
+Each of those three commits is still a complete, independently green, lint-clean vertical slice
+covering exactly one concern, and the red state was genuinely observed before writing code
+(`craft-tdd`'s rule) — nothing here skipped red-green-refactor. What did not happen is a separate
+commit carrying `T008:`, `T009:` and `T010:` in its subject the way `craft-increments` asks for one
+commit per task id. T007/T011 (the view itself, which needs all three pieces at once to render
+anything) reverts to the tasks-as-written granularity, and T012–T014 follow it from here.
+
+**Revisit if:** a reviewer needs to bisect one of these three concerns independently of its test —
+in that case the pairing would need undoing, which a fresh commit splitting the diff can still do
+without touching history.
+
+**ADR:** none — a commit-granularity choice inside one story, not a decision anyone reading this package later needs.
+
+## D8 — Updating `tests/test_urls.py`'s pre-existing parametrized assertion
+
+`tests/test_urls.py::TestPaymentURLs::test_declared_page_name_reverses_to_a_page_view`, written for
+FS-001 before `Page.view` existed, asserts that every declared page — including
+`drf-stripe-subscription` — resolves to the generic `PaymentPageView`. D4 (recorded at plan time,
+approved at the S3R design review) is exactly the decision that this story changes: the subscription
+page now routes to `SubscriptionPageView` because it needs context the generic view cannot supply,
+and T006's own new test (`TestPageView` in `tests/test_contributions.py`) already proves that
+routing mechanism works. Leaving `drf-stripe-plans` and `drf-stripe-billing` on `PaymentPageView` is
+unaffected and still asserted.
+
+The Implementer protocol's hard rule is "never modify a pre-existing test you did not author"
+without first reading the decision that settles it. D4 settles this one: the test's premise is
+exactly what the reviewed design changes, not something this story is guessing about or overriding
+silently. The parametrized case for `drf-stripe-subscription` now asserts `SubscriptionPageView`;
+the other two cases are untouched. Recorded here, and flagged in the completion report's
+`deviations`, rather than left for tamper-check to discover unexplained.
+
+**Revisit if:** a future page gains its own view and this parametrize list needs a fourth case — the
+pattern (assert per-page, not one class for all three) already supports it.
+
+**ADR:** none — the consequence of D4, which carries the decision. ADR 0006 records it.
+
+## D9 — US-2 implementation: mounting the backend's own URLs in the demo, conditionally
+
+T020 needed the demo to mount `drf_stripe.urls` so `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`
+pointed at something real. Mounting it unconditionally in `demo/urls.py` broke
+`tests/settings_without_backend.py`'s two tests: importing `drf_stripe.urls` imports its models,
+and a model with no explicit `app_label` needs its app in `INSTALLED_APPS` to resolve one, so the
+URLconf itself failed to load the moment the backend was removed.
+
+`demo/urls.py` now mounts it only when `apps.is_installed("drf_stripe")` is true. This is not a
+change to this package — `mvp_payments` never gated anything on configuration before this, and
+still does not — it is the demo, standing in for a host project, behaving the way any real
+project's own URLconf naturally would: nobody writes `include("drf_stripe.urls")` in a project
+that never installed the backend. The demo simply had not needed to mount that URLconf until this
+story gave it something behind that endpoint worth reaching.
+
+**Revisit if:** the demo comes to need more than one backend's own URLs mounted this way — the
+same guard generalises per backend.
+
+**ADR:** none — how the demo project mounts a backend it may not have installed. Demo wiring, not the package's design.
+
+## D10 — US-2 implementation: the failure message is static text, revealed rather than written
+
+`billing_portal.js` (T019) never writes the backend's response into the DOM. The failure message
+`<p>` (T018) carries its translated text at render time and starts `hidden`; on any failure the
+script only toggles that attribute.
+
+The alternative — a bare `<p hidden>` filled with response-derived text at failure time — was
+rejected on two grounds. Article XII's "no trust in what comes back" already reads on values a
+component renders through the template layer; extending that principle to a script that would
+otherwise interpolate a fetch response into markup by hand is the same rule applied to the one
+piece of this feature that runs after the template has already rendered. It would also need its
+own English string embedded in JavaScript with no route to `{% translate %}`, which every other
+piece of copy on this page goes through.
+
+**Revisit if:** a future failure needs to distinguish *why* the request failed (network error vs.
+the backend's own 4xx/5xx) — the single generic message would need to become several, still static,
+selected by the script rather than written by it.
+
+**ADR:** none — the rule it states (nothing from the backend's answer reaches the document) is part of the handoff pattern and is recorded in ADR 0005.
+
+## D11 — The page renders the portal control only where there is a subscription behind it
+
+`billing_portal_endpoint` is `None` in two unrelated situations: the project never set the
+setting, and the reader has nothing current (D5). The component receives only the endpoint, so it
+cannot tell them apart, and its no-endpoint wording — that the subscription is managed by the
+provider and the portal cannot be reached right now — is true of the first and false of the
+second in both halves. Somebody who never subscribed has no subscription for anyone to manage,
+and nothing is failing.
+
+The page can tell them apart, because it holds the subscriptions as well. It renders the
+component only when there is at least one, so the wording addresses only the reader it is true
+of. The control was already withheld from the other reader; what was left was a sentence about a
+subscription they do not have.
+
+This is not US-4's empty state arriving early. US-4 decides what the page says to a person with
+nothing, which is a different question from whether this story leaves a false statement on the
+page until then. The guard is one line in a template this story already owns.
+
+**Revisit if:** the component is ever given a way to distinguish the two cases itself — passing
+the subscriptions, or a second attribute — at which point the guard belongs inside it rather than
+at the call site.
+
+**ADR:** none — the same decision as D5 seen from the call site. ADR 0007 records both halves.
+
+## D12 — `plan.html`'s border moved to an outer wrapper when features were added
+
+`plan.html`'s per-plan separator (`border-b ... last:border-b-0`) lived on the same element as the
+name/amount row. Adding `<c-drf-stripe.features>` as a sibling after that row would have put the
+border between a plan's own row and its own features, inside the same plan, rather than between
+one plan and the next in `subscription.html`'s loop — the opposite of what the class is for.
+
+Moved the border and vertical padding to a new outer `<div>` wrapping both the row and the
+features block, so the divider separates whole plan+features units. No test asserted the old
+markup's div nesting, only the text and classes it carried, so this is additive from every
+existing test's perspective.
+
+**Revisit if:** a plan gains a third block beneath features — the wrapper already generalises to
+that; no further change to this decision.
+
+**ADR:** none — where a border sits in one component's markup.
+
+## D13 — `features.html` renders `feature.description|default:feature.identifier`, not a fallback baked into `PlanFeature`
+
+`build_plan` already falls back to the identifier when constructing `PlanFeature` (T009), so every
+feature reaching the template through the reading layer already carries a non-empty
+`description`. The component's own acceptance (T022) is stated independently of that pipeline —
+"given a feature with none, then the identifier is carried" — and FR-012/SC-006 require every
+component to render correctly from its attributes alone, in a template of its own. Repeating the
+fallback in the template, rather than trusting the one upstream, means `<c-drf-stripe.features>`
+is still correct if it is ever handed a `PlanFeature` built by hand with an empty description.
+
+**Revisit if:** `PlanFeature` itself grows validation that makes an empty `description` impossible
+to construct — at which point the template's fallback becomes dead code and can be dropped.
+
+**ADR:** none — a template filter choice inside one component.
+
+## D14 — The tamper flag on this story is the file-level heuristic, not a weakened test
+
+`tamper-check` flagged `tests/test_components/test_drf_stripe.py` as a modified pre-existing test
+file. Reading the diff: the change is two new test methods added to the existing `TestPlan` class,
+one new `TestFeatures` class, and one import line. No assertion was relaxed, no test was renamed,
+and none was deleted.
+
+The tool flags at file granularity, and a new method on an existing class is indistinguishable
+from an edit to an existing one at that granularity. Its own policy says adding test functions is
+fine and that a legitimate case is approved with an entry here rather than by loosening the check.
+Approved on that basis.
+
+**Revisit if:** the flag fires often enough on additions that the noise costs more than the
+granularity saves, at which point the check should compare test function names rather than files.
+
+**ADR:** none — triage of a tooling flag on one story, not a decision about this package.
+
+## D15 — `no_subscription.html`'s icon is `info`, because no payment-shaped icon is registered
+
+The brief asks `<c-drf-stripe.no-subscription>` to supply its own icon to `<c-page.list.empty>`,
+rather than lean on that component's own "search" default, which reads as an empty search result
+rather than an empty subscription. `mvp.utils.BS5_ICONS` — the only pack this project registers —
+has no icon for a subscription, a card, a wallet or a plan; the closest it has is `"info"`
+(`bi-info-circle-fill`), already used elsewhere in the shell to key a component's own status
+variant to an icon.
+
+Checked before choosing: `EASY_ICONS_FAIL_SILENTLY` defaults to `settings.DEBUG`, which is `False`
+in the test settings, so an unregistered name raises `IconNotFoundError` rather than rendering
+nothing. Guessing a name here would have been a red test at best and a broken page in any project
+running with `DEBUG = False` at worst.
+
+**Revisit if:** a later story adds a payment- or subscription-shaped icon to the registry, at which
+point this component should use it instead.
+**ADR:** none — which icon an empty state uses.
+
+## D16 — The portal control keeps reading its CSRF token from context, and says so
+
+Review found that `<c-drf-stripe.portal-link>` reads `{{ csrf_token }}` rather than taking it as
+an attribute, so rendered outside a request it produces a control with an empty token, which
+posts a request Django rejects. Every other component in this feature renders completely from
+what it is given, and the specification asks for exactly that (FR-012).
+
+Moving the token to a declared attribute was rejected. A caller would then have to pass it, which
+is a thing they can get wrong in a way that fails the same silent way, and a stale token passed
+deliberately is worse than a missing one. Every CSRF-protected form in Django reads this variable
+from context, and a project rendering the component from a view — which is every ordinary use,
+including an overridden page template — has it.
+
+So the dependency stays and stops being hidden. The component's own header names it, the
+documentation names it beside the component, the standalone test asserts the empty token rather
+than stepping around it, and a page-level test proves the token is populated when a request
+renders the page. The one thing that was actually wrong was that nothing said so and nothing
+tested it.
+
+**ADR:** none — a component-level requirement recorded where the component is documented, not a
+standing rule about this package.
+
+**Revisit if:** a second component needs the same thing, at which point the pattern is worth
+stating once rather than per component.

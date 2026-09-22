@@ -10,6 +10,11 @@ browser.
 
 import re
 
+import pytest
+from django.apps import apps
+from django.contrib.auth import get_user_model
+from django.core.management import call_command
+
 
 class TestHomePage:
     """The page a reader lands on, and the shell it is drawn inside."""
@@ -102,3 +107,61 @@ class TestThemeSwitching:
             r'<span class="mvp-sidebar-title[^"]*">django-mvp-payments</span>',
             home_page,
         )
+
+
+@pytest.mark.django_db
+class TestSeedDemoCommand:
+    """The demo's subscription data, so the subscription page has something to show
+    (T003) without a developer editing anything by hand.
+    """
+
+    def _stripe_user_for(self, username):
+        StripeUser = apps.get_model("drf_stripe", "StripeUser")
+        user = get_user_model().objects.get(username=username)
+        return StripeUser.objects.get(pk=user.pk)
+
+    def test_regular_user_holds_a_subscription_with_two_priced_items_in_different_currencies(
+        self,
+    ):
+        call_command("seed_demo")
+
+        stripe_user = self._stripe_user_for("regular.user")
+        items = list(stripe_user.current_subscription_items.select_related("price"))
+        assert len(items) == 2
+        currencies = {item.price.currency for item in items}
+        assert len(currencies) == 2
+
+    def test_regular_users_products_carry_features(self):
+        call_command("seed_demo")
+
+        stripe_user = self._stripe_user_for("regular.user")
+        for item in stripe_user.current_subscription_items.select_related(
+            "price__product"
+        ):
+            assert item.price.product.linked_features.exists()
+
+    def test_staff_user_holds_a_trialing_subscription(self):
+        call_command("seed_demo")
+
+        stripe_user = self._stripe_user_for("staff.user")
+        assert list(stripe_user.subscriptions.values_list("status", flat=True)) == [
+            "trialing"
+        ]
+
+    def test_super_user_holds_no_subscription(self):
+        call_command("seed_demo")
+
+        StripeUser = apps.get_model("drf_stripe", "StripeUser")
+        user = get_user_model().objects.get(username="super.user")
+        assert not StripeUser.objects.filter(pk=user.pk).exists()
+
+    def test_running_it_twice_leaves_exactly_one_of_each_record(self):
+        call_command("seed_demo")
+        call_command("seed_demo")
+
+        StripeUser = apps.get_model("drf_stripe", "StripeUser")
+        Subscription = apps.get_model("drf_stripe", "Subscription")
+        assert get_user_model().objects.filter(username="regular.user").count() == 1
+        assert StripeUser.objects.count() == StripeUser.objects.distinct().count()
+        stripe_user = self._stripe_user_for("regular.user")
+        assert Subscription.objects.filter(stripe_user=stripe_user).count() == 1

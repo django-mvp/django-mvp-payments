@@ -1,0 +1,17 @@
+{% extends "mvp/account/base.html" %}
+{% block account.content %}
+  <div data-testid="the-hosting-projects-own-subscription-page">
+    <h1>Your subscription, our way</h1>
+    {% for subscription in subscriptions %}
+      <p>Status: {{ subscription.status }}</p>
+      {% for plan in subscription.plans %}
+        <p>{{ plan.name }} — <c-drf-stripe.amount :amount="plan.amount" /> ({{ plan.frequency_display }})</p>
+      {% endfor %}
+    {% empty %}
+      <p>Nothing subscribed yet.</p>
+    {% endfor %}
+    {% if billing_portal_endpoint %}
+      <p data-testid="portal-endpoint">{{ billing_portal_endpoint }}</p>
+    {% endif %}
+  </div>
+{% endblock account.content %}

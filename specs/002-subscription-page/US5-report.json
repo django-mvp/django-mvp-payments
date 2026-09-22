@@ -1,0 +1,82 @@
+{
+  "story": "US5",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T028",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestTemplateOverride::test_every_documented_context_value_reaches_the_projects_own_template"
+        ],
+        "criteria": ["SC-005"],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestTemplateOverride -x -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["b731c0ad2084833e6eeeda67f07c23f5eacadfa5", "3f943bacc8e14afc82dd87c3ec8e0b8f0ad271c2"]
+    },
+    {
+      "id": "T029",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestStandalone::test_amount_renders_inside_an_unrelated_template",
+          "tests/test_components/test_drf_stripe.py::TestStandalone::test_plan_renders_inside_an_unrelated_template",
+          "tests/test_components/test_drf_stripe.py::TestStandalone::test_subscription_renders_inside_an_unrelated_template",
+          "tests/test_components/test_drf_stripe.py::TestStandalone::test_features_renders_inside_an_unrelated_template",
+          "tests/test_components/test_drf_stripe.py::TestStandalone::test_portal_link_renders_inside_an_unrelated_template",
+          "tests/test_components/test_drf_stripe.py::TestStandalone::test_no_subscription_renders_inside_an_unrelated_template"
+        ],
+        "criteria": ["SC-006"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestStandalone -x -q",
+          "poetry run pytest tests/test_components/test_drf_stripe.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["88d67fcdf974126a988bc3f41adebba41c9150e0", "11e8708c4441f95017e43fb208845227b4c7a964"]
+    },
+    {
+      "id": "T030",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["020d6c742f4597baff79d34818c29967d30c3cd1", "cdf14c5a1f7835723e60e0d1b5ce949e52ba2306"]
+    },
+    {
+      "id": "T031",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest -q"],
+        "exit_code": 0
+      },
+      "commits": ["d3c4919a3d1c55478b18d9fed9c884ac58fa51ad", "59f15205d66230a97d413c92aa74eae633c34a83"]
+    }
+  ],
+  "deviations": [],
+  "concerns": [
+    "README.md's Status section (line 17-20) still reads 'Version 0.0.1 ... no components are written yet', which has been false since FS-001. Out of scope for T031, which named only the README's namespace section - noted rather than fixed under a documentation task whose scope was stated narrowly."
+  ],
+  "blocked": []
+}

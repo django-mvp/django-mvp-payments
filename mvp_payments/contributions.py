@@ -36,6 +36,7 @@ class Page:
     label: str | Promise
     icon: str
     template_name: str
+    view: type[PaymentPageView] = PaymentPageView
 
 
 @dataclass(frozen=True)
@@ -83,7 +84,7 @@ class Contribution:
         return [
             path(
                 f"{self.namespace}/{page.slug}/",
-                PaymentPageView.as_view(page=page),
+                page.view.as_view(page=page),
                 name=self.url_name(page),
             )
             for page in self.pages

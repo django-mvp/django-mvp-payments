@@ -1,0 +1,116 @@
+{
+  "story": "US3",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T021",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_namespaces/test_drf_stripe_records.py::TestPlanFeatures::test_features_recorded_against_the_product_are_carried",
+          "tests/test_namespaces/test_drf_stripe_records.py::TestPlanFeatures::test_a_features_own_description_is_carried",
+          "tests/test_namespaces/test_drf_stripe_records.py::TestPlanFeatures::test_a_feature_with_no_description_carries_its_identifier_in_its_place",
+          "tests/test_namespaces/test_drf_stripe_records.py::TestPlanFeatures::test_a_product_with_no_features_carries_an_empty_collection",
+          "tests/test_namespaces/test_drf_stripe_records.py::TestPlanFeatures::test_a_feature_recorded_against_a_different_product_never_appears"
+        ],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_namespaces/test_drf_stripe_records.py::TestPlanFeatures -v",
+          "poetry run pytest tests/test_namespaces/test_drf_stripe_records.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": [
+        "49f9470d0190b652af0ab98657f3147de7b8223b"
+      ]
+    },
+    {
+      "id": "T022",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestFeatures::test_lists_the_features_it_is_given",
+          "tests/test_components/test_drf_stripe.py::TestFeatures::test_shows_the_identifier_where_there_is_no_description",
+          "tests/test_components/test_drf_stripe.py::TestFeatures::test_renders_nothing_at_all_when_given_none"
+        ],
+        "criteria": [
+          "SC-006"
+        ],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestFeatures -v (red before T024: TemplateDoesNotExist, cotton/drf_stripe/features/index.html)",
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestFeatures -v (green after T024)"
+        ],
+        "exit_code": 0
+      },
+      "commits": [
+        "9b4a6a6231a1e0b61053ae0164ede0fd1acef08d"
+      ]
+    },
+    {
+      "id": "T023",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [],
+        "exit_code": 0
+      },
+      "commits": [
+        "832a4a2eae47c7936ff5650ce77ee8fe2f65cadb"
+      ]
+    },
+    {
+      "id": "T024",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPlan::test_its_features_render_beneath_it",
+          "tests/test_components/test_drf_stripe.py::TestPlan::test_no_features_renders_no_heading_or_list"
+        ],
+        "criteria": [
+          "SC-006"
+        ],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPlan -v",
+          "poetry run pytest tests/test_components/test_drf_stripe.py tests/test_views.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": [
+        "7c847acccb81fec3be054d1f3707b10ee5cc6ce3",
+        "dfa15ac6f1a1c5b38816e1fcdaa3be06911d7c9c",
+        "ea878eb4a3bbd98e07e090f9b5ae9e2401f0698e"
+      ]
+    }
+  ],
+  "deviations": [
+    {
+      "what": "T023 changed no production code.",
+      "why": "T021's probes (zeroing build_plan's features, then widening the feature query to every product) showed SubscriptionReader.build_plan already carries the right features, correctly isolated per product, with the right description fallback. The brief named this as a correct outcome, not a shortfall.",
+      "decision_ref": "specs/002-subscription-page/progress.md#2026-09-22T05:12:09Z-implementer-us3-t023"
+    },
+    {
+      "what": "plan.html's border and vertical padding moved from the name/amount row onto a new outer wrapper div, rather than adding the features block as a sibling.",
+      "why": "The border marks the boundary between plans in subscription.html's loop. Left on the original row, adding features as a sibling after it would put the border between a plan's own row and its own features instead.",
+      "decision_ref": "specs/002-subscription-page/decisions.md#d12-planhtmls-border-moved-to-an-outer-wrapper-when-features-were-added"
+    },
+    {
+      "what": "features.html applies feature.description|default:feature.identifier itself, even though build_plan already performs that fallback before the template ever sees a PlanFeature.",
+      "why": "T022's acceptance is stated for the component alone, and FR-012/SC-006 require every component to render correctly from its own attributes independent of how they were produced.",
+      "decision_ref": "specs/002-subscription-page/decisions.md#d13-featureshtml-renders-featuredescriptiondefaultfeatureidentifier-not-a-fallback-baked-into-planfeature"
+    }
+  ],
+  "concerns": [],
+  "blocked": []
+}

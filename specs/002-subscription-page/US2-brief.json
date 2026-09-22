@@ -1,0 +1,120 @@
+{
+  "story": "US2",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 19,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T015",
+    "T016",
+    "T017",
+    "T018",
+    "T019",
+    "T020"
+  ],
+  "context": {
+    "why": "US-1 landed: the subscription page now shows a signed-in person the plans they are currently on. This story adds the only thing on that page a person can act on. The page states that the subscription is managed by the provider and offers the way through to the provider's own hosted billing portal, where changing a card, reading an invoice and cancelling all already happen. Nothing you build changes a subscription, and nothing you build calls the provider.\n\nThe backend is drf-stripe-subscription 1.2.2, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/drf_stripe. Read it there when you need to; never import it from mvp_payments/ or from tests/. Its portal endpoint is drf_stripe.views.StripeCustomerPortal, mounted by the host project wherever it chooses to mount the backend's URLs. It accepts POST from an authenticated session and answers {'url': ...}. It carries no route name, so it can be neither reversed nor linked to directly, which is the whole reason for D3's design.\n\nDocumentation: docs/subscription-page.md exists and is this feature's page. Extend it for what you add \u2014 the MVP_PAYMENTS setting the endpoint comes from, the billing_portal_endpoint context name, the portal-link component and its attributes, and the static file a project has to load for the control to work. Say plainly that the project loads that file itself, the way it loads its other static assets. The documentation check reads the pages; a docstring and a changelog entry count for nothing. This replaces the plan's original arrangement, which put every documentation task in US-5: each story now documents the surface it adds, and US-5 extends the page rather than writing it.",
+    "spec_sections": [
+      "User Scenarios & Testing -> User Story 2 - Managing it happens at the provider",
+      "Requirements -> FR-005",
+      "Requirements -> FR-006",
+      "Requirements -> FR-008",
+      "Success Criteria -> SC-002"
+    ],
+    "plan_sections": [
+      "Design -> The way through to the provider",
+      "Design -> Components"
+    ],
+    "prior_decisions": [
+      "D3 - The portal is reached by posting to the backend, from a static file. A server-side view of ours that called the endpoint was rejected (Article XII reserves provider calls for the backend), and a plain form posting at the endpoint was rejected because the endpoint answers with JSON, so the reader would land on a page of JSON. What ships is a control carrying the endpoint and a CSRF token as data, plus a small static file that posts, follows the address that comes back, and reveals a message when it cannot. Do not relitigate this.",
+      "D5 - Withholding the portal control from a person with no current subscription is a safety property, not a courtesy. The backend's portal endpoint calls get_or_create_stripe_user, which creates the missing row and then creates a NEW CUSTOMER AT THE PROVIDER before minting a session. A person who had never subscribed would acquire a Stripe customer record by clicking. The control is therefore absent for them, never disabled and never present-but-erroring."
+    ],
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root, which is the repository root - this story runs in the main checkout, not a separate worktree. Tests: 'poetry run pytest'. Full verify: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main' - run it once, at your report. The demo project serves this branch on port 8020 with autoreload; the subscription page is at http://127.0.0.1:8020/payments/drf-stripe/subscription/ and the demo signs in as regular.user@example.com with password 'password'.",
+    "glossary_terms": [
+      "Billing portal",
+      "Provider",
+      "Backend",
+      "Host project",
+      "Delivery",
+      "Payment component"
+    ],
+    "conventions": "AGENTS.md -> 'Component layout' (cotton/<backend>/<component>.html, hyphens map to underscores, a name Cotton cannot resolve renders empty rather than raising) and 'Stack & commands'. CONSTITUTION.md Article XII (interface layer only), Article XIII (no backend dependency, no provider script emitted, a component's own logic ships as a small static file with no build step and states what it needs), Article XIV (a page appears because two apps are installed).",
+    "verified_base": {
+      "commit": "2fa817cc8f7b672a4e54feb9b95a2f51b9a80756",
+      "verified_at": "2026-09-22T05:05:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "All six verify steps green on this commit, which is your HEAD. 'poetry run pytest' collects and passes 92. This brief file itself is uncommitted in your worktree - commit it with your first task. If the tree is red on arrival, stop and report it rather than working around it."
+    },
+    "acceptance": [
+      {
+        "task": "T015",
+        "given_when_then": "Given the MVP_PAYMENTS setting names the backend's portal endpoint, when the subscription page renders for a signed-in person with a current subscription, then billing_portal_endpoint is in the context; given the setting is absent, then it is None; given a signed-in person with no current subscription, then it is None even when the setting is set."
+      },
+      {
+        "task": "T016",
+        "given_when_then": "Given an endpoint, when the portal component renders, then it carries that endpoint and a CSRF token as data, has an accessible name, notes that it leads to the provider's site, and includes a failure message element that starts hidden; given no endpoint, then it states that the provider manages the subscription and that the portal cannot be reached, and renders no control."
+      },
+      {
+        "task": "T017",
+        "given_when_then": "Given the view renders for a signed-in person, when it builds its context, then billing_portal_endpoint is read from settings at render time, defaults to absent, and is suppressed when the person has no current subscription."
+      },
+      {
+        "task": "T018",
+        "given_when_then": "Given the component renders, when its markup is read, then no provider address appears in it - it knows only the backend's endpoint."
+      },
+      {
+        "task": "T019",
+        "given_when_then": "Given the control is bound, when a person activates it, then the static file posts with the CSRF token and follows the url in a successful answer; when the answer is unsuccessful, then it reveals the failure message instead, with no build step, no bundler and no external origin."
+      },
+      {
+        "task": "T020",
+        "given_when_then": "Given the page renders for a signed-in person with a current subscription, when they read it, then the control sits beneath the subscriptions; and the demo project loads the static file and sets the endpoint in MVP_PAYMENTS."
+      }
+    ]
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Extend docs/subscription-page.md for the surface this story adds, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story.",
+    "Do not touch files outside this story's scope. Specifically: no feature list and no features component - US-3 owns those. No empty-state component - US-4. No template-override test and no README or CHANGELOG edit - US-5. Extending docs/subscription-page.md for your own surface is required, not forbidden.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
+    "Do not import drf_stripe anywhere - not in mvp_payments/, not in tests/, not in demo/ outside its settings.",
+    "Do not call the provider or the backend from Python in this package. The control posts from the browser; that is Article XII's line and D3's design.",
+    "Do not emit a script tag for a provider's library and do not add an external origin. The static file you write is served from this package and loaded by the host project.",
+    "Do not add a build step, a bundler or an npm dependency for the static file.",
+    "Do not read a provider address, publishable key or secret from Django settings. The only setting this story adds is where the backend's own endpoint is mounted.",
+    "Do not offer the portal control to a person with no current subscription, and do not render it disabled instead. Read D5 before you are tempted.",
+    "Do not name a subscription status in any module under mvp_payments/.",
+    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template. Name it for what it is, and where two module-level functions share a subject, put them on that subject (Article XI)."
+  ]
+}

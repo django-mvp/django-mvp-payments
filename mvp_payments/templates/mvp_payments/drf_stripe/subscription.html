@@ -2,5 +2,13 @@
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
+    {% for subscription in subscriptions %}
+      <c-drf-stripe.subscription :subscription="subscription" />
+    {% empty %}
+      <c-drf-stripe.no-subscription />
+    {% endfor %}
+    {% if subscriptions %}
+      <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+    {% endif %}
   </c-page>
 {% endblock account.content %}

@@ -1,0 +1,528 @@
+{
+  "$schema": "../../../../.openclaw/workspaces/forge/engineering-org/kit/schemas/feature-state.schema.json",
+  "feature": "002-subscription-page",
+  "branch": "002-subscription-page",
+  "repo": "django-mvp/django-mvp-payments",
+  "state": "PR_READY",
+  "state_history": [
+    {
+      "state": "PLAN",
+      "at": "2026-09-22T00:45:00Z",
+      "note": "S3 opened from the queue; spec and decisions already on main"
+    },
+    {
+      "state": "DESIGN_REVIEW",
+      "at": "2026-09-22T00:50:00Z",
+      "note": "S3R complete: approve, no blocking findings; two plan edits applied, one watch item carried"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-09-22T04:42:53Z",
+      "note": "resumed after the run stopped between US-1's completion report and its exit gate; US-1's work was committed and green"
+    },
+    {
+      "state": "CONVERGE",
+      "at": "2026-09-22T05:56:31Z",
+      "note": "all five stories accepted, S4 exit green"
+    },
+    {
+      "state": "REVIEW",
+      "at": "2026-09-22T05:59:19Z",
+      "note": "S5 exit green: 15 decisions verdicted, 5 graduated to ADRs"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-09-22T08:32:42Z",
+      "note": "walkthrough approved by Sam; PR #23 out of draft"
+    }
+  ],
+  "gates": {
+    "spec": {
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-21T21:54:31Z",
+      "self_resolved": [
+        "specification pull request #17 merged as a5ac07fc3fdf0853787f41ee3eacff5101f2c182"
+      ]
+    },
+    "plan": {
+      "approved_by": "notified",
+      "at": "2026-09-22T00:52:00Z"
+    },
+    "merge": {
+      "approved_by": null,
+      "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-09-22T00:50:00Z",
+      "self_resolved": [
+        "DR-002 the reader's queryset now names select_related('subscription', 'price__product'), held by a query-count assertion in T007",
+        "DR-001 recorded as decision D5: the portal endpoint creates a customer rather than failing, so withholding the control is a safety property",
+        "DR-003 carried as a US-1 watch item rather than invented into the page"
+      ]
+    },
+    "walkthrough": {
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-22T08:32:03Z",
+      "self_resolved": []
+    }
+  },
+  "stories": [
+    {
+      "id": "US1",
+      "priority": "P1",
+      "issue": 18,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T001",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_factories.py::TestFactories"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_factories.py"
+            ],
+            "code": [
+              "tests/factories.py:1"
+            ]
+          }
+        },
+        {
+          "id": "T002",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestSubscriptionPage"
+            ],
+            "code": [
+              "tests/conftest.py:34"
+            ]
+          }
+        },
+        {
+          "id": "T003",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py::TestSeedDemoCommand"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_demo.py"
+            ],
+            "code": [
+              "demo/management/commands/seed_demo.py:50"
+            ]
+          }
+        },
+        {
+          "id": "T004",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_money.py::TestMoney"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_money.py"
+            ],
+            "code": [
+              "mvp_payments/money.py:1"
+            ]
+          }
+        },
+        {
+          "id": "T005",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader",
+              "tests/test_namespaces/test_drf_stripe_records.py::TestNoStatusIsNamed"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"
+            ],
+            "code": [
+              "mvp_payments/namespaces/drf_stripe_records.py:61"
+            ]
+          }
+        },
+        {
+          "id": "T006",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_contributions.py::TestPageView"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py"
+            ],
+            "code": [
+              "mvp_payments/contributions.py:36"
+            ]
+          }
+        },
+        {
+          "id": "T007",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestSubscriptionPage"
+            ],
+            "code": [
+              "tests/test_views.py:162"
+            ]
+          }
+        },
+        {
+          "id": "T008",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_money.py::TestMoney"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_money.py"
+            ],
+            "code": [
+              "mvp_payments/money.py:20"
+            ]
+          }
+        },
+        {
+          "id": "T009",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"
+            ],
+            "code": [
+              "mvp_payments/namespaces/drf_stripe_records.py:64"
+            ]
+          }
+        },
+        {
+          "id": "T010",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_contributions.py::TestPageView"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py"
+            ],
+            "code": [
+              "mvp_payments/contributions.py:37",
+              "mvp_payments/contributions.py:84"
+            ]
+          }
+        },
+        {
+          "id": "T011",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py tests/test_urls.py"
+            ],
+            "code": [
+              "mvp_payments/views.py:47",
+              "mvp_payments/namespaces/drf_stripe.py:19"
+            ]
+          }
+        },
+        {
+          "id": "T012",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage",
+              "tests/test_components/test_drf_stripe.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py tests/test_components/"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/amount.html:1",
+              "mvp_payments/templates/cotton/drf_stripe/plan.html:1",
+              "mvp_payments/templates/cotton/drf_stripe/subscription.html:1"
+            ]
+          }
+        },
+        {
+          "id": "T013",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestSubscriptionPage"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1"
+            ]
+          }
+        },
+        {
+          "id": "T014",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_components/test_drf_stripe.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/"
+            ],
+            "code": [
+              "tests/test_components/test_drf_stripe.py:1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US2",
+      "priority": "P1",
+      "issue": 19,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T015",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestBillingPortalEndpoint"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestBillingPortalEndpoint"
+            ],
+            "code": [
+              "mvp_payments/views.py:54"
+            ]
+          }
+        },
+        {
+          "id": "T016",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPortalLink"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPortalLink"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/portal_link.html:1"
+            ]
+          }
+        },
+        {
+          "id": "T017",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestBillingPortalEndpoint"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py"
+            ],
+            "code": [
+              "mvp_payments/views.py:54"
+            ]
+          }
+        },
+        {
+          "id": "T018",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPortalLink"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/portal_link.html:1"
+            ]
+          }
+        },
+        {
+          "id": "T019",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [],
+            "commands": [
+              "poetry run pre-commit run --files mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js",
+              "poetry run pytest tests/test_app.py"
+            ],
+            "code": [
+              "mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js:1"
+            ]
+          }
+        },
+        {
+          "id": "T020",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage::test_the_portal_control_sits_beneath_the_subscriptions"
+            ],
+            "commands": [
+              "poetry run pytest tests/"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1",
+              "demo/urls.py:1",
+              "demo/settings.py:63",
+              "demo/templates/base.html:1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US3",
+      "priority": "P2",
+      "issue": 20,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T021",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T022",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T023",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T024",
+          "status": "todo",
+          "attempts": 0
+        }
+      ]
+    },
+    {
+      "id": "US4",
+      "priority": "P2",
+      "issue": 21,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T025",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T026",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T027",
+          "status": "todo",
+          "attempts": 0
+        }
+      ]
+    },
+    {
+      "id": "US5",
+      "priority": "P3",
+      "issue": 22,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T028",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T029",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T030",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T031",
+          "status": "todo",
+          "attempts": 0
+        }
+      ]
+    }
+  ],
+  "budgets": {
+    "converge_cycles": {
+      "used": 1,
+      "max": 2
+    },
+    "review_cycles": {
+      "used": 1,
+      "max": 1
+    },
+    "design_review_cycles": {
+      "used": 1,
+      "max": 1
+    },
+    "tokens": {
+      "used": 0,
+      "max": 120
+    }
+  },
+  "pr": {
+    "number": 23,
+    "draft": false
+  },
+  "escalations": []
+}

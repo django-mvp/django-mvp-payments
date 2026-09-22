@@ -3,12 +3,26 @@
 import re
 
 import pytest
-from django.test import override_settings
+from django.db import connection
+from django.test import Client, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from tests.factories import (
+    FeatureFactory,
+    PriceFactory,
+    ProductFeatureFactory,
+    StripeUserFactory,
+    SubscriptionFactory,
+    SubscriptionItemFactory,
+    UserFactory,
+)
 from tests.markup import account_center_cards_region, account_navigation_regions
 from tests.probes import run_probe
+
+_AMOUNT_PATTERN = re.compile(r"\d[\d,]*\.\d{2,3} [A-Z]{3}")
 
 _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE = """
 import json
@@ -28,6 +42,45 @@ User.objects.create_user(username="person", password="password")
 client = Client()
 client.login(username="person", password="password")
 response = client.get("/account/")
+
+print(json.dumps({
+    "status_code": response.status_code,
+    "content": response.content.decode(),
+}))
+"""
+
+_TEMPLATE_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.test import Client
+from django.test.utils import setup_test_environment
+from django.urls import reverse
+
+from tests.factories import (
+    PriceFactory,
+    StripeUserFactory,
+    SubscriptionFactory,
+    SubscriptionItemFactory,
+)
+
+setup_test_environment()
+call_command("migrate", verbosity=0, run_syncdb=True)
+
+user = User.objects.create_user(username="person", password="password")
+stripe_user = StripeUserFactory(user=user)
+subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+price = PriceFactory(product__name="Premium", price=2000, currency="USD", freq="month_1")
+SubscriptionItemFactory(subscription=subscription, price=price)
+
+client = Client()
+client.login(username="person", password="password")
+response = client.get(reverse("payments:drf-stripe-subscription"))
 
 print(json.dumps({
     "status_code": response.status_code,
@@ -145,3 +198,302 @@ class TestURLsNotMounted:
         assert "<a href" not in cards
         for page in drf_stripe.pages:
             assert f">{page.label}<" not in cards
+
+
+@pytest.mark.django_db
+class TestSubscriptionPage:
+    """The subscription page renders what the reader returns and nothing it did not (T007)."""
+
+    def test_renders_the_plan_name_amount_frequency_and_status(
+        self, subscriber_client, user
+    ):
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert "active" in content
+        assert "20.00" in content or "10.00" in content  # sanity: some amount renders
+        assert _AMOUNT_PATTERN.search(content)
+
+    def test_a_recorded_period_appears(self, subscriber_client, current_subscription):
+        current_subscription.period_start = timezone.now()
+        current_subscription.period_end = timezone.now()
+        current_subscription.save()
+
+        content = subscriber_client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert str(current_subscription.period_start.year) in content
+
+    def test_a_subscription_with_no_period_recorded_still_renders_the_rest(
+        self, subscriber_client, current_subscription
+    ):
+        current_subscription.period_start = None
+        current_subscription.period_end = None
+        current_subscription.save()
+
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.status_code == 200
+        assert "active" in response.content.decode()
+
+    def test_two_priced_items_show_both_amounts_and_no_third_figure(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+        first_price = PriceFactory(price=2000, currency="USD", freq="month_1")
+        second_price = PriceFactory(price=3000, currency="EUR", freq="month_1")
+        SubscriptionItemFactory(subscription=subscription, price=first_price)
+        SubscriptionItemFactory(subscription=subscription, price=second_price)
+
+        client = self._client_for(user)
+        content = client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert set(_AMOUNT_PATTERN.findall(content)) == {"20.00 USD", "30.00 EUR"}
+
+    def test_an_unrecognised_status_renders_as_itself(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        subscription = SubscriptionFactory(stripe_user=stripe_user, status="past_due")
+        SubscriptionItemFactory(subscription=subscription)
+
+        client = self._client_for(user)
+        content = client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert "past_due" in content
+
+    def test_another_persons_subscription_never_appears(self, subscriber_client):
+        other_stripe_user = StripeUserFactory()
+        other_subscription = SubscriptionFactory(
+            stripe_user=other_stripe_user, status="active"
+        )
+        other_price = PriceFactory(
+            price=999999, currency="GBP", product__name="Nobody Else's Plan"
+        )
+        SubscriptionItemFactory(subscription=other_subscription, price=other_price)
+
+        content = subscriber_client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert "Nobody Else's Plan" not in content
+        assert "9,999.99 GBP" not in content
+
+    def test_a_fixed_number_of_queries_whatever_the_number_of_items(self, user):
+        one_item_user = user
+        stripe_user_one = StripeUserFactory(user=one_item_user)
+        subscription_one = SubscriptionFactory(
+            stripe_user=stripe_user_one, status="active"
+        )
+        SubscriptionItemFactory(subscription=subscription_one)
+
+        many_items_user = self._another_user()
+        stripe_user_many = StripeUserFactory(user=many_items_user)
+        subscription_many = SubscriptionFactory(
+            stripe_user=stripe_user_many, status="active"
+        )
+        for _ in range(4):
+            SubscriptionItemFactory(subscription=subscription_many)
+
+        client_one = self._client_for(one_item_user)
+        client_many = self._client_for(many_items_user)
+        page_url = reverse("payments:drf-stripe-subscription")
+
+        # A first request against either client warms process-wide caches (the site,
+        # content types) that a later request benefits from regardless of how many
+        # items it holds — priming both first keeps the comparison about the page's
+        # own queries rather than which client happened to go first.
+        client_one.get(page_url)
+        client_many.get(page_url)
+
+        with CaptureQueriesContext(connection) as captured_one:
+            client_one.get(page_url)
+        with CaptureQueriesContext(connection) as captured_many:
+            client_many.get(page_url)
+
+        assert len(captured_one) == len(captured_many)
+
+    def test_the_portal_control_sits_beneath_the_subscriptions(self, subscriber_client):
+        """T020: the demo's own MVP_PAYMENTS setting and static file, end to end."""
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        status_index = content.index("active")
+        control_index = content.index("data-mvp-payments-portal-link")
+        assert control_index > status_index
+        assert 'src="/static/mvp_payments/drf_stripe/billing_portal.js"' in content
+
+    def test_the_portal_control_carries_a_usable_csrf_token(self, subscriber_client):
+        """Empty here and the control posts a request Django rejects, every time.
+
+        The component reads the token from context rather than from an attribute, so
+        this is the assertion that the dependency is actually satisfied on a real page.
+        """
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        token = re.search(r'data-csrf-token="([^"]*)"', content)
+        assert token is not None
+        assert len(token.group(1)) > 20
+
+    def _client_for(self, user):
+        client = Client()
+        client.force_login(user)
+        return client
+
+    def _another_user(self):
+        return UserFactory()
+
+
+@pytest.mark.django_db
+class TestBillingPortalEndpoint:
+    """``billing_portal_endpoint`` in the subscription page's context (T015)."""
+
+    def test_carries_the_endpoint_from_settings_for_a_current_subscriber(
+        self, subscriber_client
+    ):
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
+        ):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+
+        assert (
+            response.context["billing_portal_endpoint"]
+            == "/api/stripe/customer-portal/"
+        )
+
+    def test_is_none_when_the_setting_is_absent(self, subscriber_client):
+        with override_settings(MVP_PAYMENTS={}):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+
+        assert response.context["billing_portal_endpoint"] is None
+
+    def test_is_none_for_a_person_with_no_current_subscription_even_when_set(
+        self, logged_in_client
+    ):
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.context["billing_portal_endpoint"] is None
+
+    def test_says_nothing_about_a_subscription_to_someone_who_has_none(
+        self, logged_in_client
+    ):
+        """A person with nothing current is told nothing about "your subscription".
+
+        ``billing_portal_endpoint`` is None both for an unconfigured project and for a
+        person with nothing to manage, and the component cannot tell those apart. The
+        page can: it renders the control only where there is a subscription behind it.
+        Without that, someone who never subscribed reads that their subscription is
+        managed by the provider and that the portal is temporarily unreachable, and
+        both halves of that are untrue (FR-008).
+        """
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+
+        content = response.content.decode()
+        assert "data-mvp-payments-portal-link" not in content
+        assert "managed by the provider" not in content
+        assert "cannot be reached" not in content
+
+
+@pytest.mark.django_db
+class TestNoCurrentSubscription:
+    """Nobody the backend reports nothing current for is left with a hole where a plan
+    would have been (T025, US-4, FR-008, D5, D11).
+
+    Two different people reach this with nothing: one the backend holds no customer
+    record for at all, and one whose subscriptions exist but none of them are current.
+    ``SubscriptionReader.for_user`` returns an empty tuple for both, so the page reads
+    the same way for each — this class proves that for both paths, not only one.
+    """
+
+    def test_a_person_whose_subscription_has_ended_is_told_there_is_none(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        ended_subscription = SubscriptionFactory(
+            stripe_user=stripe_user, status="canceled"
+        )
+        ended_subscription.period_start = timezone.now()
+        ended_subscription.period_end = timezone.now()
+        ended_subscription.save()
+        feature = FeatureFactory(description="Priority support")
+        price = PriceFactory(
+            product__name="Nobody's Plan Anymore",
+            price=999999,
+            currency="GBP",
+            freq="year_1",
+        )
+        ProductFeatureFactory(product=price.product, feature=feature)
+        SubscriptionItemFactory(subscription=ended_subscription, price=price)
+
+        client = self._client_for(user)
+        response = client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert "No current subscription" in content
+        assert "Nobody's Plan Anymore" not in content
+        assert "9,999.99 GBP" not in content
+        assert "every year" not in content
+        assert "canceled" not in content
+        assert str(ended_subscription.period_start.year) not in content
+        assert "Priority support" not in content
+        assert "data-mvp-payments-portal-link" not in content
+
+    def test_a_person_with_no_customer_record_at_all_reaches_the_same_page(
+        self, logged_in_client
+    ):
+        response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "No current subscription" in content
+        assert "data-mvp-payments-portal-link" not in content
+
+    def _client_for(self, user):
+        client = Client()
+        client.force_login(user)
+        return client
+
+
+class TestTemplateOverride:
+    """A project's own template, found before this package's, renders every value the
+    shipped page had — with no view, no context processor and no query of its own (T028,
+    FR-011, SC-005).
+
+    The app-directories template loader decides which application's copy of a name wins
+    from ``INSTALLED_APPS`` order, fixed at process start (D4, 001-pages-arrive-on-install) —
+    the same reason ``TestAccountCenterOverview`` above boots a fresh process rather than
+    reordering ``INSTALLED_APPS`` mid-test.
+    """
+
+    def _open_the_overridden_page(self) -> dict:
+        return run_probe(
+            _TEMPLATE_OVERRIDE_PROBE, "tests.settings_with_project_template_override"
+        )
+
+    def test_every_documented_context_value_reaches_the_projects_own_template(self):
+        result = self._open_the_overridden_page()
+
+        assert result["status_code"] == 200
+        content = result["content"]
+        # The marker only the project's own template carries — proves this rendered
+        # instead of the shipped page, not merely that the page rendered at all.
+        assert 'data-testid="the-hosting-projects-own-subscription-page"' in content
+        assert "active" in content
+        assert "Premium" in content
+        assert "20.00 USD" in content
+        assert "every month" in content
+        assert "/api/stripe/customer-portal/" in content

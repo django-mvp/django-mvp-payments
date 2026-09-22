@@ -8,6 +8,7 @@ their billing management (FR-007). Filling them in is a later roadmap item
 from django.utils.translation import gettext_lazy as _
 
 from mvp_payments.contributions import Contribution, Page
+from mvp_payments.views import SubscriptionPageView
 
 drf_stripe = Contribution(
     backend_app_name="drf_stripe",
@@ -18,6 +19,7 @@ drf_stripe = Contribution(
             label=_("Subscription"),
             icon="subscription",
             template_name="mvp_payments/drf_stripe/subscription.html",
+            view=SubscriptionPageView,
         ),
         Page(
             slug="plans",
