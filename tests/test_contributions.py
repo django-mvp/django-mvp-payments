@@ -130,6 +130,17 @@ class TestContribution:
         group = account_center_menu.children[-1]
         assert [child.name for child in group.children] == ["unnavigated-fixture-one"]
 
+    def test_asking_for_a_page_that_does_not_exist_says_which_one(self):
+        """A page addresses a sibling by slug, so a typo has to name itself.
+
+        Without this the failure is whatever the lookup happens to raise,
+        somewhere inside a template render, naming nothing useful.
+        """
+        contribution = _make_contribution(namespace="page-url-fixture")
+
+        with pytest.raises(LookupError, match="no page with slug 'three'"):
+            contribution.page_url("three")
+
     def test_the_shipped_namespace_offers_one_entry_under_one_group(self):
         """What a person actually sees in the Account Center for this backend.
 

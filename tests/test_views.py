@@ -116,6 +116,24 @@ class TestPaymentPage:
         assert response.url.startswith(reverse("login"))
 
 
+class TestPageViewConfiguration:
+    """A view built without what it needs says so, rather than failing later."""
+
+    def test_a_view_with_no_contribution_says_what_is_missing(self):
+        """Every route supplies one, so this fires only for a hand-built view.
+
+        It is the difference between a clear message at the point of the
+        mistake and an ``AttributeError`` on ``None`` somewhere inside a
+        template render.
+        """
+        from django.core.exceptions import ImproperlyConfigured
+
+        from mvp_payments.views import SubscriptionPageView
+
+        with pytest.raises(ImproperlyConfigured, match="requires `contribution`"):
+            SubscriptionPageView().get_contribution()
+
+
 class TestAccountCenterOverview:
     """The overview carries the installed backend's card, and keeps whatever
     django-mvp or another application already put there through
