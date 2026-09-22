@@ -312,37 +312,57 @@
       "priority": "P2",
       "issue": 29,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T016",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPricingTable::test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v"
+            ],
+            "code": [
+              "tests/test_components/test_drf_stripe.py:104"
+            ]
           }
         },
         {
           "id": "T017",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_demo.py::TestHomePage::test_the_pricing_table_is_present_with_the_demos_values_for_an_anonymous_visitor",
+              "tests/test_demo.py::TestHomePage::test_the_copy_names_it_as_the_same_component_the_account_center_renders"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_demo.py -v"
+            ],
+            "code": [
+              "tests/test_demo.py:55"
+            ]
           }
         },
         {
           "id": "T018",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_demo.py::TestHomePage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_demo.py -v",
+              "poetry run djlint demo/templates/demo/home.html --profile django"
+            ],
+            "code": [
+              "demo/templates/demo/home.html:66"
+            ]
           }
         }
       ]
