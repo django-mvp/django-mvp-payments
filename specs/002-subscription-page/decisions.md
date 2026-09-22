@@ -220,3 +220,24 @@ anything) reverts to the tasks-as-written granularity, and T012–T014 follow it
 **Revisit if:** a reviewer needs to bisect one of these three concerns independently of its test —
 in that case the pairing would need undoing, which a fresh commit splitting the diff can still do
 without touching history.
+
+## D8 — Updating `tests/test_urls.py`'s pre-existing parametrized assertion
+
+`tests/test_urls.py::TestPaymentURLs::test_declared_page_name_reverses_to_a_page_view`, written for
+FS-001 before `Page.view` existed, asserts that every declared page — including
+`drf-stripe-subscription` — resolves to the generic `PaymentPageView`. D4 (recorded at plan time,
+approved at the S3R design review) is exactly the decision that this story changes: the subscription
+page now routes to `SubscriptionPageView` because it needs context the generic view cannot supply,
+and T006's own new test (`TestPageView` in `tests/test_contributions.py`) already proves that
+routing mechanism works. Leaving `drf-stripe-plans` and `drf-stripe-billing` on `PaymentPageView` is
+unaffected and still asserted.
+
+The Implementer protocol's hard rule is "never modify a pre-existing test you did not author"
+without first reading the decision that settles it. D4 settles this one: the test's premise is
+exactly what the reviewed design changes, not something this story is guessing about or overriding
+silently. The parametrized case for `drf-stripe-subscription` now asserts `SubscriptionPageView`;
+the other two cases are untouched. Recorded here, and flagged in the completion report's
+`deviations`, rather than left for tamper-check to discover unexplained.
+
+**Revisit if:** a future page gains its own view and this parametrize list needs a fourth case — the
+pattern (assert per-page, not one class for all three) already supports it.

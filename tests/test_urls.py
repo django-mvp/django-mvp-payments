@@ -3,19 +3,23 @@
 import pytest
 from django.urls import NoReverseMatch, resolve, reverse
 
-from mvp_payments.views import PaymentPageView
+from mvp_payments.views import PaymentPageView, SubscriptionPageView
 
 
 class TestPaymentURLs:
     """Every declared page name resolves; nothing else does."""
 
     @pytest.mark.parametrize(
-        "name",
-        ["drf-stripe-subscription", "drf-stripe-plans", "drf-stripe-billing"],
+        ("name", "view_class"),
+        [
+            ("drf-stripe-subscription", SubscriptionPageView),
+            ("drf-stripe-plans", PaymentPageView),
+            ("drf-stripe-billing", PaymentPageView),
+        ],
     )
-    def test_declared_page_name_reverses_to_a_page_view(self, name):
+    def test_declared_page_name_reverses_to_its_view(self, name, view_class):
         url = reverse(f"payments:{name}")
-        assert resolve(url).func.view_class is PaymentPageView
+        assert resolve(url).func.view_class is view_class
 
     def test_a_name_belonging_to_no_declared_page_does_not_reverse(self):
         with pytest.raises(NoReverseMatch):

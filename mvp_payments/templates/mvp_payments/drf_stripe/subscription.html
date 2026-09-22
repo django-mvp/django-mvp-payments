@@ -2,5 +2,8 @@
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
+    {% for subscription in subscriptions %}
+      <c-drf-stripe.subscription :subscription="subscription" />
+    {% endfor %}
   </c-page>
 {% endblock account.content %}

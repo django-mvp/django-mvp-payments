@@ -1,0 +1,35 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.subscription> — one current subscription        #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   subscription – a mvp_payments.namespaces.drf_stripe_records #}
+{#                   .CurrentSubscription                        #}
+{#                                                                #}
+{# The status is shown as the backend recorded it, whether or    #}
+{# not it is one of the three this component recognises — an     #}
+{# unrecognised one still renders, as itself, with a neutral      #}
+{# badge (Article XVI).                                          #}
+{# ============================================================ #}
+<c-vars subscription />
+<c-card>
+  <c-slot name="badges">
+    {% if subscription.status == "active" %}
+      <c-badge variant="success" text="{{ subscription.status }}" />
+    {% elif subscription.status == "trialing" %}
+      <c-badge variant="info" text="{{ subscription.status }}" />
+    {% elif subscription.status == "past_due" %}
+      <c-badge variant="warning" text="{{ subscription.status }}" />
+    {% else %}
+      <c-badge text="{{ subscription.status }}" />
+    {% endif %}
+  </c-slot>
+  {% if subscription.period_start or subscription.period_end %}
+    <c-data_field label="{% translate 'Current period' %}">
+      {{ subscription.period_start|date }} – {{ subscription.period_end|date }}
+    </c-data_field>
+  {% endif %}
+  {% for plan in subscription.plans %}
+    <c-drf-stripe.plan :plan="plan" />
+  {% endfor %}
+</c-card>
