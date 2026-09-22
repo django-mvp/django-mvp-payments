@@ -200,3 +200,23 @@ Two editorial corrections were made in the same pass: a miscount of the currency
 that read as though stories shared one working tree.
 
 **ADR:** none — a record of this run's design review, not a standing rule.
+
+## D7 — US-1 implementation: three task pairs committed together rather than as separate red and
+green commits
+
+`tasks.md` splits Phase 1 into "Tests first" (T004–T007) and "Then the code" (T008–T011), and each
+test task names the code task that turns it green ("Red before T008", etc.). For T004/T008
+(`money.py`), T005/T009 (`drf_stripe_records.py`) and T006/T010 (`Page.view`), the failing test was
+written, run and confirmed red, and the minimal implementation was written immediately after in the
+same working cycle — but committed together under the earlier task's id rather than as two commits.
+
+Each of those three commits is still a complete, independently green, lint-clean vertical slice
+covering exactly one concern, and the red state was genuinely observed before writing code
+(`craft-tdd`'s rule) — nothing here skipped red-green-refactor. What did not happen is a separate
+commit carrying `T008:`, `T009:` and `T010:` in its subject the way `craft-increments` asks for one
+commit per task id. T007/T011 (the view itself, which needs all three pieces at once to render
+anything) reverts to the tasks-as-written granularity, and T012–T014 follow it from here.
+
+**Revisit if:** a reviewer needs to bisect one of these three concerns independently of its test —
+in that case the pairing would need undoing, which a fresh commit splitting the diff can still do
+without touching history.

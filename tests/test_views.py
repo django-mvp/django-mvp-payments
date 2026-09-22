@@ -3,12 +3,24 @@
 import re
 
 import pytest
-from django.test import override_settings
+from django.db import connection
+from django.test import Client, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from tests.factories import (
+    PriceFactory,
+    StripeUserFactory,
+    SubscriptionFactory,
+    SubscriptionItemFactory,
+    UserFactory,
+)
 from tests.markup import account_center_cards_region, account_navigation_regions
 from tests.probes import run_probe
+
+_AMOUNT_PATTERN = re.compile(r"\d[\d,]*\.\d{2,3} [A-Z]{3}")
 
 _ACCOUNT_CENTER_WITH_ANOTHER_CARD_PROBE = """
 import json
@@ -145,3 +157,128 @@ class TestURLsNotMounted:
         assert "<a href" not in cards
         for page in drf_stripe.pages:
             assert f">{page.label}<" not in cards
+
+
+@pytest.mark.django_db
+class TestSubscriptionPage:
+    """The subscription page renders what the reader returns and nothing it did not (T007)."""
+
+    def test_renders_the_plan_name_amount_frequency_and_status(
+        self, subscriber_client, user
+    ):
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert "active" in content
+        assert "20.00" in content or "10.00" in content  # sanity: some amount renders
+        assert _AMOUNT_PATTERN.search(content)
+
+    def test_a_recorded_period_appears(self, subscriber_client, current_subscription):
+        current_subscription.period_start = timezone.now()
+        current_subscription.period_end = timezone.now()
+        current_subscription.save()
+
+        content = subscriber_client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert str(current_subscription.period_start.year) in content
+
+    def test_a_subscription_with_no_period_recorded_still_renders_the_rest(
+        self, subscriber_client, current_subscription
+    ):
+        current_subscription.period_start = None
+        current_subscription.period_end = None
+        current_subscription.save()
+
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.status_code == 200
+        assert "active" in response.content.decode()
+
+    def test_two_priced_items_show_both_amounts_and_no_third_figure(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+        first_price = PriceFactory(price=2000, currency="USD", freq="month_1")
+        second_price = PriceFactory(price=3000, currency="EUR", freq="month_1")
+        SubscriptionItemFactory(subscription=subscription, price=first_price)
+        SubscriptionItemFactory(subscription=subscription, price=second_price)
+
+        client = self._client_for(user)
+        content = client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert set(_AMOUNT_PATTERN.findall(content)) == {"20.00 USD", "30.00 EUR"}
+
+    def test_an_unrecognised_status_renders_as_itself(self, user):
+        stripe_user = StripeUserFactory(user=user)
+        subscription = SubscriptionFactory(stripe_user=stripe_user, status="past_due")
+        SubscriptionItemFactory(subscription=subscription)
+
+        client = self._client_for(user)
+        content = client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert "past_due" in content
+
+    def test_another_persons_subscription_never_appears(self, subscriber_client):
+        other_stripe_user = StripeUserFactory()
+        other_subscription = SubscriptionFactory(
+            stripe_user=other_stripe_user, status="active"
+        )
+        other_price = PriceFactory(
+            price=999999, currency="GBP", product__name="Nobody Else's Plan"
+        )
+        SubscriptionItemFactory(subscription=other_subscription, price=other_price)
+
+        content = subscriber_client.get(
+            reverse("payments:drf-stripe-subscription")
+        ).content.decode()
+
+        assert "Nobody Else's Plan" not in content
+        assert "9,999.99 GBP" not in content
+
+    def test_a_fixed_number_of_queries_whatever_the_number_of_items(self, user):
+        one_item_user = user
+        stripe_user_one = StripeUserFactory(user=one_item_user)
+        subscription_one = SubscriptionFactory(
+            stripe_user=stripe_user_one, status="active"
+        )
+        SubscriptionItemFactory(subscription=subscription_one)
+
+        many_items_user = self._another_user()
+        stripe_user_many = StripeUserFactory(user=many_items_user)
+        subscription_many = SubscriptionFactory(
+            stripe_user=stripe_user_many, status="active"
+        )
+        for _ in range(4):
+            SubscriptionItemFactory(subscription=subscription_many)
+
+        client_one = self._client_for(one_item_user)
+        client_many = self._client_for(many_items_user)
+        page_url = reverse("payments:drf-stripe-subscription")
+
+        # A first request against either client warms process-wide caches (the site,
+        # content types) that a later request benefits from regardless of how many
+        # items it holds — priming both first keeps the comparison about the page's
+        # own queries rather than which client happened to go first.
+        client_one.get(page_url)
+        client_many.get(page_url)
+
+        with CaptureQueriesContext(connection) as captured_one:
+            client_one.get(page_url)
+        with CaptureQueriesContext(connection) as captured_many:
+            client_many.get(page_url)
+
+        assert len(captured_one) == len(captured_many)
+
+    def _client_for(self, user):
+        client = Client()
+        client.force_login(user)
+        return client
+
+    def _another_user(self):
+        return UserFactory()

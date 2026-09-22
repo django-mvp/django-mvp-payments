@@ -7,12 +7,14 @@ template and heading from the page it was built for.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.functional import Promise
 from mvp.views import MVPTemplateView
+
+from .namespaces.drf_stripe_records import SubscriptionReader
 
 if TYPE_CHECKING:
     from .contributions import Page
@@ -40,3 +42,16 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
 
     def get_page_title(self) -> str | Promise:
         return self.get_page().label
+
+
+class SubscriptionPageView(PaymentPageView):
+    """The drf-stripe namespace's subscription page: what the signed-in person is on.
+
+    Adds ``subscriptions`` to the context — the reader's current subscriptions for this request's
+    person, computed at render time rather than the backend importing anything (Article XIII).
+    """
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context: dict[str, Any] = super().get_context_data(**kwargs)
+        context["subscriptions"] = SubscriptionReader.for_user(self.request.user)
+        return context
