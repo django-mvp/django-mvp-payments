@@ -101,7 +101,7 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Five components render the page, and each one renders on its own given its attributes. You can
+Six components render the page, and each one renders on its own given its attributes. You can
 place any of them in a template of your own.
 
 ```html
@@ -110,6 +110,7 @@ place any of them in a template of your own.
 <c-drf-stripe.amount :amount="plan.amount" />
 <c-drf-stripe.features :features="plan.features" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+<c-drf-stripe.no-subscription />
 ```
 
 `<c-drf-stripe.subscription>`
@@ -136,6 +137,13 @@ place any of them in a template of your own.
   second wording addresses somebody who has one and whose project has not set the endpoint, and
   the shipped page renders the component only when there is a subscription for exactly that
   reason.
+
+`<c-drf-stripe.no-subscription>`
+: Takes no attributes. States that there is no current subscription, for someone who never had one
+  and for someone whose subscription has ended alike — the backend reports both the same way, and
+  this package has no information that would let it say more. The shipped page renders it as the
+  `{% empty %}` branch of its loop over `subscriptions`, in place of the portal control and every
+  region a current subscription would have shown.
 
 They render the daisyUI classes django-mvp already ships, so they follow your theme without any
 stylesheet of their own.
@@ -180,8 +188,12 @@ package, and it is used instead. Everything above is already in its context.
     <c-page.title :title="page.title" />
     {% for subscription in subscriptions %}
       <c-drf-stripe.subscription :subscription="subscription" />
+    {% empty %}
+      <c-drf-stripe.no-subscription />
     {% endfor %}
-    <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+    {% if subscriptions %}
+      <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+    {% endif %}
   </c-page>
 {% endblock account.content %}
 ```

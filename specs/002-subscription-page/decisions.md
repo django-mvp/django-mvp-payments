@@ -342,3 +342,20 @@ Approved on that basis.
 
 **Revisit if:** the flag fires often enough on additions that the noise costs more than the
 granularity saves, at which point the check should compare test function names rather than files.
+
+## D15 — `no_subscription.html`'s icon is `info`, because no payment-shaped icon is registered
+
+The brief asks `<c-drf-stripe.no-subscription>` to supply its own icon to `<c-page.list.empty>`,
+rather than lean on that component's own "search" default, which reads as an empty search result
+rather than an empty subscription. `mvp.utils.BS5_ICONS` — the only pack this project registers —
+has no icon for a subscription, a card, a wallet or a plan; the closest it has is `"info"`
+(`bi-info-circle-fill`), already used elsewhere in the shell to key a component's own status
+variant to an icon.
+
+Checked before choosing: `EASY_ICONS_FAIL_SILENTLY` defaults to `settings.DEBUG`, which is `False`
+in the test settings, so an unregistered name raises `IconNotFoundError` rather than rendering
+nothing. Guessing a name here would have been a red test at best and a broken page in any project
+running with `DEBUG = False` at worst.
+
+**Revisit if:** a later story adds a payment- or subscription-shaped icon to the registry, at which
+point this component should use it instead.

@@ -405,3 +405,29 @@ Next: US-4.
 
 Watch: US-4 inherits D11. The page renders the portal component only where there is a subscription,
 so the empty-state branch owns everything a person with nothing sees.
+
+## 2026-09-22T05:30:54Z · Implementer US4 · T025-T027
+
+Did: T025 — `TestNoCurrentSubscription` in `tests/test_views.py`, covering both paths to nothing
+current: a person whose subscription is `canceled` (fixtures carry a distinctive plan name,
+amount, frequency, feature and period, each asserted absent from the rendered page) and a person
+the backend holds no `StripeUser` for at all. T026 — `TestNoSubscription` in
+`tests/test_components/test_drf_stripe.py`, the component rendering its heading and message given
+no attributes. T027 — `cotton/drf_stripe/no_subscription.html`, delegating to
+`<c-page.list.empty>` with its own icon/heading/message, and the `{% empty %}` branch of the
+page's loop over `subscriptions`. The `{% if subscriptions %}` guard around the portal component
+(D11) is untouched.
+
+Verified: `poetry run pytest tests/test_views.py::TestNoCurrentSubscription
+tests/test_components/test_drf_stripe.py::TestNoSubscription` — both red before T027 (missing
+text, then `TemplateDoesNotExist`), 3 passed after. `poetry run pytest tests/test_views.py
+tests/test_components/test_drf_stripe.py` — 36 passed, confirming D11's guard and every existing
+scenario still hold.
+
+Non-obvious choice recorded as D15: the icon registry has nothing shaped like a subscription, so
+the component uses `"info"`, checked against the registry rather than guessed — an unregistered
+name raises with `DEBUG = False`, it does not render empty.
+
+Next: the story's completion report and the full verify run.
+
+Watch: none.
