@@ -8,14 +8,23 @@
 {#   publishable_key – the account's publishable key; not a      #}
 {#                      secret, and printed in the provider's own#}
 {#                      copy-paste examples                      #}
-{#   customer_email – declared for a later story; not read here  #}
+{#   customer_email – wins when supplied (T014, FR-005).         #}
+{#                     Otherwise read from request.user, the way #}
+{#                     portal_link.html reads csrf_token, when    #}
+{#                     that person is signed in and holds an      #}
+{#                     address. Omitted entirely, never emitted   #}
+{#                     empty, where there is neither: the backend #}
+{#                     matches a provider customer to an          #}
+{#                     application user by email address alone,   #}
+{#                     so a purchase made under another address    #}
+{#                     attaches to nobody.                         #}
 {#                                                                #}
-{# Emits only the provider's element and the two attributes      #}
-{# above. No script element and no figure about price: the       #}
-{# provider renders every price inside its own frame, and        #}
-{# loading the library that brings the element to life is the    #}
-{# host project's decision, never this package's (Article XIII). #}
+{# Emits only the provider's element and its attributes above.   #}
+{# No script element and no figure about price: the provider     #}
+{# renders every price inside its own frame, and loading the     #}
+{# library that brings the element to life is the host project's #}
+{# decision, never this package's (Article XIII).                #}
 {# ============================================================ #}
 <c-vars table_id publishable_key customer_email />
 <stripe-pricing-table pricing-table-id="{{ table_id }}"
-                       publishable-key="{{ publishable_key }}"></stripe-pricing-table>
+                       publishable-key="{{ publishable_key }}"{% if customer_email %} customer-email="{{ customer_email }}"{% elif request.user.is_authenticated and request.user.email %} customer-email="{{ request.user.email }}"{% endif %}></stripe-pricing-table>
