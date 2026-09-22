@@ -1,0 +1,61 @@
+{
+  "story": "US4",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T025",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestNoCurrentSubscription::test_a_person_whose_subscription_has_ended_is_told_there_is_none",
+          "tests/test_views.py::TestNoCurrentSubscription::test_a_person_with_no_customer_record_at_all_reaches_the_same_page"
+        ],
+        "criteria": ["SC-004"],
+        "commands": ["poetry run pytest tests/test_views.py::TestNoCurrentSubscription -v"],
+        "exit_code": 0
+      },
+      "commits": ["9a14a0d"]
+    },
+    {
+      "id": "T026",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestNoSubscription::test_renders_its_heading_and_message_given_nothing"
+        ],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_components/test_drf_stripe.py::TestNoSubscription -v"],
+        "exit_code": 0
+      },
+      "commits": ["d23b06a"]
+    },
+    {
+      "id": "T027",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestNoCurrentSubscription tests/test_components/test_drf_stripe.py::TestNoSubscription -v",
+          "poetry run pytest tests/test_views.py tests/test_components/test_drf_stripe.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["defb02c", "2d18595"]
+    }
+  ],
+  "deviations": [],
+  "concerns": [],
+  "blocked": []
+}
