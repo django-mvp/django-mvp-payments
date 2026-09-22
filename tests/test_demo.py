@@ -66,9 +66,18 @@ class TestHomePage:
     def test_the_copy_names_it_as_the_same_component_the_account_center_renders(
         self, home_page
     ):
-        assert "same" in home_page
-        assert "Account Center" in home_page
-        assert "Plans page" in home_page
+        """The claim the placement is making, not three words that co-occur.
+
+        ``"same"`` and ``"Account Center"`` both appear elsewhere on this page,
+        so asserting them separately passed whether or not the sentence saying
+        what this section is survived an edit. Whitespace is collapsed first
+        because the sentence wraps across source lines, and where it wraps is
+        not something a test should hold still.
+        """
+        collapsed = re.sub(r"\s+", " ", home_page)
+
+        assert "The same component, on a page of the project&#x27;s own" in collapsed
+        assert "component the Account Center's Plans page renders" in collapsed
 
     def test_both_ways_of_building_a_page_are_presented_as_equals(self, home_page):
         """G2, and the grid of cards that carries it.
