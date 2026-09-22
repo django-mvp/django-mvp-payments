@@ -198,3 +198,45 @@ and that absence is omission rather than an empty attribute.
 Verified: read back against `pricing_table.html` as committed at T014; every claim and the example
 markup match the branch.
 Next: full verify (§3), then the completion report. Watch: none.
+
+## 2026-09-22 · Implementer US3 · T016
+
+Did: added one test to `TestPricingTable` —
+`test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor` — the component
+placed inside a template that has nothing to do with any page of this package, given only
+`table_id` and `publishable_key`, for an anonymous visitor, wrapped in
+`django_assert_num_queries(0)`.
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v` — first
+run failed with `RuntimeError: Database access not allowed`, not the design claim under test:
+`django_assert_num_queries` calls `ensure_connection()` to set up its capture context even to
+prove zero queries ran, which pytest-django refuses without a db-enabling fixture. Added `db` to
+the test's parameters; the test then passed immediately, with no change to the component. That is
+the honest answer to the brief's question: T016 was red once, for an environment reason, and never
+red for the design reason it exists to test — the component already renders completely from its
+attributes alone, per US-1. 6 passed.
+Next: T017. Watch: none.
+
+## 2026-09-22 · Implementer US3 · T017
+
+Did: added two tests to `TestHomePage` in `tests/test_demo.py` — the provider's element present
+with the demo's own `prctbl_not_a_real_table` / `pk_test_not_a_real_key` values, and a line of
+copy naming it as the same component the Account Center's Plans page renders. `home_page` already
+carries an anonymous `client`, so no new fixture was needed for the anonymous case (FR-009).
+Verified: `poetry run pytest tests/test_demo.py::TestHomePage -v` — both new tests failed for the
+right reason (the assertions look for markup `demo/home.html` does not carry yet), the rest of the
+class's pre-existing tests untouched and passing.
+Next: T018. Watch: none.
+
+## 2026-09-22 · Implementer US3 · T018
+
+Did: placed `<c-drf-stripe.pricing-table>` on `demo/home.html`, in a new `<c-section>` matching
+the page's existing shape, with the demo's table id and publishable key given directly as literal
+attribute strings rather than read from settings through a view or context processor — the same
+way a project's own template would supply them, and the guarantee T016 exists to prove. The
+accompanying `<c-text>` carries the line of copy the second T017 test looks for.
+Verified: `poetry run pytest tests/test_demo.py -v` — 18 passed, all of `TestHomePage` including
+both new tests, no regression elsewhere in the file. `poetry run djlint
+demo/templates/demo/home.html --profile django` — 0 errors.
+Next: full verify (§5), then the completion report. Watch: T016 was red once, for the
+`django_assert_num_queries` fixture requirement, and passed on first run for the guarantee itself
+— recorded plainly per the brief's instruction, not smoothed into a conventional red/green story.

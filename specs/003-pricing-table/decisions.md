@@ -221,3 +221,46 @@ uses, for consistency.
 
 **ADR:** none — a test-authoring choice local to this story, not a design decision about the
 package.
+
+## D6 — T016's query-count test needs the `db` fixture, for the assertion's own setup rather than for anything the component reads
+
+**Decision:** `test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor` takes
+`db` alongside `django_assert_num_queries`, even though the render under test makes no query
+either way.
+
+**Why:** `django_assert_num_queries` opens a `CaptureQueriesContext`, which calls
+`connection.ensure_connection()` on entry regardless of how many queries the wrapped code goes on
+to make. pytest-django refuses that connection attempt with `RuntimeError: Database access not
+allowed` unless the test (or a fixture it depends on) has already enabled db access. Enabling it
+does not weaken the assertion — the test still fails if the render makes even one query — it only
+lets the zero-query claim be checked at all. This is the reason T016 was red on its first run:
+not because the component needed a query, but because the harness that proves it doesn't needed
+permission to look.
+
+**Revisit if:** never expected to — this is how `django_assert_num_queries` works everywhere else
+it is used against a query-free path.
+
+**ADR:** none — a test-infrastructure fact, not a decision about the package.
+
+## D7 — T018 gives the landing page its two values as literal strings, not through a view
+
+**Decision:** `demo/home.html` writes `table_id="prctbl_not_a_real_table"` and
+`publishable_key="pk_test_not_a_real_key"` as literal attribute values on
+`<c-drf-stripe.pricing-table>`. `demo/views.py`'s `HomeView` is untouched — still a bare
+`MVPTemplateView` with no extra context.
+
+**Why:** this story's claim (T016) is that the component needs nothing but its two attributes —
+no view, no context processor, no settings read of its own. A host project's own landing page,
+the scenario this story stands in for, would not have a view of this package's to read
+`MVP_PAYMENTS` from either; it would just write the identifier and key it already has into its
+own markup, the same way it would paste them into any other vendor's embed snippet. Reading them
+from `settings.MVP_PAYMENTS` inside `HomeView` would work, but it would demonstrate the wrong
+thing: that *this package's* settings can reach an unrelated page, not that the component is
+self-sufficient without them.
+
+**Revisit if:** the demo ever needs to vary these values at runtime (a settings-driven demo
+toggle, for instance) — at that point reading them from settings in `HomeView` becomes the
+simpler choice and this decision should be revisited alongside it.
+
+**ADR:** none — a demonstration-project choice local to this story, not a design decision about
+the package.
