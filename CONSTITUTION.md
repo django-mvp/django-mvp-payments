@@ -194,7 +194,8 @@ and the boundary is absolute rather than a matter of current scope.
   forbidden is a field of this package's own that a card number could be typed into.
 - **No secret keys.** An API key, a webhook signing secret and a restricted key are all equally
   forbidden. A publishable key is the host project's to supply, as an attribute or its own
-  configuration, and it is never read from Django settings by this package.
+  configuration, and a component never reads it from Django settings. A page this package ships
+  may read it from settings and pass it to a component as that attribute.
 - **No server-side calls to a provider.** Nothing here imports an SDK or opens a connection.
   Creating a checkout session, reading a subscription and cancelling one are the backend's, and a
   component reaches them through the backend's own HTTP endpoints.
@@ -233,8 +234,9 @@ origin it did not already have.
 A component that wraps a provider's embed follows the same split: it emits the provider's mount
 point — a `<stripe-pricing-table>` element and the attributes it needs — and the host project
 loads the script that brings the element to life. A publishable key reaches the component as an
-attribute, the way the provider's own documentation passes it, and is never read from Django
-settings here.
+attribute, the way the provider's own documentation passes it, and a component never reads it
+from Django settings. A page this package ships may read it from settings and pass it down as
+that attribute.
 
 Where a component needs logic of its own, it ships as a small static file in this repository, with
 no build step and no bundler. Components state which global or module they require and fail
