@@ -52,6 +52,24 @@ class TestHomePage:
         assert "&lt;c-drf-stripe.plan-grid&gt;" in home_page
         assert "drf-stripe-subscription" in home_page
 
+    def test_the_pricing_table_is_present_with_the_demos_values_for_an_anonymous_visitor(
+        self, home_page
+    ):
+        """A visitor who has not signed in reaches the same component the Account
+        Center's Plans page renders, given the demo's own values as attributes
+        directly rather than through a view or a context processor (T017, T018,
+        FR-001, FR-009, FR-011)."""
+        assert "<stripe-pricing-table" in home_page
+        assert 'pricing-table-id="prctbl_not_a_real_table"' in home_page
+        assert 'publishable-key="pk_test_not_a_real_key"' in home_page
+
+    def test_the_copy_names_it_as_the_same_component_the_account_center_renders(
+        self, home_page
+    ):
+        assert "same" in home_page
+        assert "Account Center" in home_page
+        assert "Plans page" in home_page
+
     def test_both_ways_of_building_a_page_are_presented_as_equals(self, home_page):
         """G2, and the grid of cards that carries it.
 
