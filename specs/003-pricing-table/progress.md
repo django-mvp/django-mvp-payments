@@ -359,3 +359,76 @@ Verified: read every claim back against the templates and script as committed th
 `poetry run pytest tests/test_app.py -q` — 10 passed, unaffected by a docs-only change.
 Next: full verify (§5), then the completion report. Watch: none beyond what is already recorded
 above.
+
+## 2026-09-22 · Implementer US5 · T028
+
+Did: `tests/test_views.py::TestPlansPageOverride`, two tests covering all three of the task's
+scenarios (see D11). Added the two override templates the tests need:
+`tests/project_app/templates/cotton/drf_stripe/pricing_table.html` and
+`tests/project_app/templates/mvp_payments/drf_stripe/plans.html`.
+Verified: first run against only the shipped templates failed on the expected assertion — the
+override marker was absent, the shipped component's own markup was what came back — confirming
+the test exercises the override path rather than passing regardless. Adding the two template
+files turned it green with no change under `mvp_payments/`, which is the design holding rather
+than anything built to make it hold. `poetry run pytest tests/test_views.py -q` — 32 passed.
+`poetry run ruff check tests/test_views.py tests/project_app/` and `ruff format --check` on the
+same — clean.
+Next: T029. Watch: none.
+
+## 2026-09-22 · Implementer US5 · T029
+
+Did: `tests/test_app.py::TestDocumentationLinkedFromReadme`, asserting `docs/plans-page.md` is
+linked from README.md in the same `[docs/plans-page.md](docs/plans-page.md)` shape as the
+subscription page's own link. Committed alone, red — the line does not exist until T031.
+Verified: `poetry run pytest tests/test_app.py::TestDocumentationLinkedFromReadme -v` failed on
+the expected assertion against the README's actual text (quoted in the run's output), not on an
+error. `poetry run ruff check tests/test_app.py` and `ruff format --check` — clean.
+Next: T030.
+
+## 2026-09-22 · Implementer US5 · T030
+
+Did: `docs/plans-page.md`'s "Replacing the page" section becomes "Replacing the component or the
+page", covering both paths this story adds: overriding `cotton/drf_stripe/pricing_table.html`
+(changes only what the tag renders; the page's URL, `LoginRequiredMixin`, context and
+unavailable-state branch stay the shipped page's) and overriding
+`mvp_payments/drf_stripe/plans.html` (changes everything the template decides; only the view
+underneath — URL, `LoginRequiredMixin`, the two context names — stays the shipped page's). The
+two context names were already documented as a table in "The page" section from an earlier story;
+not duplicated here.
+Verified: `poetry run pytest tests/test_app.py -q` — 11 passed, unaffected by a docs-only change.
+Next: T031.
+
+## 2026-09-22 · Implementer US5 · T031
+
+Did: README.md's Namespaces section links `docs/plans-page.md`, in the same sentence shape as
+the subscription page's link above it. Also corrected the sentence immediately before it, which
+said the plans page "does not show anything yet" — now false, since this is the story that makes
+it show something — narrowing the remaining not-yet-built claim to the billing page, the one
+still actually unbuilt. In scope because it sits inside the same paragraph as the link this task
+adds and would otherwise contradict it directly.
+Verified: `poetry run pytest tests/test_app.py::TestDocumentationLinkedFromReadme -v` — now
+passes, turning T029's red test green. `poetry run pytest tests/test_app.py -q` — 11 passed.
+Next: T032.
+
+## 2026-09-22 · Implementer US5 · T032
+
+Did: `CONSTITUTION.md` Article XII's "No secret keys" bullet and Article XIII's embed paragraph
+each narrowed from "never read from Django settings by this package" to "a component never reads
+it from Django settings" plus one sentence naming a page this package ships as the permitted
+reader that passes it down as the attribute. No reasoning added to the constitution; the why is
+`decisions.md` D12.
+Verified: read both amended sentences against `mvp_payments/views.py::PlansPageView` — it is the
+only settings read the amendment has to cover, and no component gained one.
+`poetry run pytest tests/test_app.py tests/test_views.py -q` — 43 passed, confirming the
+Article XII/XIII guarantees `TestPackagedApp` already holds are unaffected.
+Next: T033.
+
+## 2026-09-22 · Implementer US5 · T033
+
+Did: one `CHANGELOG.md` entry under `[Unreleased]` → Added, covering `<c-drf-stripe.pricing-table>`,
+its two settings (`DRF_STRIPE_PRICING_TABLE_ID`, `DRF_STRIPE_PUBLISHABLE_KEY`) and
+`docs/plans-page.md`, matching the acceptance criterion's scope exactly rather than backfilling
+every prior story of this feature that the changelog does not yet mention.
+Verified: read the entry back against `docs/plans-page.md` and `mvp_payments/views.py` for
+accuracy.
+Next: full verify (§5), then the completion report.

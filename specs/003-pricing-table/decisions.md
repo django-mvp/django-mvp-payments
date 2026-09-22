@@ -342,3 +342,84 @@ three pass.
 
 **ADR:** none — a demonstration-project wiring choice, local to this feature, nothing downstream
 inherits it.
+
+## D11 — T028's three scenarios split across two tests, not three, and scenario 1 is proved by a direct component render rather than a page request
+
+**Decision:** `TestPlansPageOverride` holds two tests. The first renders
+`<c-drf-stripe.pricing-table>` directly — the same technique T016 uses for the shipped component,
+`RequestFactory` and no login — against a project app whose only relevant override is
+`cotton/drf_stripe/pricing_table.html`. This covers scenario 1 (the project's own component markup
+is what appears) and scenario 3 (no view, no query — `CaptureQueriesContext` asserts zero,
+matching FR-012's "without writing a view or querying the backend") in one pass, because scenario
+3's own wording is what the direct-render technique proves. The second test requests the Plans
+page URL, signed in, against the same project app's `mvp_payments/drf_stripe/plans.html`. That
+template also places `<c-drf-stripe.pricing-table>`, so the one request additionally re-confirms
+scenario 1 inside a full page render, alongside scenario 2 (both context names reaching the
+project's own page template).
+
+**Why:** the two override templates live in the same `tests/project_app`, matching this repo's
+existing pattern of one project app ahead in `INSTALLED_APPS` (`tests/settings_with_project_template_override.py`), rather than a second settings module. With both templates present at once, a
+request to the shipped Plans page URL always resolves the project's own `plans.html` first — the
+same app-directories order this whole story exists to prove — so a scenario-1 test built as "hit
+the Plans page URL with only the component overridden" is not reachable without either a second
+settings module (ruled out by the brief) or a page override that happens not to exist yet (ruled
+out by needing both overrides committed at once). Rendering the component directly sidesteps the
+conflict entirely and is the more literal proof of scenario 3's "no view" besides — a
+`RequestFactory` render dispatches through no URL and no view at all, where a full HTTP request
+still would.
+
+Acceptance scenario 3's wording is "given *either* override" — the login-gated full-page request
+in the second test cannot itself be a zero-query assertion, because `LoginRequiredMixin` costs a
+session and user lookup that has nothing to do with the override. The zero-query guarantee this
+story is actually protecting is the one FR-012 states: overriding needs no query *against the
+backend*, which is what the component-level test isolates cleanly.
+
+**Revisit if:** a future story adds a case where the page override and the component override need
+to be tested independent of one another (rather than composed, as here) — at that point a second
+settings module stops being an invented mechanism and becomes the only way to isolate them.
+
+**ADR:** none — a test-structure choice local to this story's own test file.
+
+## D12 — CONSTITUTION.md's "no publishable key from settings" rule narrows to the component, and names the page as the permitted reader
+
+**Decision:** Article XII's "No secret keys" bullet and Article XIII's embed paragraph each said,
+flatly, that a publishable key is "never read from Django settings by this package". Both now say
+a *component* never reads it from settings, and that a page this package ships may read it from
+settings and pass it down as the attribute the component already accepts.
+
+**Why:** applied literally, the old wording forbids the Plans page this feature ships —
+`PlansPageView` reads `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]` and hands it to
+`<c-drf-stripe.pricing-table>` as an attribute, which is exactly what the sentence said this
+package must never do. That page is the point of the feature: a project that had to pass the key
+itself would be building the page, which is what US-1 through US-4 exist so nobody has to.
+
+The two sentences protect something real and the amendment keeps protecting it: a *component*
+that reads hidden configuration is a component that stops being a pure function of its
+attributes, can no longer be dropped onto a page of a project's own with nothing but those
+attributes (FR-001, FR-011), and starts carrying an assumption about how the host project is
+configured. Nothing in this story loosens that — no component gained a settings read, and the two
+new tests in `tests/test_views.py::TestPlansPageOverride` hold the shipped and the overridden
+component to the same zero-query, no-view guarantee T016 established for the shipped one.
+
+What changes is which *kind* of object is allowed to be the one exception. A page is not a
+component: it already has a `get_context_data`, it is already the one place in this package
+permitted a view (Article XIV's "a page appears because two apps are installed" is about how a
+page is *routed*, not what its view may read), and it is the one place a project overriding the
+component cannot reach around — supplying `cotton/drf_stripe/pricing_table.html` still goes
+through whichever page places the tag. Narrowing the rule to the component, rather than dropping
+it, is what keeps that asymmetry — component pure, page the sole configured reader — a rule
+instead of an accident of how this one feature happened to be built.
+
+**How it is held:** `CONSTITUTION.md` states the narrowed rule with no reasoning in it, per this
+feature's standing instruction that the constitution states rules and this file carries the why.
+`mvp_payments/views.py::PlansPageView` is the only place in the package that reads
+`DRF_STRIPE_PUBLISHABLE_KEY`; `tests/test_app.py::TestPackagedApp::test_no_module_reaches_a_database_or_a_provider`
+and the rest of `TestPackagedApp` continue to hold every other Article XII/XIII guarantee this
+amendment does not touch.
+
+**Revisit if:** a second backend's page needs to read a different setting a component must never
+see — that is the same shape as this amendment already covers and needs no further narrowing, only
+a components-still-pure test for that backend's own component.
+
+**ADR:** none — a constitution amendment scoped to this feature's own pull request, per the
+specification's Assumptions.
