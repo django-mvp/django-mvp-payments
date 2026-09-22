@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and page addresses unchanged, and that no two declared namespaces can share a URL name.
 - `docs/namespaces.md`, covering what a namespace declares and how to add one, and the first two
   architecture decision records.
+- The subscription page now renders what the signed-in person currently holds: six components
+  (`<c-drf-stripe.subscription>`, `<c-drf-stripe.plan>`, `<c-drf-stripe.amount>`,
+  `<c-drf-stripe.features>`, `<c-drf-stripe.portal-link>`, `<c-drf-stripe.no-subscription>`) and
+  two names on its template context, `subscriptions` and `billing_portal_endpoint`, so a project
+  overriding the template needs no view, context processor or query of its own.
+  `docs/subscription-page.md` documents both.
+- `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, telling the subscription page where a project
+  mounted the backend's billing-portal endpoint (`customer-portal/`).
 
 ### Changed
 
