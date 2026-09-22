@@ -179,7 +179,13 @@ The demo project does both of these in `demo/settings.py` and `demo/templates/ba
 
 The shipped page is a starting point rather than a limit. Supply your own template at
 `mvp_payments/drf_stripe/subscription.html`, earlier on the template search path than this
-package, and it is used instead. Everything above is already in its context.
+package, and it is used instead. Everything above is already in its context — no view, no
+context processor and no query of your own.
+
+Django's app-directories template loader checks `INSTALLED_APPS` in order and uses the first
+match it finds, so your own application needs to appear before `mvp_payments` in that list for
+its copy to be found first. That is the same mechanism that requires this package itself to
+precede `mvp` (see the README's Install step).
 
 ```html
 {% extends "mvp/account/base.html" %}
