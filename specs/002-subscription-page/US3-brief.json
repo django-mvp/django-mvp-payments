@@ -1,0 +1,106 @@
+{
+  "story": "US3",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 20,
+  "worktree": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T021",
+    "T022",
+    "T023",
+    "T024"
+  ],
+  "context": {
+    "why": "US-1 built the subscription page and US-2 added the way through to the provider's billing portal. This story adds the one thing on the page that no provider's own page could ever show, because the provider does not know what your application does: what the plan a person is paying for actually gets them inside it.\n\nThe reading layer already carries this. SubscriptionReader.build_plan populates Plan.features from the features recorded against the plan's product, as a tuple of PlanFeature with an identifier and a description that falls back to the identifier. So T023 may well find that nothing is missing \u2014 the task says 'whatever the tests above show is missing', and if the tests pass on the reading as it stands, the honest outcome is a task with no production change and a note saying so. Do not invent work to fill it, and do not weaken the tests to manufacture a failure either. What the tests must prove is real: that a feature recorded against a DIFFERENT product never appears on this plan, and that a product with no features carries an empty collection rather than anything else.\n\nThe backend is drf-stripe-subscription 1.2.2, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/drf_stripe. Read it there when you need to; never import it from mvp_payments/ or from tests/. Features live in its Feature model (feature_id primary key, nullable description) joined to products through ProductFeature. A project records them by putting space-delimited feature ids in the Stripe product's metadata, so a project that records none is normal and its page is still correct.\n\nDocumentation: docs/subscription-page.md is this feature's page and already documents PlanFeature and Plan.features. Make it true for what you add \u2014 the features component and its attributes, and anything about how a project records features that a reader would need. The documentation check reads the pages; a docstring and a changelog entry count for nothing.",
+    "spec_sections": [
+      "User Scenarios & Testing -> User Story 3 - What the plan gets you in the app",
+      "Requirements -> FR-009",
+      "Key Entities -> Feature"
+    ],
+    "plan_sections": [
+      "Design -> Reading the backend's records",
+      "Design -> Components"
+    ],
+    "prior_decisions": [
+      "D1 - What counts as current is read from the backend's own property, never from a status list of ours. Nothing in this story names a status.",
+      "Decisions.md 'Why features come from the plan rather than from the person' - the backend can also answer 'every feature this person has access to' across all their current subscriptions, and that answer is the WRONG one to print beside a plan's name: somebody holding two subscriptions would read the combined list under the first plan and conclude that plan grants all of it. Features are listed per plan, from the plan's own product. Do not relitigate this."
+    ],
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root, which is the repository root - this story runs in the main checkout, not a separate worktree. Tests: 'poetry run pytest'. Full verify: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main' - run it once, at your report. The demo project serves this branch on port 8020 with autoreload; the subscription page is at http://127.0.0.1:8020/payments/drf-stripe/subscription/ and the demo signs in as regular.user@example.com with password 'password'.",
+    "glossary_terms": [
+      "Plan",
+      "Subscription",
+      "Backend",
+      "Provider",
+      "Host project",
+      "Payment component"
+    ],
+    "conventions": "AGENTS.md -> 'Component layout' (cotton/<backend>/<component>.html, hyphens map to underscores, a name Cotton cannot resolve renders empty rather than raising). CONSTITUTION.md Article XII (interface layer only), Article XIII (no backend dependency), Article XVI (render what the backend recorded, never assume). Existing components to follow for shape: cotton/drf_stripe/plan.html, subscription.html, amount.html, portal_link.html.",
+    "verified_base": {
+      "commit": "690bb5a7f595837599533e2c1d61340b976514a7",
+      "verified_at": "2026-09-22T07:20:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
+      "note": "All six verify steps green on this commit, which is your HEAD. 'poetry run pytest' collects and passes 99. This brief file itself is uncommitted in your worktree - commit it with your first task. If the tree is red on arrival, stop and report it rather than working around it."
+    },
+    "acceptance": [
+      {
+        "task": "T021",
+        "given_when_then": "Given a product with features recorded against it, when a plan for one of its prices is read, then it carries those features; given a feature with a description, then the description is carried; given a feature with none, then the identifier is carried in its place; given a product with no features, then the plan carries an empty collection; given a feature recorded against a different product, then it never appears on this plan."
+      },
+      {
+        "task": "T022",
+        "given_when_then": "Given features, when the component renders, then it lists them, showing a description where there is one and the identifier where there is not; given none, then it renders nothing at all - no heading and no empty list."
+      },
+      {
+        "task": "T023",
+        "given_when_then": "Given the tests in T021, when they run against the reading layer as it stands, then anything they show missing is added. If nothing is missing, the task changes no production code and the report says so plainly."
+      },
+      {
+        "task": "T024",
+        "given_when_then": "Given a plan with features, when the subscription page renders, then its features appear beneath the plan they belong to; given a plan with none, then no heading and no empty list appear for it."
+      }
+    ]
+  },
+  "budgets": {
+    "attempts_per_task": 5
+  },
+  "rituals": [
+    "Load every required skill before reading the tasks; copy each RECEIPT line verbatim into skills_loaded.",
+    "Write the failing test first for every task that changes behaviour, and confirm it fails for the right reason.",
+    "Commit per task with the task id in the subject.",
+    "Append a progress.md entry per task: Did / Verified / Next / Watch.",
+    "Record non-obvious choices as a decisions.md mini-ADR: Decision / Why / Revisit if.",
+    "Extend docs/subscription-page.md for the surface this story adds, before the final verify.",
+    "Run the full verify command once, at the end, and report its result."
+  ],
+  "prohibitions": [
+    "Do not modify or delete any test you did not author in this story.",
+    "Do not touch files outside this story's scope. Specifically: no empty-state component and no change to what the page shows a person with nothing - US-4 owns that. No template-override test and no README or CHANGELOG edit - US-5. Nothing about the billing portal, its setting, its component or its static file - US-2 delivered all of it. Extending docs/subscription-page.md for your own surface is required, not forbidden.",
+    "Do not edit feature-state.json beyond your own tasks' status, attempts and evidence.",
+    "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
+    "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
+    "Do not import drf_stripe anywhere - not in mvp_payments/, not in tests/, not in demo/ outside its settings and its URLconf.",
+    "Do not read features from the person rather than from the plan's product. The backend offers both and the per-person answer is the wrong one here.",
+    "Do not add a model, migration, form, admin or serializer to mvp_payments/.",
+    "Do not name a subscription status in any module under mvp_payments/.",
+    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template. Name it for what it is, and where two module-level functions share a subject, put them on that subject (Article XI).",
+    "Do not manufacture a production change for T023 if the tests pass against the reading as it already stands, and do not weaken a test to manufacture a failure. A task with no production change, reported as such, is a correct outcome."
+  ]
+}

@@ -12,7 +12,10 @@ from mvp_payments.namespaces.drf_stripe_records import (
     SubscriptionReader,
 )
 from tests.factories import (
+    FeatureFactory,
     PriceFactory,
+    ProductFactory,
+    ProductFeatureFactory,
     StripeUserFactory,
     SubscriptionFactory,
     SubscriptionItemFactory,
@@ -91,6 +94,76 @@ class TestSubscriptionReader:
         (current,) = SubscriptionReader.for_user(user)
 
         assert current.plans[0].name == "Premium monthly"
+
+
+@pytest.mark.django_db
+class TestPlanFeatures:
+    """A plan carries the features recorded against its own product (FR-009), never a
+    different product's and never the person's (Decisions.md "Why features come from
+    the plan rather than from the person")."""
+
+    def _subscribe(self, user, product):
+        stripe_user = StripeUserFactory(user=user)
+        subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
+        price = PriceFactory(product=product)
+        SubscriptionItemFactory(subscription=subscription, price=price)
+        (current,) = SubscriptionReader.for_user(user)
+        return current.plans[0]
+
+    def test_features_recorded_against_the_product_are_carried(self, user):
+        product = ProductFactory()
+        ProductFeatureFactory(product=product, feature=FeatureFactory(feature_id="a"))
+        ProductFeatureFactory(product=product, feature=FeatureFactory(feature_id="b"))
+
+        plan = self._subscribe(user, product)
+
+        assert {feature.identifier for feature in plan.features} == {"a", "b"}
+
+    def test_a_features_own_description_is_carried(self, user):
+        product = ProductFactory()
+        ProductFeatureFactory(
+            product=product,
+            feature=FeatureFactory(
+                feature_id="priority_support", description="Priority support"
+            ),
+        )
+
+        plan = self._subscribe(user, product)
+
+        (feature,) = plan.features
+        assert feature.description == "Priority support"
+
+    def test_a_feature_with_no_description_carries_its_identifier_in_its_place(
+        self, user
+    ):
+        product = ProductFactory()
+        ProductFeatureFactory(
+            product=product,
+            feature=FeatureFactory(feature_id="priority_support", description=""),
+        )
+
+        plan = self._subscribe(user, product)
+
+        (feature,) = plan.features
+        assert feature.description == "priority_support"
+
+    def test_a_product_with_no_features_carries_an_empty_collection(self, user):
+        product = ProductFactory()
+
+        plan = self._subscribe(user, product)
+
+        assert plan.features == ()
+
+    def test_a_feature_recorded_against_a_different_product_never_appears(self, user):
+        product = ProductFactory()
+        other_product = ProductFactory()
+        ProductFeatureFactory(
+            product=other_product, feature=FeatureFactory(feature_id="other_only")
+        )
+
+        plan = self._subscribe(user, product)
+
+        assert plan.features == ()
 
 
 class TestPlanFrequencyDisplay:
