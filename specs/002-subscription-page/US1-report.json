@@ -1,0 +1,197 @@
+{
+  "story": "US1",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T001",
+      "status": "done",
+      "evidence": {
+        "tests_added": ["tests/test_factories.py::TestFactories"],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_factories.py"],
+        "exit_code": 0
+      },
+      "commits": ["c8404bd"]
+    },
+    {
+      "id": "T002",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
+        "exit_code": 0
+      },
+      "commits": ["0675518", "2a91195"]
+    },
+    {
+      "id": "T003",
+      "status": "done",
+      "evidence": {
+        "tests_added": ["tests/test_demo.py::TestSeedDemoCommand"],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_demo.py"],
+        "exit_code": 0
+      },
+      "commits": ["7d13db6"]
+    },
+    {
+      "id": "T004",
+      "status": "done",
+      "evidence": {
+        "tests_added": ["tests/test_money.py::TestMoney"],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_money.py"],
+        "exit_code": 0
+      },
+      "commits": ["1509285"]
+    },
+    {
+      "id": "T005",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader",
+          "tests/test_namespaces/test_drf_stripe_records.py::TestNoStatusIsNamed",
+          "tests/test_namespaces/test_drf_stripe_records.py::TestPlanFrequencyDisplay"
+        ],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"],
+        "exit_code": 0
+      },
+      "commits": ["3d05585"]
+    },
+    {
+      "id": "T006",
+      "status": "done",
+      "evidence": {
+        "tests_added": ["tests/test_contributions.py::TestPageView"],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_contributions.py"],
+        "exit_code": 0
+      },
+      "commits": ["48cd7c4"]
+    },
+    {
+      "id": "T007",
+      "status": "done",
+      "evidence": {
+        "tests_added": ["tests/test_views.py::TestSubscriptionPage"],
+        "criteria": ["SC-001", "SC-003"],
+        "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
+        "exit_code": 0
+      },
+      "commits": ["4b348a2"]
+    },
+    {
+      "id": "T008",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_money.py"],
+        "exit_code": 0
+      },
+      "commits": ["1509285"]
+    },
+    {
+      "id": "T009",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"],
+        "exit_code": 0
+      },
+      "commits": ["3d05585"]
+    },
+    {
+      "id": "T010",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_contributions.py"],
+        "exit_code": 0
+      },
+      "commits": ["48cd7c4"]
+    },
+    {
+      "id": "T011",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_views.py tests/test_urls.py"],
+        "exit_code": 0
+      },
+      "commits": ["4b348a2"]
+    },
+    {
+      "id": "T012",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage tests/test_components/"],
+        "exit_code": 0
+      },
+      "commits": ["0bf1e4e"]
+    },
+    {
+      "id": "T013",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
+        "exit_code": 0
+      },
+      "commits": ["0bf1e4e"]
+    },
+    {
+      "id": "T014",
+      "status": "done",
+      "evidence": {
+        "tests_added": ["tests/test_components/test_drf_stripe.py"],
+        "criteria": ["SC-006"],
+        "commands": ["poetry run pytest tests/test_components/"],
+        "exit_code": 0
+      },
+      "commits": ["16f17a3"]
+    }
+  ],
+  "deviations": [
+    {
+      "what": "T004/T008, T005/T009 and T006/T010 each landed as one commit carrying the failing test and its minimal implementation together, rather than as a separate red commit and a separate green commit per task id.",
+      "why": "Each pair's test was written and run first, and confirmed failing for the right reason, before any implementation code was written — the red-green-refactor discipline itself was followed. What did not happen is a commit boundary between the two task ids. T007/T011 reverts to the tasks-as-written granularity (T007's test stayed red across the T011 commit, on purpose, until T012/T013 turned it green), and T012 onward follow it.",
+      "decision_ref": "specs/002-subscription-page/decisions.md#d7-us-1-implementation-three-task-pairs-committed-together-rather-than-as-separate-red-and-green-commits"
+    },
+    {
+      "what": "Updated tests/test_urls.py's pre-existing parametrized assertion, which predates this story, to expect SubscriptionPageView for the drf-stripe-subscription page instead of the generic PaymentPageView.",
+      "why": "D4 (recorded at plan time, approved at the S3R design review) is exactly the decision this story implements: the subscription page routes to its own view because it needs context the generic view cannot supply. The pre-existing test's premise is what the approved design changes, not something this story overrides silently — the other two pages' cases are untouched.",
+      "decision_ref": "specs/002-subscription-page/decisions.md#d8-updating-teststest_urlspys-pre-existing-parametrized-assertion"
+    },
+    {
+      "what": "Removed tests/test_conftest.py (added at T002 to prove the new fixtures directly) after forge verify's conformance step failed it for mirroring no source module.",
+      "why": "Article X's mirror exception names tests/factories.py -> tests/test_factories.py specifically; it does not extend to a conftest.py test file, and the conformance tool's own message said the coverage belongs as another Test* class in the module of its subject. tests/test_views.py::TestSubscriptionPage (T007) already exercises subscriber_client and current_subscription through real use, so the standalone file was redundant rather than load-bearing.",
+      "decision_ref": "specs/002-subscription-page/progress.md#2026-09-22--s4-implement--us1-verify-conformance-failure-on-teststest_conftestpy"
+    }
+  ],
+  "concerns": [
+    "The three components (amount.html, plan.html, subscription.html) don't have their own commit separate from the page template (T013) — they landed together because T007's full-page test only goes green once both exist; see the D7-style reasoning in the T012+T013 commit message. Nothing about this is untested: T007 covers the page-level rendering and T014 covers each component standalone.",
+    "tests/test_urls.py's file-level docstring and TestPaymentURLs class docstring were not otherwise touched, only the one parametrized test body and its import — worth a glance at review to confirm the rename (test_declared_page_name_reverses_to_a_page_view -> test_declared_page_name_reverses_to_its_view) reads clearly against the new per-page expectation."
+  ],
+  "blocked": []
+}
