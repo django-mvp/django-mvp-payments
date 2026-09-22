@@ -3,7 +3,7 @@
   "feature": "002-subscription-page",
   "branch": "002-subscription-page",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "DESIGN_REVIEW",
+  "state": "IMPLEMENT",
   "state_history": [
     {
       "state": "PLAN",
@@ -14,6 +14,11 @@
       "state": "DESIGN_REVIEW",
       "at": "2026-09-22T00:50:00Z",
       "note": "S3R complete: approve, no blocking findings; two plan edits applied, one watch item carried"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-09-22T04:42:53Z",
+      "note": "resumed after the run stopped between US-1's completion report and its exit gate; US-1's work was committed and green"
     }
   ],
   "gates": {
@@ -48,7 +53,7 @@
       "priority": "P1",
       "issue": 18,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -56,9 +61,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_factories.py::TestFactories"],
-            "commands": ["poetry run pytest tests/test_factories.py"],
-            "code": ["tests/factories.py:1"]
+            "tests": [
+              "tests/test_factories.py::TestFactories"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_factories.py"
+            ],
+            "code": [
+              "tests/factories.py:1"
+            ]
           }
         },
         {
@@ -66,9 +77,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_views.py::TestSubscriptionPage"],
-            "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
-            "code": ["tests/conftest.py:34"]
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestSubscriptionPage"
+            ],
+            "code": [
+              "tests/conftest.py:34"
+            ]
           }
         },
         {
@@ -76,9 +93,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_demo.py::TestSeedDemoCommand"],
-            "commands": ["poetry run pytest tests/test_demo.py"],
-            "code": ["demo/management/commands/seed_demo.py:50"]
+            "tests": [
+              "tests/test_demo.py::TestSeedDemoCommand"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_demo.py"
+            ],
+            "code": [
+              "demo/management/commands/seed_demo.py:50"
+            ]
           }
         },
         {
@@ -86,9 +109,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_money.py::TestMoney"],
-            "commands": ["poetry run pytest tests/test_money.py"],
-            "code": ["mvp_payments/money.py:1"]
+            "tests": [
+              "tests/test_money.py::TestMoney"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_money.py"
+            ],
+            "code": [
+              "mvp_payments/money.py:1"
+            ]
           }
         },
         {
@@ -100,8 +129,12 @@
               "tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader",
               "tests/test_namespaces/test_drf_stripe_records.py::TestNoStatusIsNamed"
             ],
-            "commands": ["poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"],
-            "code": ["mvp_payments/namespaces/drf_stripe_records.py:61"]
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"
+            ],
+            "code": [
+              "mvp_payments/namespaces/drf_stripe_records.py:61"
+            ]
           }
         },
         {
@@ -109,9 +142,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_contributions.py::TestPageView"],
-            "commands": ["poetry run pytest tests/test_contributions.py"],
-            "code": ["mvp_payments/contributions.py:36"]
+            "tests": [
+              "tests/test_contributions.py::TestPageView"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py"
+            ],
+            "code": [
+              "mvp_payments/contributions.py:36"
+            ]
           }
         },
         {
@@ -119,9 +158,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_views.py::TestSubscriptionPage"],
-            "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
-            "code": ["tests/test_views.py:162"]
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestSubscriptionPage"
+            ],
+            "code": [
+              "tests/test_views.py:162"
+            ]
           }
         },
         {
@@ -129,9 +174,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_money.py::TestMoney"],
-            "commands": ["poetry run pytest tests/test_money.py"],
-            "code": ["mvp_payments/money.py:20"]
+            "tests": [
+              "tests/test_money.py::TestMoney"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_money.py"
+            ],
+            "code": [
+              "mvp_payments/money.py:20"
+            ]
           }
         },
         {
@@ -139,9 +190,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader"],
-            "commands": ["poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"],
-            "code": ["mvp_payments/namespaces/drf_stripe_records.py:64"]
+            "tests": [
+              "tests/test_namespaces/test_drf_stripe_records.py::TestSubscriptionReader"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_namespaces/test_drf_stripe_records.py"
+            ],
+            "code": [
+              "mvp_payments/namespaces/drf_stripe_records.py:64"
+            ]
           }
         },
         {
@@ -149,9 +206,16 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_contributions.py::TestPageView"],
-            "commands": ["poetry run pytest tests/test_contributions.py"],
-            "code": ["mvp_payments/contributions.py:37", "mvp_payments/contributions.py:84"]
+            "tests": [
+              "tests/test_contributions.py::TestPageView"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_contributions.py"
+            ],
+            "code": [
+              "mvp_payments/contributions.py:37",
+              "mvp_payments/contributions.py:84"
+            ]
           }
         },
         {
@@ -159,9 +223,16 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_views.py::TestSubscriptionPage"],
-            "commands": ["poetry run pytest tests/test_views.py tests/test_urls.py"],
-            "code": ["mvp_payments/views.py:47", "mvp_payments/namespaces/drf_stripe.py:19"]
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py tests/test_urls.py"
+            ],
+            "code": [
+              "mvp_payments/views.py:47",
+              "mvp_payments/namespaces/drf_stripe.py:19"
+            ]
           }
         },
         {
@@ -173,7 +244,9 @@
               "tests/test_views.py::TestSubscriptionPage",
               "tests/test_components/test_drf_stripe.py"
             ],
-            "commands": ["poetry run pytest tests/test_views.py tests/test_components/"],
+            "commands": [
+              "poetry run pytest tests/test_views.py tests/test_components/"
+            ],
             "code": [
               "mvp_payments/templates/cotton/drf_stripe/amount.html:1",
               "mvp_payments/templates/cotton/drf_stripe/plan.html:1",
@@ -186,9 +259,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_views.py::TestSubscriptionPage"],
-            "commands": ["poetry run pytest tests/test_views.py::TestSubscriptionPage"],
-            "code": ["mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1"]
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestSubscriptionPage"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1"
+            ]
           }
         },
         {
@@ -196,9 +275,15 @@
           "status": "done",
           "attempts": 1,
           "evidence": {
-            "tests": ["tests/test_components/test_drf_stripe.py"],
-            "commands": ["poetry run pytest tests/test_components/"],
-            "code": ["tests/test_components/test_drf_stripe.py:1"]
+            "tests": [
+              "tests/test_components/test_drf_stripe.py"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/"
+            ],
+            "code": [
+              "tests/test_components/test_drf_stripe.py:1"
+            ]
           }
         }
       ]
@@ -348,7 +433,7 @@
     }
   },
   "pr": {
-    "number": null,
+    "number": 23,
     "draft": true
   },
   "escalations": []
