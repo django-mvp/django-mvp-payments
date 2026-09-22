@@ -298,33 +298,101 @@
       "tasks": [
         {
           "id": "T015",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestBillingPortalEndpoint"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestBillingPortalEndpoint"
+            ],
+            "code": [
+              "mvp_payments/views.py:54"
+            ]
+          }
         },
         {
           "id": "T016",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPortalLink"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPortalLink"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/portal_link.html:1"
+            ]
+          }
         },
         {
           "id": "T017",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestBillingPortalEndpoint"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py"
+            ],
+            "code": [
+              "mvp_payments/views.py:54"
+            ]
+          }
         },
         {
           "id": "T018",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPortalLink"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/portal_link.html:1"
+            ]
+          }
         },
         {
           "id": "T019",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [],
+            "commands": [
+              "poetry run pre-commit run --files mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js",
+              "poetry run pytest tests/test_app.py"
+            ],
+            "code": [
+              "mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js:1"
+            ]
+          }
         },
         {
           "id": "T020",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestSubscriptionPage::test_the_portal_control_sits_beneath_the_subscriptions"
+            ],
+            "commands": [
+              "poetry run pytest tests/"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/drf_stripe/subscription.html:1",
+              "demo/urls.py:1",
+              "demo/settings.py:63",
+              "demo/templates/base.html:1"
+            ]
+          }
         }
       ]
     },

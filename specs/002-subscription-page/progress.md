@@ -176,3 +176,101 @@ than a coverage loss.
 Next: US-2.
 
 Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T015+T017 paired)
+
+Did: `tests/test_views.py::TestBillingPortalEndpoint` — `billing_portal_endpoint` carries the
+endpoint from `settings.MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` for a current subscriber, is
+`None` when the setting is absent, and is `None` for a person with no current subscription even
+when it is set. Confirmed it failed for the right reason (`KeyError` — the context carried no such
+name). `views.py` — `SubscriptionPageView.get_context_data` reads it at render time and suppresses
+it against the `subscriptions` tuple it already builds, never against a status. Landed together
+per D7's precedent, so the tree stayed green between commits.
+
+Verified: `poetry run pytest tests/test_views.py` — 16 passed. `mypy mvp_payments/views.py` clean.
+`poetry run pre-commit run --files tests/test_views.py mvp_payments/views.py` clean (one
+reformat by `ruff-format`, re-verified after).
+
+Next: T016+T018.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T016+T018 paired)
+
+Did: `tests/test_components/test_drf_stripe.py::TestPortalLink` — given an endpoint, the component
+carries it and a CSRF token as data, has an accessible control, an `aria-describedby` note that it
+leads to the provider's site, and a failure message element that starts hidden; given none, it
+states the provider manages the subscription and renders no control. Confirmed it failed for the
+right reason (`TemplateDoesNotExist: cotton/drf_stripe/portal_link.html` — Cotton's fallback
+lookup, not a missing file inside an existing namespace directory). `portal_link.html` — the
+control and both branches, translated throughout.
+
+Verified: `poetry run pytest tests/test_components/` — 10 passed. `poetry run pre-commit run
+--files tests/test_components/test_drf_stripe.py mvp_payments/templates/cotton/drf_stripe/portal_link.html`
+clean.
+
+Next: T019.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T019)
+
+Did: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js` — binds every portal-link
+control on the page, posts to its `data-endpoint` with its `data-csrf-token` as the `X-CSRFToken`
+header, follows `data.url` on success, reveals the control's own hidden failure message on any
+failure (non-2xx response, malformed JSON, or a missing `url`). No build step, no bundler, no
+external origin (Article XIII). Deliberately does not write the backend's own response into the
+DOM — the failure message is static, translated text already in the template, and this file only
+toggles its `hidden` attribute, consistent with Article XII's "no trust in what comes back".
+
+No Python test: this file runs in the browser and this package cannot import it or call the
+endpoint from Python (Article XII), so nothing here is unit-testable the way the rest of the
+story is — recorded in the completion report's `concerns` rather than left unsaid.
+
+Verified: `poetry run pre-commit run --files mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`
+clean (no lint/format/type hooks apply to `.js`). `poetry run pytest tests/test_app.py` — 9 passed
+(confirms the new static file changes nothing about the package's dependency or import
+guarantees).
+
+Next: T020.
+
+Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US2 (T020)
+
+Did: `tests/test_views.py::TestSubscriptionPage::test_the_portal_control_sits_beneath_the_subscriptions`
+— against the demo's real settings (no `override_settings`), the control appears after the
+rendered subscriptions and the demo's page loads the static file. Confirmed it failed for the
+right reason (`ValueError: substring not found` — the control wasn't on the page yet).
+`mvp_payments/templates/mvp_payments/drf_stripe/subscription.html` — placed the control beneath
+the loop. `demo/settings.py` — `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` pointed at where the
+demo mounts the backend's portal endpoint. `demo/templates/base.html` — loads
+`billing_portal.js` at the `extra_js` block django-mvp's shell already exposes, the way the demo
+already loads its other assets. `demo/urls.py` — mounted `drf_stripe.urls` under `api/stripe/`.
+
+That last one surfaced a real defect on the first run: mounting it unconditionally broke
+`tests/settings_without_backend.py`'s two tests (`RuntimeError: Model class
+drf_stripe.models.StripeUser doesn't declare an explicit app_label` — importing `drf_stripe.urls`
+imports its models, and a model with no explicit `app_label` needs its app installed to get one).
+A real project's own URLconf would never unconditionally include a backend's routes it hadn't
+installed either, so gated it on `apps.is_installed("drf_stripe")`, matching the property
+`tests/settings_without_backend.py` already exists to prove.
+
+Verified: `poetry run pytest tests/` — 98 passed, 0 failed (run in full given how much of this
+task's diff sat in demo/ wiring rather than the package). `mypy demo/ mvp_payments/` clean.
+`poetry run pre-commit run --files tests/test_views.py demo/urls.py demo/settings.py
+demo/templates/base.html mvp_payments/templates/mvp_payments/drf_stripe/subscription.html` clean
+(one reformat, re-verified after). Extended `docs/subscription-page.md` for
+`billing_portal_endpoint`, the portal-link component, the `MVP_PAYMENTS` setting and loading the
+static file.
+
+Next: the story's completion report and the full verify run.
+
+Watch: the "no endpoint" branch's fallback text ("the provider manages the subscription and the
+portal cannot be reached") renders today for anyone with no current subscription too, since
+`billing_portal_endpoint` is `None` for that case as well as for a genuinely unconfigured setting
+— the component cannot tell the two apart from the prop alone. That wording is imprecise for
+someone who never subscribed (US-4 territory, not this story's to fix: the page has no `{% empty
+%}` branch yet, and building one is explicitly out of this story's scope). Flagged in the
+completion report's `concerns` for US-4 to account for when it replaces this page's empty-list
+behaviour.

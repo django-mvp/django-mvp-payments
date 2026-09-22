@@ -241,3 +241,39 @@ the other two cases are untouched. Recorded here, and flagged in the completion 
 
 **Revisit if:** a future page gains its own view and this parametrize list needs a fourth case — the
 pattern (assert per-page, not one class for all three) already supports it.
+
+## D9 — US-2 implementation: mounting the backend's own URLs in the demo, conditionally
+
+T020 needed the demo to mount `drf_stripe.urls` so `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`
+pointed at something real. Mounting it unconditionally in `demo/urls.py` broke
+`tests/settings_without_backend.py`'s two tests: importing `drf_stripe.urls` imports its models,
+and a model with no explicit `app_label` needs its app in `INSTALLED_APPS` to resolve one, so the
+URLconf itself failed to load the moment the backend was removed.
+
+`demo/urls.py` now mounts it only when `apps.is_installed("drf_stripe")` is true. This is not a
+change to this package — `mvp_payments` never gated anything on configuration before this, and
+still does not — it is the demo, standing in for a host project, behaving the way any real
+project's own URLconf naturally would: nobody writes `include("drf_stripe.urls")` in a project
+that never installed the backend. The demo simply had not needed to mount that URLconf until this
+story gave it something behind that endpoint worth reaching.
+
+**Revisit if:** the demo comes to need more than one backend's own URLs mounted this way — the
+same guard generalises per backend.
+
+## D10 — US-2 implementation: the failure message is static text, revealed rather than written
+
+`billing_portal.js` (T019) never writes the backend's response into the DOM. The failure message
+`<p>` (T018) carries its translated text at render time and starts `hidden`; on any failure the
+script only toggles that attribute.
+
+The alternative — a bare `<p hidden>` filled with response-derived text at failure time — was
+rejected on two grounds. Article XII's "no trust in what comes back" already reads on values a
+component renders through the template layer; extending that principle to a script that would
+otherwise interpolate a fetch response into markup by hand is the same rule applied to the one
+piece of this feature that runs after the template has already rendered. It would also need its
+own English string embedded in JavaScript with no route to `{% translate %}`, which every other
+piece of copy on this page goes through.
+
+**Revisit if:** a future failure needs to distinguish *why* the request failed (network error vs.
+the backend's own 4xx/5xx) — the single generic message would need to become several, still static,
+selected by the script rather than written by it.
