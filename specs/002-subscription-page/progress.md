@@ -307,3 +307,49 @@ Watch: `billing_portal.js` has no automated test and cannot have one in this sui
 seam is a browser. It is covered by the walkthrough, not by pytest. The portal component's note
 carries a fixed element id, so placing two of them on one page would duplicate it; the shipped
 page places one, and US-5's standalone-rendering work should not introduce a second.
+
+## 2026-09-22T05:12:09Z · Implementer US3 · T021
+
+Did: wrote `TestPlanFeatures` in `tests/test_namespaces/test_drf_stripe_records.py` — a product's
+features are carried onto its plan, a feature's own description is carried, one with none carries
+its identifier, a product with none carries an empty tuple, and a feature recorded against a
+different product never appears. All five passed on first run against `build_plan` as it stands.
+
+Probed rather than trusted the pass, per `craft-tdd`'s "before you call a task done": zeroed
+`Plan.features` in `build_plan` and reran — three of five failed for the right reason (the two that
+stayed green assert an empty collection, which zeroing also produces). Restored, then mutated the
+query to pull every product's `ProductFeature` rows instead of `price.product.linked_features` —
+the different-product isolation test failed exactly as it should, asserting a leaked feature. File
+restored to its original state before committing; the diff is test-only.
+
+Verified: `poetry run pytest tests/test_namespaces/test_drf_stripe_records.py` — 16 passed.
+
+Next: T022.
+
+Watch: none.
+
+## 2026-09-22T05:12:09Z · Implementer US3 · T022
+
+Did: wrote `TestFeatures` in `tests/test_components/test_drf_stripe.py` — given features it lists
+their descriptions, given one with no description it shows the identifier, given none it renders
+no `<ul>` and no `<li>` at all.
+
+Verified: `poetry run pytest tests/test_components/test_drf_stripe.py::TestFeatures` — red,
+`TemplateDoesNotExist: cotton/drf_stripe/features/index.html`, the right reason (the component
+doesn't exist yet). T024 adds it.
+
+Next: T023.
+
+Watch: none.
+
+## 2026-09-22T05:12:09Z · Implementer US3 · T023
+
+Did: nothing — T021's probes already show `build_plan` carries the right features, correctly
+isolated per product, with the right fallback. No production change. This is the acceptance
+criterion's own stated correct outcome, not a shortfall.
+
+Verified: no new commands beyond T021's.
+
+Next: T024.
+
+Watch: none.
