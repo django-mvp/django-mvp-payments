@@ -40,6 +40,20 @@ class TestPricingTable:
         assert "<script" not in html
         assert not re.search(r"\d[\d,]*\.\d{2,3}", html)
 
+    def test_carries_a_hidden_could_not_be_loaded_message_and_its_marker(
+        self, cotton_render
+    ):
+        """The message is present in the markup and hidden, never absent, so
+        revealing it needs no string from JavaScript (scenario 3, FR-010)."""
+        html = cotton_render(
+            "drf-stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+        )
+
+        assert "hidden data-mvp-payments-pricing-table-unavailable" in html
+        assert "The plans could not be loaded. Try again later." in html
+
     def test_a_signed_in_person_with_an_address_carries_it_as_customer_email(
         self, cotton_render_string, rf, user
     ):
