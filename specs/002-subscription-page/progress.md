@@ -513,3 +513,22 @@ Verified: `poetry run pytest` — 119 passed (112 baseline + 7 from T028/T029).
 Next: the story's completion report and the full verify run.
 
 Watch: none.
+
+## 2026-09-22 — S4 IMPLEMENT · US5 accepted, with the README's status corrected
+
+Verified independently: receipts green against the dispatched brief, `tamper-check` clean over
+`f7ec0d8..HEAD`, `forge verify --repo . --base origin/main` green on all six steps, 119 tests
+passing. No production file changed, which is what this story was told to do — the whole diff is
+tests, documentation, the README, the CHANGELOG and the record.
+
+The story reported one thing it had deliberately not fixed: the README's Status section still said
+no components are written yet, which has been false since the previous feature. It was right not to
+fix it under a task whose scope named only the namespace section, and right to say so. Corrected
+here — a pull request whose README tells a reader the package ships no components while adding five
+of them is not one to send. It now says which pages are built and which are still empty.
+
+Verified after the correction: `forge verify --repo . --base origin/main` — all six steps green.
+
+Next: the story set is complete. S4 exit, then convergence.
+
+Watch: none carried into S5 beyond the ADRs that D1 through D5, D11 and D14 defer to convergence.

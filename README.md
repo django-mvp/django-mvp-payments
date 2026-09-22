@@ -16,8 +16,10 @@ than leaving you to build and route them.
 
 ## Status
 
-Version 0.0.1. The build pipeline, the test harness and the demo project are in place; no
-components are written yet. Nothing here is stable.
+Version 0.0.1. The `drf-stripe` namespace contributes three pages, of which the subscription page
+is built: it shows a signed-in person what they are currently subscribed to, what each plan grants
+them, and the way through to the provider's billing portal. The plans and billing pages are routed
+and reachable but do not show anything yet. Nothing here is stable.
 
 ## Requirements
 
