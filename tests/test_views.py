@@ -275,6 +275,17 @@ class TestSubscriptionPage:
 
         assert len(captured_one) == len(captured_many)
 
+    def test_the_portal_control_sits_beneath_the_subscriptions(self, subscriber_client):
+        """T020: the demo's own MVP_PAYMENTS setting and static file, end to end."""
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        status_index = content.index("active")
+        control_index = content.index("data-mvp-payments-portal-link")
+        assert control_index > status_index
+        assert 'src="/static/mvp_payments/drf_stripe/billing_portal.js"' in content
+
     def _client_for(self, user):
         client = Client()
         client.force_login(user)

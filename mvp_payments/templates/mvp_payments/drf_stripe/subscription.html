@@ -5,5 +5,6 @@
     {% for subscription in subscriptions %}
       <c-drf-stripe.subscription :subscription="subscription" />
     {% endfor %}
+    <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
   </c-page>
 {% endblock account.content %}

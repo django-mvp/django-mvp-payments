@@ -22,13 +22,20 @@ disagree with the rest of your application on the day the backend's line moved.
 
 ## The context
 
-`SubscriptionPageView` adds one name to the template context:
+`SubscriptionPageView` adds two names to the template context:
 
 `subscriptions`
 : A tuple of `CurrentSubscription`, newest first, for the person making the request. Empty for
   someone the backend holds no customer record for, which is not an error.
 
-Everything else on the page is reached through that one name. If you override the template you
+`billing_portal_endpoint`
+: Where the backend's own billing-portal endpoint is mounted, read from
+  `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` in your settings. `None` when that setting is
+  absent, and `None` for a person with no current subscription even when it is set — the backend's
+  endpoint creates a customer at the provider for whoever posts to it, so it is never offered to
+  someone with nothing to manage.
+
+Everything else on the page is reached through those two names. If you override the template you
 have all of it, and you need no view, no context processor and no query of your own.
 
 ### `CurrentSubscription`
@@ -90,13 +97,14 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Three components render the page, and each one renders on its own given its attributes. You can
+Four components render the page, and each one renders on its own given its attributes. You can
 place any of them in a template of your own.
 
 ```html
 <c-drf-stripe.subscription :subscription="subscription" />
 <c-drf-stripe.plan :plan="plan" />
 <c-drf-stripe.amount :amount="plan.amount" />
+<c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
 ```
 
 `<c-drf-stripe.subscription>`
@@ -111,8 +119,41 @@ place any of them in a template of your own.
 `<c-drf-stripe.amount>`
 : A `Money`, rendered in its own currency.
 
+`<c-drf-stripe.portal-link>`
+: Given an `endpoint`, a control that posts to it and follows the address the backend answers
+  with, carrying the endpoint and a CSRF token as data. Given `None`, a statement that the
+  subscription is managed by the provider and the portal cannot be reached — with no control,
+  since there is nowhere for it to lead.
+
 They render the daisyUI classes django-mvp already ships, so they follow your theme without any
 stylesheet of their own.
+
+## Reaching the billing portal
+
+The backend's billing-portal endpoint answers a `POST` with `{"url": ...}` and carries no route
+name of its own, so it cannot be linked to directly or reversed — you tell the page where you
+mounted it:
+
+```python
+MVP_PAYMENTS = {
+    "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
+}
+```
+
+`<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
+JavaScript behaviour — so a small static file does it: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`.
+It binds every portal-link control on the page, posts with the CSRF token the component already
+rendered as data, and follows the address a successful answer carries. On any failure it reveals
+the control's own hidden failure message instead of sending the reader nowhere.
+
+You load that file yourself, the way you already load your project's other static assets — this
+package emits no `<script>` tag of its own:
+
+```html
+<script defer src="{% static 'mvp_payments/drf_stripe/billing_portal.js' %}"></script>
+```
+
+The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`.
 
 ## Replacing the page
 
@@ -128,6 +169,7 @@ package, and it is used instead. Everything above is already in its context.
     {% for subscription in subscriptions %}
       <c-drf-stripe.subscription :subscription="subscription" />
     {% endfor %}
+    <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
   </c-page>
 {% endblock account.content %}
 ```

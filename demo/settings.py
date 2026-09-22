@@ -66,6 +66,13 @@ DRF_STRIPE = {
     "FRONT_END_BASE_URL": "http://localhost:8020",
 }
 
+# Where this project mounted the backend's own billing-portal endpoint
+# (demo/urls.py). The endpoint carries no route name, so the subscription
+# page has to be told where it is rather than assuming (D3, FR-006).
+MVP_PAYMENTS = {
+    "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
+}
+
 SITE_ID = 1
 
 MIDDLEWARE = [

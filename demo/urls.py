@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.urls import include, path
 
 from demo.views import HomeView
@@ -13,3 +14,14 @@ urlpatterns = [
     # The one line a project adds to mount this package's pages (FR-001).
     path("payments/", include("mvp_payments.urls")),
 ]
+
+if apps.is_installed("drf_stripe"):
+    # The backend's own API, including its billing-portal endpoint. Its
+    # location is the demo's decision — MVP_PAYMENTS['DRF_STRIPE_BILLING_PORTAL']
+    # in settings.py is where this project told the page it mounted it (D3,
+    # FR-006). Conditional on the backend being installed, the way a real
+    # project's own URLconf naturally would be — tests/settings_without_backend.py
+    # removes it from INSTALLED_APPS, and importing its URLconf regardless
+    # raises before the module even loads (its models declare no app_label
+    # of their own to fall back on).
+    urlpatterns.append(path("api/stripe/", include("drf_stripe.urls")))
