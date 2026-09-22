@@ -1,0 +1,42 @@
+{
+  "stage": "S3R",
+  "role": "design_reviewer",
+  "repo": "django-mvp/django-mvp-payments",
+  "repo_path": "/home/sam/projects/django-mvp/django-mvp-payments",
+  "feature": "002-subscription-page",
+  "branch": "002-subscription-page",
+  "lenses": ["spec-compliance", "security", "architecture"],
+  "inputs": {
+    "spec": "specs/002-subscription-page/spec.md",
+    "decisions": "specs/002-subscription-page/decisions.md",
+    "plan": "specs/002-subscription-page/plan.md",
+    "research": "specs/002-subscription-page/research.md",
+    "tasks": "specs/002-subscription-page/tasks.md",
+    "constitution": "CONSTITUTION.md",
+    "context": "CONTEXT.md"
+  },
+  "resolved_dependency_paths": {
+    "drf_stripe": "/home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/drf_stripe",
+    "mvp": "/home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-JT0CmOyG-py3.14/lib/python3.14/site-packages/mvp"
+  },
+  "required_skills": [
+    {
+      "name": "craft-review",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-review/SKILL.md",
+      "receipt": "craft-review/2026-09-17/b773db2e"
+    },
+    {
+      "name": "craft-security",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-security/SKILL.md",
+      "receipt": "craft-security/2026-08-04/ea3d6742"
+    },
+    {
+      "name": "craft-simplify",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-simplify/SKILL.md",
+      "receipt": "craft-simplify/2026-08-04/69038ce1"
+    }
+  ],
+  "protocol": "/home/sam/.openclaw/workspaces/forge/skills/forge-feature-request/references/design-review.md",
+  "findings_schema": "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/schemas/review-findings.schema.json",
+  "output_path": "/home/sam/projects/django-mvp/django-mvp-payments/specs/002-subscription-page/S3R-findings.json"
+}

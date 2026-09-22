@@ -118,8 +118,8 @@ Article XVI forbids assuming two decimal places, and the backend records only an
 units and a three-letter code. Something has to hold the exponent.
 
 `babel` holds it, along with a localised currency pattern, and was rejected. It is a runtime
-dependency with a data bundle attached, for a table of nineteen currency codes this package can
-state in nine lines, and Article VII asks for a justification that does not exist here. The
+dependency with a data bundle attached, for a table of twenty-three currency codes this package can
+state in a dozen lines, and Article VII asks for a justification that does not exist here. The
 consequence accepted with it is that the currency renders as its code beside a localised number
 rather than as a symbol inside the locale's own pattern.
 
@@ -160,3 +160,43 @@ namespace's routes in two places and break the property the previous feature was
 a contribution declares everything it contributes and one condition decides all of it.
 
 **ADR:** to be recorded at convergence.
+
+## D5 — Withholding the portal control is a safety property, not only a courtesy
+
+The specification's clarification for FR-008 reasons that a person with no customer record has
+"nothing on the other side of the link". The design review checked that against the backend as it
+is actually installed, and it is not what happens. The portal endpoint calls
+`get_or_create_stripe_user`, which creates the missing row and then creates a **new customer at the
+provider** before minting a session for it. A person who had never subscribed would, by clicking,
+acquire a customer record at Stripe.
+
+The requirement is unchanged and no behaviour moves: the page already withholds the control from
+anyone with nothing current, which covers the narrower case. What changes is why. The reason is
+recorded here, and in `research.md`, so that a later reader tempted to "fix" the empty state by
+offering the link anyway can see what it would cost. The specification's own sentence is wrong in
+its reasoning rather than in what it requires, so it is left alone and the correction lives here.
+
+**ADR:** to be recorded at convergence.
+
+## D6 — Design review outcome
+
+One reviewer, three lenses, one round. Verdict `approve`, no critical or high findings, so no
+re-plan.
+
+Three findings, each recorded rather than escalated:
+
+- **DR-001** (medium, verified) — the false premise behind FR-008, above. Recorded as D5; no task
+  changed.
+- **DR-002** (medium, likely) — the reader's queryset was described as reaching only the product,
+  while the grouping reads `item.subscription` from every row, which is a query per item. `plan.md`
+  and T009 now name `select_related("subscription", "price__product")`, and T007 holds it with a
+  query-count assertion rather than leaving it to inspection.
+- **DR-003** (low, likely) — `Price.nickname` and `Product.name` are both nullable, so a plan can
+  in principle have no name at all, where the parallel case for a feature has a stated fallback.
+  Carried as a watch item on US-1 rather than invented into the page: the provider requires a
+  product name at creation, so the gap is a schema possibility and not a path a reader reaches.
+
+Two editorial corrections were made in the same pass: a miscount of the currency table, and wording
+that read as though stories shared one working tree.
+
+**ADR:** none — a record of this run's design review, not a standing rule.

@@ -149,9 +149,11 @@ names amount formatting as plumbing every namespace would otherwise duplicate.
 
 `for_user` resolves `StripeUser` through `apps.get_model("drf_stripe", "StripeUser")`, returns an
 empty tuple when the person has no customer record at all, and otherwise reads
-`current_subscription_items` — the backend's own definition of current (FR-001) — with
-`select_related` down to the product and `prefetch_related` on the product's features, groups the
-rows by `item.subscription`, and builds the dataclasses. A plan's name is `price.nickname` where it
+`current_subscription_items` — the backend's own definition of current (FR-001) — as
+`select_related("subscription", "price__product")` with `prefetch_related` on the product's
+features, groups the rows by `item.subscription`, and builds the dataclasses. The subscription is
+named in `select_related` because the grouping reads it from every row, and a queryset that stopped
+at the product would issue one query per item on the page's only read path. A plan's name is `price.nickname` where it
 is set and `product.name` otherwise (FR-003). A feature's display text is its description where the
 project set one and its identifier otherwise (FR-009).
 

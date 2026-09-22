@@ -60,9 +60,13 @@ Two consequences for the design:
 - The way through to the portal cannot be a plain link. It is a control that posts to the endpoint
   and follows the address that comes back, which is a few lines of JavaScript shipped as a static
   file (Article XIII), with the endpoint and the CSRF token rendered into the markup as data.
-- The endpoint calls Stripe, so it fails for a person with no customer record. FR-008 keeps the
-  control off the page entirely in that case, and US-2's third scenario covers the failure for
-  everyone else.
+- The endpoint does **not** fail for a person the backend holds no customer record for. It calls
+  `get_or_create_stripe_user`, which creates the row and, when it has no customer id, creates a
+  brand-new customer at Stripe before minting a portal session for it
+  (`drf_stripe/stripe_api/customers.py:188-192`). So the control has to be kept off the page for
+  someone with nothing current, as FR-008 requires, or a person who never subscribed would create a
+  customer record at the provider by clicking it. US-2's third scenario covers a failure reaching
+  the endpoint for everyone else.
 
 Session authentication is DRF's default and is what a signed-in browser already has, so the POST
 needs the CSRF token and nothing else.
@@ -92,11 +96,11 @@ The minor-unit exponent is therefore this package's to hold. Stripe's zero-decim
 documented and small (`BIF CLP DJF GNF JPY KMF KRW MGA PYG RWF UGX VND VUV XAF XOF XPF`), and
 three-decimal currencies (`BHD IQD JOD KWD LYD OMR TND`) round to a unit of ten in Stripe's API.
 Holding the two exceptional sets and defaulting the rest to two decimal places is a table of
-nineteen strings and is exact for every currency Stripe supports.
+twenty-three codes and is exact for every currency Stripe supports.
 
 `babel` would supply both the exponent and a localised currency pattern. It was rejected: it is a
-runtime dependency with a data bundle of its own, added for one table this package can state in
-nine lines, against Article VII and Article II. The cost is that the currency is rendered as its
+runtime dependency with a data bundle of its own, added for one table this package can state in a
+dozen lines, against Article VII and Article II. The cost is that the currency is rendered as its
 code beside the number rather than as a symbol in the locale's own pattern, which is accurate,
 unambiguous and the thing an invoice does anyway.
 

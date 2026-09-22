@@ -1,0 +1,54 @@
+{
+  "lens": "spec-compliance",
+  "verdict": "approve",
+  "risk": "medium",
+  "scope": "plan.md, tasks.md, research.md and decisions.md for 002-subscription-page, against spec.md, CONSTITUTION.md and CONTEXT.md; targeted reads of mvp_payments/contributions.py, views.py, namespaces/drf_stripe.py, urls.py, templatetags/mvp_payments.py, tests/conftest.py, tests/settings.py, demo/settings.py; and the resolved drf-stripe-subscription 1.2.2 package under the project's virtualenv. All three lenses (spec-compliance, security, architecture) run in this single dispatch; each finding's claim is prefixed with its lens because the findings schema carries one lens at the top level, not per finding.",
+  "skills_loaded": [
+    {
+      "name": "craft-review",
+      "receipt": "craft-review/2026-09-17/b773db2e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-security",
+      "receipt": "craft-security/2026-08-04/ea3d6742",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-simplify",
+      "receipt": "craft-simplify/2026-08-04/69038ce1",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "findings": [
+    {
+      "id": "DR-001",
+      "severity": "medium",
+      "claim": "[spec-compliance — research premise verification] research.md's and the approved spec's own stated reason for suppressing the portal link for someone with no customer record is factually wrong against the resolved backend: the endpoint does not fail for that person, it silently creates a new Stripe customer and succeeds.",
+      "evidence": "research.md:61 states 'The endpoint calls Stripe, so it fails for a person with no customer record.' The same premise is spec.md:49-50's own clarification answer for FR-008: 'A portal session is minted for an existing customer, so for someone the backend has no customer record for there is nothing on the other side of the link.' Verified against the resolved package: drf_stripe/views.py:79 StripeCustomerPortal.post() calls stripe_api_create_billing_portal_session(request.user.id); drf_stripe/stripe_api/customer_portal.py:12 calls get_or_create_stripe_user(user_id=user_id) — the 'get_or_create', not 'get'; drf_stripe/stripe_api/customers.py:188-192 shows that when no StripeUser row exists, one is created and (created and not customer_id, line 190) a brand-new Stripe customer is created via a live API call, then a portal session is minted for that new customer and returned with 200. The endpoint does not fail for a person with no customer record — it fabricates one and succeeds.",
+      "confidence": "verified",
+      "suggested_fix": "Correct the premise in research.md and decisions.md D3/the FR-008 rationale: the reason the page must not offer the control to someone with no current subscription is that FR-008 says so directly, not that the endpoint 'fails' for them — it does not. This is a fault in the approved spec's own clarification text (spec.md:48-51), not something a plan edit can fix; flagging per the protocol's spec-fault carve-out rather than proposing a plan change. No task or behaviour changes today because the plan already gates the control on the broader 'no current subscription' condition (plan.md's billing_portal_endpoint design), which happens to cover the narrower 'no customer record' case the false premise was reasoning about."
+    },
+    {
+      "id": "DR-002",
+      "severity": "medium",
+      "claim": "[architecture — data model / N+1] The reader's described query shape omits the subscription relation from select_related, so grouping subscription-item rows by item.subscription after the fact risks one query per item on every render of the page.",
+      "evidence": "plan.md:153 'select_related down to the product and prefetch_related on the product's features, groups the rows by item.subscription' (also tasks.md:75, T009) names only the price→product chain for select_related and never mentions subscription, then groups by item.subscription. In the resolved model, SubscriptionItem.subscription is a separate ForeignKey (drf_stripe/models.py, SubscriptionItem) not reached by a select_related that stops at product, so accessing item.subscription for each row after such a queryset triggers one query per row — the classic N+1 the Performance axis and Article XVI ask reviewers to quantify.",
+      "confidence": "likely",
+      "suggested_fix": "State the select_related target explicitly in plan.md's Design section and tasks.md T009, e.g. select_related('subscription', 'price__product'), so a subscription with N items issues a fixed number of queries rather than N+1 on the page's primary read path."
+    },
+    {
+      "id": "DR-003",
+      "severity": "low",
+      "claim": "[spec-compliance — demonstrability gap] FR-003's plan-name fallback (nickname, else product name) has no further fallback when the product's own name is also absent, and no task or test covers that case, unlike the parallel feature-description fallback FR-009 explicitly covers.",
+      "evidence": "spec.md FR-003 and plan.md:154-156 ('A plan's name is price.nickname where it is set and product.name otherwise') name only one fallback step. The resolved model confirms both fields are independently nullable: Price.nickname (drf_stripe/models.py Price, nickname = CharField(null=True, blank=True)) and Product.name (drf_stripe/models.py:75, name = CharField(max_length=256, null=True, blank=True)) — so a product synced with no name recorded leaves the plan with no name at all. FR-009 handles the analogous gap for a feature ('showing ... the feature's identifier otherwise'); FR-003 does not, and tasks.md T005/T007 test only the nickname-vs-product-name case, not both-absent.",
+      "confidence": "likely",
+      "suggested_fix": "If wanted, name a further fallback (e.g. the price or product identifier) in spec.md/plan.md the way FR-009 does for features, and add a case to T005. Not blocking: Stripe requires a product name at creation, so the gap is a schema possibility rather than an observed path; recording it as a watch item is enough."
+    }
+  ],
+  "notes": [
+    "research.md:95 and decisions.md:121 both describe the currency-exponent table as 'nineteen strings', but the two lists given in full (research.md's zero-decimal and three-decimal sets) total 23 codes (16 + 7). The actual table T008 builds uses the full lists, which are correct, so this is a miscount in the prose only.",
+    "tasks.md:14/218 says stories are dispatched 'one at a time into a single worktree', but the pipeline's S4 mechanics (references/pipeline.md) give each independent story its own worktree even in sequential Phase 1 dispatch. Worth a wording pass so an Implementer brief doesn't read this as licence to share a working tree across stories; not treated as a finding because tasks.md's task boundaries (each story building on the branch state the previous one left) are consistent with fresh per-story worktrees off the same branch either way."
+  ],
+  "stage": "design"
+}

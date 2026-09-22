@@ -3,12 +3,17 @@
   "feature": "002-subscription-page",
   "branch": "002-subscription-page",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "PLAN",
+  "state": "DESIGN_REVIEW",
   "state_history": [
     {
       "state": "PLAN",
       "at": "2026-09-22T00:45:00Z",
       "note": "S3 opened from the queue; spec and decisions already on main"
+    },
+    {
+      "state": "DESIGN_REVIEW",
+      "at": "2026-09-22T00:50:00Z",
+      "note": "S3R complete: approve, no blocking findings; two plan edits applied, one watch item carried"
     }
   ],
   "gates": {
@@ -20,12 +25,21 @@
       ]
     },
     "plan": {
-      "approved_by": null,
-      "at": null
+      "approved_by": "notified",
+      "at": "2026-09-22T00:52:00Z"
     },
     "merge": {
       "approved_by": null,
       "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-09-22T00:50:00Z",
+      "self_resolved": [
+        "DR-002 the reader's queryset now names select_related('subscription', 'price__product'), held by a query-count assertion in T007",
+        "DR-001 recorded as decision D5: the portal endpoint creates a customer rather than failing, so withholding the control is a safety property",
+        "DR-003 carried as a US-1 watch item rather than invented into the page"
+      ]
     }
   },
   "stories": [
@@ -245,7 +259,7 @@
       "max": 1
     },
     "design_review_cycles": {
-      "used": 0,
+      "used": 1,
       "max": 1
     },
     "tokens": {

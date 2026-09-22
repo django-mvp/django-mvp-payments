@@ -11,8 +11,9 @@ the story's report.
 Assertions are made against rendered output, never against the presence of a class name
 (Article XVI).
 
-Stories are dispatched in order, one worktree at a time. US-1 builds the reading, the view and the
-page; every story after it adds to what US-1 left behind.
+Stories are dispatched in order, each into a worktree of its own off the branch the previous one
+left. US-1 builds the reading, the view and the page; every story after it adds to what US-1 left
+behind.
 
 ## Phase 0 — Foundational
 
@@ -72,9 +73,11 @@ in front of the page without records to read, and every story needs the same one
   a dependency.
 - **T009** `mvp_payments/namespaces/drf_stripe_records.py` — `PlanFeature`, `Plan`,
   `CurrentSubscription` and `SubscriptionReader.for_user`, exactly as `plan.md` describes. Models
-  through `apps.get_model`; `select_related` to the product and `prefetch_related` on its features,
-  so one page is a fixed number of queries whatever it holds. Features are read here but rendered in
-  US-3.
+  through `apps.get_model`; `select_related("subscription", "price__product")` and
+  `prefetch_related` on the product's features, so one page is a fixed number of queries whatever it
+  holds. Guard that with `django_assert_num_queries` in T007 rather than leaving it to inspection:
+  the grouping reads `item.subscription` from every row, so omitting it from `select_related` is a
+  query per item and nothing else would notice. Features are read here but rendered in US-3.
 - **T010** `mvp_payments/contributions.py` — `Page` gains `view: type[PaymentPageView] =
   PaymentPageView`; `url_patterns()` builds each route from `page.view`. No other change to the
   dataclass or to the three surfaces that read it.
@@ -151,8 +154,9 @@ in front of the page without records to read, and every story needs the same one
 
 - **T025** `tests/test_views.py::TestNoCurrentSubscription` — a signed-in person the backend records
   no current subscription for gets a page saying so; no plan name, amount, frequency, status, period
-  or feature appears on it; no portal control appears; a person with no customer record at all
-  reaches the same page rather than an error. Assert the absence of each region rather than the
+  or feature appears on it; no portal control appears — which also keeps a person who never
+  subscribed from reaching an endpoint that would create a customer record for them; a person with
+  no customer record at all reaches the same page rather than an error. Assert the absence of each region rather than the
   absence of a class name. Red before T027.
 - **T026** [P] `tests/test_components/test_drf_stripe.py::TestNoSubscription` — the component
   renders its heading and message on its own, given nothing.
