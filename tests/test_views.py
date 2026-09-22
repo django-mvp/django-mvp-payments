@@ -159,6 +159,23 @@ class TestPlansPage:
         assert 'pricing-table-id="prctbl_test123"' in content
         assert 'publishable-key="pk_test_456"' in content
 
+    def test_the_element_carries_the_signed_in_persons_own_address(
+        self, logged_in_client, user
+    ):
+        user.email = "person@example.com"
+        user.save()
+
+        with override_settings(
+            MVP_PAYMENTS={
+                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+            }
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert 'customer-email="person@example.com"' in content
+
     def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
         response = client.get(reverse("payments:drf-stripe-plans"))
 
