@@ -1,0 +1,23 @@
+{
+  "lens": "security",
+  "verdict": "approve",
+  "risk": "low",
+  "scope": "git diff origin/main...HEAD, feature 003-pricing-table, excluding specs/ (CONSTITUTION.md, README.md, CHANGELOG.md, demo/**, docs/plans-page.md, mvp_payments/namespaces/drf_stripe.py, mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js, mvp_payments/templates/cotton/drf_stripe/{pricing_table,plans_unavailable}.html, mvp_payments/templates/mvp_payments/drf_stripe/plans.html, mvp_payments/views.py:PlansPageView, tests/**)",
+  "skills_loaded": [
+    {
+      "name": "craft-security",
+      "receipt": "craft-security/2026-08-04/ea3d6742",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "findings": [],
+  "notes": [
+    "CONSTITUTION.md Article XII/XIII amendment read hostilely: both amended sentences grammatically scope the new settings-read permission to 'a publishable key' and 'a page this package ships' — the preceding, unamended sentence ('An API key, a webhook signing secret and a restricted key are all equally forbidden') is untouched and unambiguous. No wording permits a component, or any other secret category, to be read from settings.",
+    "mvp_payments/views.py PlansPageView.get_context_data reads only the two named keys (DRF_STRIPE_PRICING_TABLE_ID, DRF_STRIPE_PUBLISHABLE_KEY) via .get() off settings.MVP_PAYMENTS, scoped exactly as the amendment describes — no wildcard or whole-dict exposure.",
+    "pricing_table.html interpolates table_id, publishable_key, customer_email and request.user.email into double-quoted attributes with Django's default autoescaping on (no |safe, no mark_safe, no {% autoescape off %} anywhere in the diff) — a crafted setting value cannot break out of the attribute.",
+    "customer-email is gated on request.user.is_authenticated, so an AnonymousUser (is_authenticated=False) never gets the attribute, and the value rendered is always the viewing user's own address — confirmed against tests/test_components/test_drf_stripe.py's anonymous/no-address/signed-in cases.",
+    "pricing_table.js only toggles .hidden on elements carrying its own data-mvp-payments-pricing-table-unavailable marker after the load event; it reads no untrusted DOM data and performs no write beyond that, and fetches nothing.",
+    "No template under mvp_payments/ emits a <script> tag pointing at a third-party origin (tests/test_app.py::TestNoProviderScript scans mvp_payments/templates specifically); the CDN <script> tag lives only in demo/templates/base.html, which is the demonstration project's own file, not the package's, and nothing under mvp_payments/ references or depends on the demo's plans-unconfigured/no-library routes."
+  ],
+  "stage": "code"
+}

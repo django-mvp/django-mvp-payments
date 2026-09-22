@@ -1,0 +1,29 @@
+{
+  "lens": "correctness",
+  "scope": "git diff origin/main...HEAD (product code: mvp_payments/, demo/, tests/, CONSTITUTION.md, README.md, CHANGELOG.md, docs/plans-page.md; specs/ excluded per brief)",
+  "verdict": "approve",
+  "risk": "low",
+  "stage": "code",
+  "skills_loaded": [
+    {
+      "name": "craft-review",
+      "receipt": "craft-review/2026-09-17/b773db2e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-simplify",
+      "receipt": "craft-simplify/2026-08-04/69038ce1",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "findings": [],
+  "notes": [
+    "FR-005/US-2 scenario 2 and 4 are correctly asserted as true absence (`\"customer-email\" not in html`), not emptiness — verified in tests/test_components/test_drf_stripe.py's TestPricingTable; the template's if/elif/endif in mvp_payments/templates/cotton/drf_stripe/pricing_table.html:312-313 never emits the attribute name when neither value is present.",
+    "The Article XII/XIII constitution amendment (CONSTITUTION.md ~197-199, ~236-239) holds the line precisely: it narrows the ban to 'a component', carves the exception to 'a page this package ships' — a term already defined earlier in Article XII ('A page the package ships is allowed to have a view...') — and the implementation matches exactly: PlansPageView (mvp_payments/views.py) reads settings, the component (pricing_table.html) takes them only as c-vars attributes and reads no settings itself.",
+    "Ran every code example in docs/plans-page.md against the branch line by line (component tag + props, MVP_PAYMENTS dict shape, plans.html override block, the two <script> loading snippets, the component/page-override instructions) — every one matches the actual template/view/JS in the diff verbatim or structurally identical. No stale example found.",
+    "TestPlansPageOverride (tests/test_views.py) does prove the project's own markup rendered, not just that a page rendered: both probes assert on data-testid markers unique to tests/project_app's override templates (`the-hosting-projects-own-pricing-table`, `the-hosting-projects-own-plans-page`), which only the overriding templates emit.",
+    "decisions.md D5 (four TestPricingTable cases using cotton_render_string instead of cotton_render) is a genuine, well-reasoned test-infrastructure limitation — the mvp package's cotton_render fixture builds its own anonymous RequestFactory request internally and there is no way to inject a signed-in one through it — not a deviation that hides anything; the four tests still assert the same real template output.",
+    "pricing_table.js (mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js) does exactly one thing: checks `customElements.get(\"stripe-pricing-table\")` after `load` and reveals the hidden message. It does not read or interpret anything the provider's own element renders, matching FR-010's scope.",
+    "Minor, non-blocking: pricing_table.html's `{% elif customer_email %}`-style attribute chain falls through to `request.user` when `customer_email=\"\"` is passed explicitly (empty string is falsy). Spec/FR-005 doesn't define behavior for an explicitly-empty override vs. an absent one, and no acceptance scenario or test covers it. Not a defect against any stated requirement — flagging only as an unspecified edge case, not a finding."
+  ]
+}
