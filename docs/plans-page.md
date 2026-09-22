@@ -130,8 +130,28 @@ provider's own library — it emits no message of its own and fetches nothing:
 <script defer src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
 ```
 
-## Replacing the page
+## Replacing the component or the page
+
+Two different things can be replaced, and what each keeps differs.
+
+### Replacing the component
+
+Supply your own `cotton/drf_stripe/pricing_table.html`, earlier on the template search path than
+this package, and every `<c-drf-stripe.pricing-table>` tag renders it instead — no view and no
+query of your own is needed. The shipped page still calls the component with the same two
+attributes, so this changes only what the tag itself renders; the page's URL, its
+`LoginRequiredMixin`, its context and its unavailable-state branch all stay the shipped page's.
+
+### Replacing the page
 
 Supply your own template at `mvp_payments/drf_stripe/plans.html`, earlier on the template search
 path than this package, and it is used instead — no view, no context processor and no query of
-your own is needed, and `pricing_table_id` and `publishable_key` are already in the context.
+your own is needed, and `pricing_table_id` and `publishable_key` are already in the context. This
+replaces everything the template decides, including whether to use the component at all; only the
+view underneath it — the URL, `LoginRequiredMixin`, and the two names it puts in the context —
+stays the shipped page's.
+
+Django's app-directories template loader checks `INSTALLED_APPS` in order and uses the first
+match it finds, so your own application needs to appear before `mvp_payments` in that list for its
+copy to be found first — the same mechanism that requires this package itself to precede `mvp`
+(see the README's Install step).
