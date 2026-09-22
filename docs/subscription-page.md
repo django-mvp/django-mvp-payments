@@ -22,7 +22,7 @@ disagree with the rest of your application on the day the backend's line moved.
 
 ## The context
 
-`SubscriptionPageView` adds two names to the template context:
+`SubscriptionPageView` adds three names to the template context:
 
 `subscriptions`
 : A tuple of `CurrentSubscription`, newest first, for the person making the request. Empty for
@@ -34,6 +34,11 @@ disagree with the rest of your application on the day the backend's line moved.
   absent, and `None` for a person with no current subscription even when it is set — the backend's
   endpoint creates a customer at the provider for whoever posts to it, so it is never offered to
   someone with nothing to manage.
+
+`plans_url`
+: Where the plans page is mounted. The plans page is not in the Account Center's navigation, so
+  this page carries the way to it. Unlike the portal, it is offered to everybody: a person with no
+  subscription is exactly who needs it.
 
 Everything else on the page is reached through those two names. If you override the template you
 have all of it, and you need no view, no context processor and no query of your own.
@@ -101,7 +106,7 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Six components render the page. You can place any of them in a template of your own, and each
+Seven components render the page. You can place any of them in a template of your own, and each
 renders from the attributes you give it — with one exception, noted against the component it
 applies to.
 
@@ -110,6 +115,7 @@ applies to.
 <c-drf-stripe.plan :plan="plan" />
 <c-drf-stripe.amount :amount="plan.amount" />
 <c-drf-stripe.features :features="plan.features" />
+<c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
 <c-drf-stripe.no-subscription />
 ```
@@ -129,6 +135,12 @@ applies to.
 `<c-drf-stripe.features>`
 : A plan's `features`, one line each, its description where the project gave one and its
   identifier otherwise. Given none, renders nothing at all — no heading and no empty list.
+
+`<c-drf-stripe.plans-link>`
+: Given a `url`, a control leading to the plans page. `subscribed` decides its wording: somebody
+  already on a plan is offered a switch, and somebody who is not is invited to choose one, because
+  "switch plans" reads as a mistake to a person with nothing to switch from. Given no `url` it
+  renders nothing at all rather than a control leading nowhere.
 
 `<c-drf-stripe.portal-link>`
 : Given an `endpoint`, a control that posts to it and follows the address the backend answers
@@ -202,6 +214,7 @@ precede `mvp` (see the README's Install step).
     {% empty %}
       <c-drf-stripe.no-subscription />
     {% endfor %}
+    <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
     {% if subscriptions %}
       <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
     {% endif %}

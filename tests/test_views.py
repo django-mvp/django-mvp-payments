@@ -97,7 +97,6 @@ class TestPaymentPage:
         [
             ("drf-stripe-subscription", "Subscription"),
             ("drf-stripe-plans", "Plans"),
-            ("drf-stripe-billing", "Billing"),
         ],
     )
     def test_signed_in_person_sees_the_page_inside_the_account_center(
@@ -191,7 +190,7 @@ class TestURLsNotMounted:
         # left with no visible children, so the label cannot outlive the
         # entries it was heading.
         for region in account_navigation_regions(content):
-            assert ">Payments<" not in region
+            assert ">Billing<" not in region
 
         # No card: its link would need a URL name that cannot reverse here.
         cards = account_center_cards_region(content)
@@ -326,6 +325,35 @@ class TestSubscriptionPage:
         control_index = content.index("data-mvp-payments-portal-link")
         assert control_index > status_index
         assert 'src="/static/mvp_payments/drf_stripe/billing_portal.js"' in content
+
+    def test_the_portal_control_offers_to_manage_the_subscription(
+        self, subscriber_client
+    ):
+        """The control names what it manages, now that no page is named for it."""
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert "Manage subscription" in content
+        assert "Manage billing" not in content
+
+    def test_a_subscriber_is_offered_the_way_to_switch_plans(self, subscriber_client):
+        """The plans page left the navigation, so this control is how it is reached."""
+        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert f'href="{reverse("payments:drf-stripe-plans")}"' in content
+        assert "Switch plans" in content
+
+    def test_someone_with_no_subscription_is_invited_to_choose_one(self, user):
+        """ "Switch plans" reads wrong to somebody who is not on one yet."""
+        client = self._client_for(user)
+
+        response = client.get(reverse("payments:drf-stripe-subscription"))
+        content = response.content.decode()
+
+        assert f'href="{reverse("payments:drf-stripe-plans")}"' in content
+        assert "Choose a plan" in content
+        assert "Switch plans" not in content
 
     def test_the_portal_control_carries_a_usable_csrf_token(self, subscriber_client):
         """Empty here and the control posts a request Django rejects, every time.

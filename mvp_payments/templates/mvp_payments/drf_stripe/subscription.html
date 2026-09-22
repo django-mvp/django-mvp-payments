@@ -7,6 +7,7 @@
     {% empty %}
       <c-drf-stripe.no-subscription />
     {% endfor %}
+    <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
     {% if subscriptions %}
       <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
     {% endif %}

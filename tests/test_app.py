@@ -36,7 +36,7 @@ client.login(username="person", password="password")
 response = client.get(reverse("account-center"))
 
 reverses = {}
-for name in ("drf-stripe-subscription", "drf-stripe-plans", "drf-stripe-billing"):
+for name in ("drf-stripe-subscription", "drf-stripe-plans"):
     try:
         reverse(f"payments:{name}")
         reverses[name] = True
@@ -189,7 +189,6 @@ class TestNothingWithoutABackend:
         assert result["reverses"] == {
             "drf-stripe-subscription": False,
             "drf-stripe-plans": False,
-            "drf-stripe-billing": False,
         }
 
     def test_account_center_shows_no_card_from_the_absent_backend(self) -> None:

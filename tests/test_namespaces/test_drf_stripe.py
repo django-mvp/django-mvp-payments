@@ -13,17 +13,19 @@ class TestDrfStripeContribution:
     def test_names_the_backends_application_label(self):
         assert drf_stripe.backend_app_name == "drf_stripe"
 
-    def test_declares_exactly_three_pages_with_the_expected_slugs(self):
-        assert [page.slug for page in drf_stripe.pages] == [
-            "subscription",
-            "plans",
-            "billing",
+    def test_declares_exactly_two_pages_with_the_expected_slugs(self):
+        assert [page.slug for page in drf_stripe.pages] == ["subscription", "plans"]
+
+    def test_only_the_subscription_page_is_in_the_navigation(self):
+        """The plans page is reached from the subscription page, not from the menu."""
+        assert [page.slug for page in drf_stripe.pages if page.in_navigation] == [
+            "subscription"
         ]
 
     def test_every_page_label_is_translatable(self):
         assert all(isinstance(page.label, Promise) for page in drf_stripe.pages)
 
-    def test_signed_in_person_sees_one_navigation_entry_per_page(
+    def test_signed_in_person_sees_one_navigation_entry_per_navigated_page(
         self, logged_in_client
     ):
         content = logged_in_client.get(reverse("account-center")).content.decode()
@@ -36,7 +38,8 @@ class TestDrfStripeContribution:
         assert len(regions) == 2
         for region in regions:
             for page in drf_stripe.pages:
-                assert region.count(f">{page.label}</span>") == 1
+                expected = 1 if page.in_navigation else 0
+                assert region.count(f">{page.label}</span>") == expected
 
     def test_the_pages_sit_under_one_labelled_group(self, logged_in_client):
         """A reader sees a named section, not three loose entries.
@@ -48,7 +51,8 @@ class TestDrfStripeContribution:
         content = logged_in_client.get(reverse("account-center")).content.decode()
 
         for region in account_navigation_regions(content):
-            assert region.count(">Payments<") == 1
-            group_at = region.index(">Payments<")
+            assert region.count(">Billing<") == 1
+            group_at = region.index(">Billing<")
             for page in drf_stripe.pages:
-                assert region.index(f">{page.label}</span>") > group_at
+                if page.in_navigation:
+                    assert region.index(f">{page.label}</span>") > group_at

@@ -38,6 +38,13 @@ class Page:
     template_name: str
     view: type[PaymentPageView] = PaymentPageView
 
+    #: Whether this page gets an entry in the Account Center's navigation.
+    #: A page set ``False`` is still routed and still reverses; it is reached
+    #: from somewhere else, the way the plans page is reached from a control
+    #: on the subscription page. Reachable and navigable are different
+    #: questions, and only the second is a menu's business.
+    in_navigation: bool = True
+
 
 @dataclass(frozen=True)
 class Contribution:
@@ -80,18 +87,31 @@ class Contribution:
         return True
 
     def url_patterns(self) -> list[URLPattern]:
-        """One route per declared page, named ``<namespace>-<page slug>``."""
+        """One route per declared page, named ``<namespace>-<page slug>``.
+
+        Every page is routed, including one kept out of the navigation. The
+        view is handed this contribution as well as its own page, which is
+        how a page addresses a sibling without a second copy of the URL-name
+        format living in a template.
+        """
         return [
             path(
                 f"{self.namespace}/{page.slug}/",
-                page.view.as_view(page=page),
+                page.view.as_view(page=page, contribution=self),
                 name=self.url_name(page),
             )
             for page in self.pages
         ]
 
+    def page_url(self, slug: str) -> str:
+        """The address of one of this contribution's own pages, by slug."""
+        for page in self.pages:
+            if page.slug == slug:
+                return reverse(self.view_name(page))
+        raise LookupError(f"{self.namespace} declares no page with slug {slug!r}")
+
     def register(self) -> None:
-        """Add this namespace's group, holding one entry per page.
+        """Add this namespace's group, holding one entry per navigated page.
 
         One labelled group rather than a run of entries at the top level: the
         Account Center is shared with whatever else a project installed, and
@@ -117,6 +137,7 @@ class Contribution:
                         extra_context={"label": page.label, "icon": page.icon},
                     )
                     for page in self.pages
+                    if page.in_navigation
                 ],
             )
         )
