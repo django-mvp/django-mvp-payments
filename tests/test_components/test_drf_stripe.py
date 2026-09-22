@@ -222,3 +222,89 @@ class TestNoSubscription:
 
         assert "No current subscription" in html
         assert "You have no subscription that is currently active." in html
+
+
+class TestStandalone:
+    """Every component this feature added, placed inside a template that has nothing to do
+    with the shipped page, given only its attributes (T029, FR-012, SC-006).
+
+    ``cotton_render`` above proves each component renders in isolation; this gathers the
+    single guarantee SC-006 names by placing the same tags inside markup of a template's own
+    that no view of this package's ever produces, confirming nothing here depends on being
+    reached through ``SubscriptionPageView``.
+    """
+
+    def test_amount_renders_inside_an_unrelated_template(self, cotton_render_string):
+        html = cotton_render_string(
+            '<article><h2>Order summary</h2><c-drf-stripe.amount :amount="amount" /></article>',
+            context={"amount": Money(minor_units=2000, currency="USD")},
+        )
+
+        assert "Order summary" in html
+        assert "20.00 USD" in html
+
+    def test_plan_renders_inside_an_unrelated_template(self, cotton_render_string):
+        plan = Plan(
+            name="Premium monthly",
+            amount=Money(minor_units=2500, currency="USD"),
+            frequency="month_1",
+            quantity=1,
+        )
+
+        html = cotton_render_string(
+            '<section><h1>Pricing</h1><c-drf-stripe.plan :plan="plan" /></section>',
+            context={"plan": plan},
+        )
+
+        assert "Pricing" in html
+        assert "Premium monthly" in html
+        assert "25.00 USD" in html
+
+    def test_subscription_renders_inside_an_unrelated_template(
+        self, cotton_render_string
+    ):
+        subscription = CurrentSubscription(
+            status="active", period_start=None, period_end=None, plans=()
+        )
+
+        html = cotton_render_string(
+            "<aside><h3>Dashboard widget</h3>"
+            '<c-drf-stripe.subscription :subscription="subscription" /></aside>',
+            context={"subscription": subscription},
+        )
+
+        assert "Dashboard widget" in html
+        assert "active" in html
+
+    def test_features_renders_inside_an_unrelated_template(self, cotton_render_string):
+        features = (PlanFeature(identifier="reports", description="Advanced reports"),)
+
+        html = cotton_render_string(
+            "<footer><p>What's included</p>"
+            '<c-drf-stripe.features :features="features" /></footer>',
+            context={"features": features},
+        )
+
+        assert "What's included" in html
+        assert "Advanced reports" in html
+
+    def test_portal_link_renders_inside_an_unrelated_template(
+        self, cotton_render_string
+    ):
+        html = cotton_render_string(
+            '<nav><span>Account</span><c-drf-stripe.portal-link :endpoint="endpoint" /></nav>',
+            context={"endpoint": "/api/stripe/customer-portal/"},
+        )
+
+        assert "Account" in html
+        assert 'data-endpoint="/api/stripe/customer-portal/"' in html
+
+    def test_no_subscription_renders_inside_an_unrelated_template(
+        self, cotton_render_string
+    ):
+        html = cotton_render_string(
+            "<main><h1>Welcome</h1><c-drf-stripe.no-subscription /></main>"
+        )
+
+        assert "Welcome" in html
+        assert "No current subscription" in html
