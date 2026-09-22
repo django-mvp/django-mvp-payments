@@ -423,3 +423,24 @@ a components-still-pure test for that backend's own component.
 
 **ADR:** none — a constitution amendment scoped to this feature's own pull request, per the
 specification's Assumptions.
+
+## D13 — T031 also corrects the sentence the new link sits beside, not just adds the link
+
+**Decision:** T031's brief asked only to link `docs/plans-page.md` from the README, beside the
+subscription page's own link. The paragraph that link sits in also said, in its next-to-last
+clause, that the plans page "do[es] not show anything yet" — a claim this story's own delivery
+makes false. That clause is corrected in the same commit, narrowed to name the billing page (the
+one still actually unbuilt) instead of "the other two".
+
+**Why:** the correction is not adjacent tidying — it is the same paragraph, the same sentence run,
+as the link this task adds, and the two would directly contradict each other if left as they were:
+a link captioned "covers the plans page: the component it mounts..." immediately following a
+sentence saying that page shows nothing. Leaving it would have made the documentation less
+accurate at the exact point this task touches it, which the standing convention on public markdown
+("edit a document to read as current state") weighs against. It stops there: the `## Status`
+section, a few lines above and outside the paragraph this task edits, carries the same stale claim
+and is left alone — noted in this story's completion report as a concern for Forge to route,
+consistent with `craft-increments`' scope discipline.
+
+**ADR:** none — a documentation-accuracy correction local to the sentence this task already
+touches.
