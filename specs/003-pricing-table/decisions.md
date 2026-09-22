@@ -1,0 +1,112 @@
+# Decisions — 003 Offer plans through the provider's own pricing table
+
+Rationale too long to sit inside `spec.md`, plus every ambiguity resolved without asking the
+maintainer. The specification stands alone. This file records why it says what it says.
+
+## Why the provider's embed is the default and no plan selection is built
+
+The first reading of this feature built a plan grid from the backend's own records: prices,
+billing frequencies, the features recorded against each product, the plan the reader is already on
+marked as theirs. The backend supports all of it. The maintainer rejected that shape in favour of
+rendering the provider's published pricing table, and the reason is worth keeping.
+
+A project adopting this package has already adopted the backend, and the backend's own
+documentation points its readers at the provider's embed. That is the path of least resistance for
+every adopter, it requires no markup from anyone, and the provider maintains it. Building a grid
+first means building the harder thing, carrying it forever, and maintaining it against a provider
+whose catalogue model changes, in service of a requirement nobody has made.
+
+The grid is not refused, it is deferred until somebody asks for it. FR-012 is what makes that
+deferral safe: a project that wants its own markup replaces the component or the page template and
+keeps everything else. If that override turns out to be what most adopters do, the grid has earned
+its place and can be built with evidence behind it.
+
+The cost is stated rather than hidden. An embed is configured in the provider's dashboard from the
+provider's catalogue, so it carries the provider's styling and knows nothing about the person
+reading it. It cannot mark the plan someone is on, leave out what they cannot buy, or describe what
+a plan grants inside the application. A project that needs any of those is a project that overrides
+the component.
+
+## Why the script element is not emitted
+
+The provider's dashboard issues a script element and a custom element together, and every example
+in its documentation pastes both. This package emits only the second.
+
+Article XIII is the rule, and it is not tidiness. A package that injected a script element would
+add a third-party origin to every project that installed it, whether or not that project had
+agreed to one. Delivery of a provider's library is a decision projects already make, in whatever
+way they already manage their frontend, and it differs between a project using a bundler, one using
+an import map and one using a tag. The article anticipated this exact case and says so: a component
+wrapping an embed emits the mount point, and the project brings it to life.
+
+The demonstration project loads the library from the provider's own network with a tag, which is
+the simplest thing that works and is labelled as a demonstration convenience rather than a
+recommendation.
+
+## Why the page may read a publishable key from settings and the component may not
+
+Article XIII currently says a publishable key "is never read from Django settings here" and reaches
+a component as an attribute. Applied literally to this feature, the shipped Plans page cannot work:
+nobody is passing it attributes, because the whole point of that page is that a project writes no
+template for it.
+
+The article's reasoning is about who owns delivery and configuration, not about secrecy. A
+publishable key identifies an account and is designed to sit in markup a browser downloads. The
+provider prints it in its own copy-paste examples. Nothing is protected by keeping it out of a
+settings file, and the real property worth preserving is that the component stays free of hidden
+configuration, so it renders anywhere a template author places it.
+
+The split preserves that property exactly. The component takes both values as attributes and reads
+no settings, so it is placeable on any page in any project. The Plans page reads the project's
+settings and passes them down, which is the same thing it already does for the backend's portal
+endpoint. The article's text is narrowed to the component by the work implementing this spec.
+
+The alternative considered was a shipped page that renders nothing until a project subclasses its
+view to supply the values. That defeats the goal the page exists for, which is that a working page
+arrives without the project building one.
+
+## Why the signed-in person's email address is passed
+
+This is the one decision here that prevents a defect rather than shaping an interface.
+
+The backend maps a provider customer back to an application user by **email address alone**. Its
+customer lookup retrieves the customer from the provider, reads the address, and finds the
+application user holding it. There is no other identifier in the path. The provider's pricing table
+does support a reference value meant for exactly this reconciliation, and the backend reads it
+nowhere.
+
+The consequence for a person buying through an embed is concrete. They are signed in, they click a
+plan, they land on the provider's checkout, and the address field is empty. They type whichever
+address they think of. If it is not the one on their account, one of two things happens. Where the
+project has not configured user creation, the backend raises when the purchase arrives and the
+subscription attaches to nobody. Where it has, a second application user is created around the
+address they typed, and the person who paid still sees nothing on their own subscription page.
+
+Passing the account's address closes it, costs one attribute, and is what the provider's
+documentation describes the attribute for. An attribute supplied by a template author wins, because
+a project placing the component on a page of its own may have a better answer than the session
+does.
+
+## Why the unavailable state is stated rather than shown
+
+The provider's custom element renders as nothing at all when it cannot work, whether because the
+script never loaded, the values are missing, or the origin is blocked. A page in that state is not
+obviously broken. It looks finished and empty, which is the worst way for a first run to fail,
+because there is nothing in it to search for.
+
+So the absence is stated. Where the configuration is missing the page says the plans cannot be
+shown and emits no element at all, which is a server-side fact the page already knows. Where the
+element was emitted and never came to life, the reader is told the plans could not be loaded, which
+is only knowable in the browser and is the same shape as the existing portal control's failure
+message.
+
+## What this feature does to the roadmap
+
+R3 and R4 were written as two features: a native plan selection, and an embed offered as the
+alternative to it. This feature delivers the embed as the default and defers the selection, so the
+two items now describe one piece of work and one deferred idea.
+
+Reconciling the roadmap text is a separate change and does not belong in a specification pull
+request. The related intake issue for a checkout handoff is also superseded, because the pricing
+table sends a person into the provider's checkout itself, and it is closed with that reason
+recorded rather than left open as work nobody will do.
