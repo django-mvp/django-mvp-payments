@@ -69,8 +69,14 @@ DRF_STRIPE = {
 # Where this project mounted the backend's own billing-portal endpoint
 # (demo/urls.py). The endpoint carries no route name, so the subscription
 # page has to be told where it is rather than assuming (D3, FR-006).
+#
+# The pricing table id and publishable key are this demonstration's own,
+# obviously fake values — not a real table, not a real account — for the
+# Plans page to mount the provider's pricing table with (T009).
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
+    "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_not_a_real_table",
+    "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_not_a_real_key",
 }
 
 SITE_ID = 1
