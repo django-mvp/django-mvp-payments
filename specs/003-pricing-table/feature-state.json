@@ -238,47 +238,71 @@
       "priority": "P1",
       "issue": 28,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
           "id": "T012",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPricingTable::test_a_signed_in_person_with_an_address_carries_it_as_customer_email",
+              "tests/test_components/test_drf_stripe.py::TestPricingTable::test_a_signed_in_person_with_no_address_carries_no_customer_email_attribute",
+              "tests/test_components/test_drf_stripe.py::TestPricingTable::test_an_anonymous_visitor_carries_no_customer_email_attribute",
+              "tests/test_components/test_drf_stripe.py::TestPricingTable::test_an_explicit_customer_email_wins_over_the_signed_in_persons_address"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v"
+            ],
+            "code": [
+              "tests/test_components/test_drf_stripe.py:43"
+            ]
           }
         },
         {
           "id": "T013",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_views.py::TestPlansPage::test_the_element_carries_the_signed_in_persons_own_address"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_views.py::TestPlansPage -v"
+            ],
+            "code": [
+              "tests/test_views.py:162"
+            ]
           }
         },
         {
           "id": "T014",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
-            "tests": [],
-            "commands": [],
-            "code": []
+            "tests": [
+              "tests/test_components/test_drf_stripe.py::TestPricingTable",
+              "tests/test_views.py::TestPlansPage"
+            ],
+            "commands": [
+              "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable tests/test_views.py::TestPlansPage -v"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/drf_stripe/pricing_table.html:1"
+            ]
           }
         },
         {
           "id": "T015",
-          "status": "todo",
-          "attempts": 0,
+          "status": "done",
+          "attempts": 1,
           "evidence": {
             "tests": [],
             "commands": [],
-            "code": []
+            "code": [
+              "docs/plans-page.md:1"
+            ]
           }
         }
       ]
