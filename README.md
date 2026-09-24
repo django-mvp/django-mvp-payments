@@ -157,10 +157,10 @@ laid out.
 ## Running the demo
 
 ```bash
-poetry install
-poetry run python manage.py migrate
-poetry run python manage.py seed_demo
-poetry run python manage.py runserver 8020
+uv sync
+uv run python manage.py migrate
+uv run python manage.py seed_demo
+uv run python manage.py runserver 8020
 ```
 
 Sign in as `regular.user`, `staff.user` or `super.user`, password `password`. Out of the box the
