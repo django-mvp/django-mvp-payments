@@ -27,7 +27,7 @@ provider's library never arrived. Nothing here is stable.
 
 - Python 3.12+
 - Django 5.2 or 6.0
-- django-mvp 0.23.0+
+- django-mvp 0.24.0+
 - A payment backend of your choosing, installed and configured separately
 
 ## Install

@@ -29,9 +29,6 @@ urlpatterns = [
     # The Account Center is django-mvp's, and this package contributes pages to
     # it. A project mounts it once; so does this demo.
     path("account/", include("mvp.urls")),
-    # Every page this package contributes requires a signed-in person, so the
-    # demo needs somewhere to sign in.
-    path("accounts/", include("django.contrib.auth.urls")),
 ]
 
 if apps.is_installed("drf_stripe"):

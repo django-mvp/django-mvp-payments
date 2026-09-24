@@ -182,7 +182,7 @@ class TestPaymentPage:
         response = client.get(reverse("payments:drf-stripe-subscription"))
 
         assert response.status_code == 302
-        assert response.url.startswith(reverse("login"))
+        assert response.url.startswith(reverse("account_login"))
 
 
 def _content_region(content: str) -> str:
@@ -266,7 +266,7 @@ class TestPlansPage:
         response = client.get(reverse("payments:drf-stripe-plans"))
 
         assert response.status_code == 302
-        assert response.url.startswith(reverse("login"))
+        assert response.url.startswith(reverse("account_login"))
 
     def test_renders_with_mvp_payments_absent_from_settings_entirely(
         self, logged_in_client, settings

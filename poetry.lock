@@ -757,19 +757,19 @@ django = ">=4.2"
 
 [[package]]
 name = "django-flex-menus"
-version = "0.4.3"
+version = "0.4.6"
 description = "Flexible site menus for Django"
 optional = false
-python-versions = "<4.0,>=3.11"
+python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "django_flex_menus-0.4.3-py3-none-any.whl", hash = "sha256:35de7cdbc3d7798ac35cd661f87b0197bcaba35f5f5bd62732ab3654d9f9f534"},
-    {file = "django_flex_menus-0.4.3.tar.gz", hash = "sha256:26a6f0d627c8e6108041cfc1f997bd09d130b86ab07ace78349f6dbe312e3417"},
+    {file = "django_flex_menus-0.4.6-py3-none-any.whl", hash = "sha256:05a20d93c315ceacb3350dea6363fafa755a7d564da3ee58acf5aa7b51824b56"},
+    {file = "django_flex_menus-0.4.6.tar.gz", hash = "sha256:0b3bba51246143206dbc5891467ab1927fb56296582855911afe43393e4c031f"},
 ]
 
 [package.dependencies]
 anytree = ">2"
-django = ">=4.2,<5.3"
+django = ">=5.2"
 
 [[package]]
 name = "django-model-info"
@@ -791,14 +791,14 @@ rich = ">=13"
 
 [[package]]
 name = "django-mvp"
-version = "0.23.0"
+version = "0.24.0"
 description = "MVP framework for Django - scaffold production-ready applications with sophisticated layouts and UI patterns designed for data-centric applications."
 optional = false
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "django_mvp-0.23.0-py3-none-any.whl", hash = "sha256:deeb8ab10596a7cf6401bba1e377eb3cfee705d26af9cd300c48ce19812b6615"},
-    {file = "django_mvp-0.23.0.tar.gz", hash = "sha256:568bc9c25cf0330218608b0d5ad0217864c6b140119e068a6e5cf8b05e346426"},
+    {file = "django_mvp-0.24.0-py3-none-any.whl", hash = "sha256:969a2b991d090064b777d96712317972745ac57e0b7566659759dcc8417da3b8"},
+    {file = "django_mvp-0.24.0.tar.gz", hash = "sha256:afe4bbf3f946673a1bfbb21ebc7a43f247cb1db7a9819a5878fdd9b30d2315a8"},
 ]
 
 [package.dependencies]
@@ -807,7 +807,7 @@ django = ">=5.2"
 django-cotton = "2.6.1"
 django-crispy-forms = ">=2.7,<3.0"
 django-easy-icons = ">=0.6"
-django-flex-menus = ">=0.4.3"
+django-flex-menus = ">=0.4.5"
 mergedeep = ">=1.3,<2.0"
 
 [[package]]
@@ -3163,4 +3163,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "0e649fd3f02bd9d9122f19119c54b533ed5aee4108bef0082bd9944c745351ed"
+content-hash = "9029e3061d669e7d21edcbd799b3eb1555655a93c265e28e723febc95c5d05b7"

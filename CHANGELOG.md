@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Requires django-mvp 0.24.0 or later. The demo now signs in and out through django-mvp's own
+  development pages (`LOGIN_URL = "account_login"`) in place of Django's, which fixes its sign-out
+  control. That control is drawn only when `account_logout` resolves, and Django's logout view
+  refuses the plain link a project without it would need.
 - **A subscriber no longer sees the pricing table.** It cannot show which plan they are on, and
   buying from it started a second subscription beside the first. The plans page now sends them to
   their subscription page, and "Switch plans" there opens the provider's plan-change screen instead

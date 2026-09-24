@@ -187,12 +187,12 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
 CRISPY_TEMPLATE_PACK = "tailwind"
 
 # Where a view that requires a signed-in person sends everyone else, and where
-# signing in returns to. Django's default for the first is /accounts/login/,
-# which is where demo/urls.py mounts it, but stating it keeps the demo honest
-# about the contract a host project is expected to have.
-LOGIN_URL = "login"
+# signing in returns to. The sign-in and sign-out pages are django-mvp's own
+# development pages, registered by the Account Center's URLconf under these
+# names. The shell's sign-out control is drawn only when `account_logout`
+# resolves, and it submits a form, which Django's logout view requires.
+LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "account-center"
-LOGOUT_REDIRECT_URL = "home"
 
 # Which class draws the sidebar tree declared in demo/menus.py, and which draws
 # the dock shown below the sidebar breakpoint. Neither key is checked at
