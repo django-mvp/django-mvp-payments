@@ -3,9 +3,11 @@ from django.urls import include, path
 
 from demo.views import (
     BillingPortalView,
+    BillingReturnView,
     HomeView,
     NoLibraryView,
     PlansUnconfiguredView,
+    PlanSwitchView,
 )
 
 urlpatterns = [
@@ -49,4 +51,14 @@ if apps.is_installed("drf_stripe"):
     # project's and the backend's URLconf is left exactly as it ships.
     urlpatterns.append(
         path("api/billing-portal/", BillingPortalView.as_view(), name="billing-portal")
+    )
+    # The same, opened on the provider's plan-change screen, which the
+    # subscription page's "Switch plans" control is pointed at.
+    urlpatterns.append(
+        path("api/plan-switch/", PlanSwitchView.as_view(), name="plan-switch")
+    )
+    # Where the provider sends a reader back to, so the demo can refresh the
+    # backend's records before showing them (demo/views.py says why).
+    urlpatterns.append(
+        path("billing/return/", BillingReturnView.as_view(), name="billing-return")
     )

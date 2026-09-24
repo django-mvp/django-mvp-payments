@@ -50,7 +50,8 @@ address — the `customer-email` attribute is omitted entirely rather than emitt
 
 ## The page
 
-`PlansPageView` adds two names to the template context, read from your settings at render time:
+`PlansPageView` adds four names to the template context. The first two are read from your
+settings at render time:
 
 `pricing_table_id`
 : `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` — the pricing table's id, from the provider's
@@ -60,6 +61,12 @@ address — the `customer-email` attribute is omitted entirely rather than emitt
 : `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]` — the account's publishable key. `None` when the
   setting is absent.
 
+`subscriptions`
+: The person's current subscriptions, as the subscription page reads them.
+
+`subscription_url`
+: Where the subscription page is mounted.
+
 ```python
 MVP_PAYMENTS = {
     "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_...",
@@ -68,7 +75,11 @@ MVP_PAYMENTS = {
 ```
 
 The shipped page renders the component when both values are present, and a plain sentence in
-their place when either is absent. It keeps `LoginRequiredMixin`, so an anonymous visitor is sent
+their place when either is absent. Somebody who already has a subscription gets neither. They see
+`<c-drf-stripe.already-subscribed>` instead, which says they already have one and links to their
+subscription page. The pricing table cannot show which plan they are on, and buying from it starts
+a second subscription beside the first. Changing plan happens on the provider's plan-change screen,
+reached from the subscription page's "Switch plans" control. It keeps `LoginRequiredMixin`, so an anonymous visitor is sent
 to sign in rather than shown the page.
 
 ```html
@@ -76,7 +87,9 @@ to sign in rather than shown the page.
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
-    {% if pricing_table_id and publishable_key %}
+    {% if subscriptions %}
+      <c-drf-stripe.already-subscribed :url="subscription_url" />
+    {% elif pricing_table_id and publishable_key %}
       <c-drf-stripe.pricing-table :table_id="pricing_table_id"
                                    :publishable_key="publishable_key" />
     {% else %}

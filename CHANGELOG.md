@@ -45,8 +45,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   show: the sentence it renders when either setting is missing, and a message revealed in the
   browser when the provider's library never arrived. Both are translatable, and neither leaves a
   reader looking at empty space.
+- `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`, naming an endpoint of the project's own that opens the
+  provider's plan-change screen for a subscriber's existing subscription. "Switch plans" posts to
+  it. `docs/subscription-page.md` says what the endpoint does, and the demo has a working one.
+- `<c-drf-stripe.already-subscribed>`, shown on the plans page to somebody who already has a
+  subscription, with a link to their subscription page.
 
 ### Changed
+
+- **A subscriber no longer sees the pricing table.** It cannot show which plan they are on, and
+  buying from it started a second subscription beside the first. The plans page now sends them to
+  their subscription page, and "Switch plans" there opens the provider's plan-change screen instead
+  of linking to the plans page. Without `DRF_STRIPE_PLAN_SWITCH`, a subscriber is offered no switch
+  control. `<c-drf-stripe.plans-link>` takes a new `switch_endpoint` attribute.
+- A price synchronised by the backend on Python 3.12 or later shows its billing frequency in words.
+  The backend stores `RecurringInterval.MONTH_1` there instead of `month_1`, and the frequency was
+  shown as that raw text.
 
 - The rule forbidding a publishable key to be read from Django settings now applies to a
   component rather than to the whole package. A page this package ships may read it and pass it

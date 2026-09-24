@@ -1,25 +1,38 @@
 {% load i18n %}
 {# ============================================================ #}
-{# <c-drf-stripe.plans-link> — the way to the plans page        #}
+{# <c-drf-stripe.plans-link> — the way to another plan           #}
 {#                                                                #}
 {# Props:                                                        #}
-{#   url        – where the plans page is mounted                 #}
-{#   subscribed – whether this reader is on a plan already        #}
+{#   url             – where the plans page is mounted            #}
+{#   subscribed      – whether this reader is on a plan already   #}
+{#   switch_endpoint – the project's plan-change endpoint, or None#}
 {#                                                                #}
-{# The plans page is routed but not in the Account Center's      #}
-{# navigation, so this control is how a person reaches it.       #}
+{# Somebody on no plan gets a link to the plans page, worded as  #}
+{# a choice. Somebody on a plan gets "Switch plans", which posts #}
+{# to switch_endpoint and follows the provider's plan-change     #}
+{# screen — never the plans page, whose pricing table cannot     #}
+{# tell them which plan they are on and would sell them a second #}
+{# subscription. Without an endpoint a subscriber gets nothing   #}
+{# here: the control is suppressed rather than pointed somewhere #}
+{# that does the wrong thing.                                    #}
 {#                                                                #}
-{# Two wordings rather than one: "Switch plans" reads as a       #}
-{# mistake to somebody who is not on a plan yet, and they are    #}
-{# the readers who most need the link.                           #}
+{# The subscriber's control carries the same data attributes as #}
+{# <c-drf-stripe.portal-link>, so billing_portal.js binds it     #}
+{# too. It reads {{ csrf_token }} from context for the same      #}
+{# reason that component does.                                   #}
 {# ============================================================ #}
-<c-vars url subscribed=False />
-{% if url %}
-  <a href="{{ url }}" class="btn btn-outline">
-    {% if subscribed %}
-      {% translate "Switch plans" %}
-    {% else %}
-      {% translate "Choose a plan" %}
-    {% endif %}
-  </a>
+<c-vars url subscribed=False switch_endpoint />
+{% if subscribed %}
+  {% if switch_endpoint %}
+    <div data-mvp-payments-portal-link
+         data-endpoint="{{ switch_endpoint }}"
+         data-csrf-token="{{ csrf_token }}">
+      <button type="button" class="btn btn-outline">{% translate "Switch plans" %}</button>
+      <p hidden data-mvp-payments-portal-link-failure class="text-sm text-error">
+        {% translate "Plans could not be changed right now. Try again later." %}
+      </p>
+    </div>
+  {% endif %}
+{% elif url %}
+  <a href="{{ url }}" class="btn btn-outline">{% translate "Choose a plan" %}</a>
 {% endif %}

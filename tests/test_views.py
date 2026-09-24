@@ -244,6 +244,24 @@ class TestPlansPage:
         content = _content_region(response.content.decode())
         assert 'customer-email="person@example.com"' in content
 
+    def test_a_subscriber_is_sent_to_their_subscription_instead_of_the_table(
+        self, subscriber_client
+    ):
+        """The table cannot say which plan they are on, and would sell them a second one."""
+        with override_settings(
+            MVP_PAYMENTS={
+                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+            }
+        ):
+            response = subscriber_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "stripe-pricing-table" not in content
+        assert "You already have a subscription" in content
+        assert f'href="{reverse("payments:drf-stripe-subscription")}"' in content
+
     def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
         response = client.get(reverse("payments:drf-stripe-plans"))
 
@@ -567,19 +585,54 @@ class TestSubscriptionPage:
             re.S,
         )
         assert row is not None
+        # Both controls carry the portal-link attributes the same script binds, so
+        # their order is read from their labels.
         assert "Switch plans" in row.group(1)
-        assert "data-mvp-payments-portal-link" in row.group(1)
+        assert "Manage subscription" in row.group(1)
         assert row.group(1).index("Switch plans") < row.group(1).index(
-            "data-mvp-payments-portal-link"
+            "Manage subscription"
         )
 
-    def test_a_subscriber_is_offered_the_way_to_switch_plans(self, subscriber_client):
-        """The plans page left the navigation, so this control is how it is reached."""
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
-        content = response.content.decode()
+    def test_a_subscriber_switches_through_the_plan_change_endpoint(
+        self, subscriber_client
+    ):
+        """Not the plans page: its pricing table would start a second subscription."""
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
+        ):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+        content = _content_region(response.content.decode())
 
-        assert f'href="{reverse("payments:drf-stripe-plans")}"' in content
+        assert response.context["plan_switch_endpoint"] == "/api/plan-switch/"
         assert "Switch plans" in content
+        assert 'data-endpoint="/api/plan-switch/"' in content
+        assert f'href="{reverse("payments:drf-stripe-plans")}"' not in content
+
+    def test_without_a_plan_change_endpoint_a_subscriber_is_offered_no_switch(
+        self, subscriber_client
+    ):
+        with override_settings(MVP_PAYMENTS={}):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+        content = _content_region(response.content.decode())
+
+        assert response.context["plan_switch_endpoint"] is None
+        assert "Switch plans" not in content
+
+    def test_the_plan_change_endpoint_is_withheld_from_somebody_with_no_subscription(
+        self, user
+    ):
+        client = self._client_for(user)
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
+        ):
+            response = client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.context["plan_switch_endpoint"] is None
+        assert "/api/plan-switch/" not in response.content.decode()
 
     def test_someone_with_no_subscription_is_invited_to_choose_one(self, user):
         """ "Switch plans" reads wrong to somebody who is not on one yet."""

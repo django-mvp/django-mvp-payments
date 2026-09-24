@@ -301,10 +301,12 @@ class TestBillingPortalHandoff:
 
         assert create.call_args.kwargs["customer"] == "cus_a_real_looking_one"
 
-    def test_the_reader_is_sent_back_to_the_subscription_page(self, client, subscriber):
+    def test_the_reader_is_sent_back_through_the_refresh(self, client, subscriber):
         """The backend's default return address is a frontend on another port.
 
         A wrong one strands somebody on the provider's site with no way back that leads here.
+        The way back refreshes the backend's records first, so a change made in the portal
+        shows on arrival.
         """
         with patch(
             "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
@@ -312,9 +314,8 @@ class TestBillingPortalHandoff:
         ) as create:
             client.post(self.ENDPOINT)
 
-        assert create.call_args.kwargs["return_url"].endswith(
-            reverse("payments:drf-stripe-subscription")
-        )
+        assert create.call_args.kwargs["return_url"].endswith(reverse("billing-return"))
+        assert "flow_data" not in create.call_args.kwargs
 
     def test_somebody_with_no_customer_record_gets_no_portal(self, client):
         """And no customer is created for them by their asking (D7).
@@ -344,3 +345,187 @@ class TestBillingPortalHandoff:
 
         assert response.status_code == 302
         create.assert_not_called()
+
+
+@pytest.mark.django_db
+class TestPlanSwitchHandoff:
+    """The demo's way to the provider's plan-change screen, behind "Switch plans"."""
+
+    ENDPOINT = "/api/plan-switch/"
+    CREATE = "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
+
+    def test_it_opens_the_plan_change_screen_for_the_persons_current_subscription(
+        self, subscriber_client, current_subscription, stripe_user
+    ):
+        with patch(
+            self.CREATE,
+            return_value=SimpleNamespace(url="https://billing.example.com/flow"),
+        ) as create:
+            response = subscriber_client.post(self.ENDPOINT)
+
+        assert response.status_code == 200
+        assert response.json() == {"url": "https://billing.example.com/flow"}
+        kwargs = create.call_args.kwargs
+        assert kwargs["customer"] == stripe_user.customer_id
+        flow = kwargs["flow_data"]
+        assert flow["type"] == "subscription_update"
+        assert (
+            flow["subscription_update"]["subscription"]
+            == current_subscription.subscription_id
+        )
+        assert flow["after_completion"]["redirect"]["return_url"].endswith(
+            reverse("billing-return")
+        )
+
+    def test_somebody_with_nothing_current_has_nothing_to_switch(
+        self, logged_in_client, stripe_user
+    ):
+        with patch(self.CREATE) as create:
+            response = logged_in_client.post(self.ENDPOINT)
+
+        assert response.status_code == 409
+        create.assert_not_called()
+
+    def test_signing_in_is_required(self, client, db):
+        with patch(self.CREATE) as create:
+            response = client.post(self.ENDPOINT)
+
+        assert response.status_code == 302
+        create.assert_not_called()
+
+
+@pytest.mark.django_db
+class TestBillingReturn:
+    """Where the provider sends a reader back to: refresh, then the subscription page."""
+
+    SYNC = "drf_stripe.stripe_api.subscriptions.stripe_api_update_subscriptions"
+
+    def test_it_refreshes_from_the_provider_then_shows_the_subscription_page(
+        self, logged_in_client
+    ):
+        with patch(self.SYNC) as sync:
+            response = logged_in_client.get(reverse("billing-return"))
+
+        sync.assert_called_once_with(status="all", ignore_new_user_creation_errors=True)
+        assert response.status_code == 302
+        assert response.url == reverse("payments:drf-stripe-subscription")
+
+    def test_signing_in_is_required(self, client, db):
+        with patch(self.SYNC) as sync:
+            response = client.get(reverse("billing-return"))
+
+        assert response.status_code == 302
+        sync.assert_not_called()
+
+
+@pytest.mark.django_db
+class TestSeedDemoAgainstTheSandbox:
+    """With a sandbox key in ``demo/.env``, subscriptions are made at the provider.
+
+    The provider is never reached here. What is under test is who gets a subscription, that
+    nobody gets a second one, and that invented records never sit beside real ones.
+    """
+
+    @pytest.fixture
+    def sandbox(self, settings):
+        settings.DEV_ENV = {"STRIPE_TEST_SECRET_KEY": "sk_test_sandbox"}
+        stripe_module = "demo.management.commands.seed_demo.stripe"
+        with (
+            patch(f"{stripe_module}.Customer") as customer,
+            patch(f"{stripe_module}.Price") as price,
+            patch(f"{stripe_module}.Subscription") as subscription,
+            patch(f"{stripe_module}.PaymentMethod") as payment_method,
+            patch(
+                "drf_stripe.stripe_api.products.stripe_api_update_products_prices"
+            ) as pull_products,
+            patch(
+                "drf_stripe.stripe_api.subscriptions.stripe_api_update_subscriptions"
+            ) as pull_subscriptions,
+        ):
+            customer.list.return_value = SimpleNamespace(data=[])
+            customer.create.side_effect = lambda email, name: SimpleNamespace(
+                id=f"cus_{name}"
+            )
+            price.list.return_value = SimpleNamespace(
+                data=[
+                    self._price("price_yearly", 3600, "year"),
+                    self._price("price_dear", 999, "month"),
+                    self._price("price_cheap", 399, "month"),
+                ]
+            )
+            subscription.list.return_value = SimpleNamespace(data=[])
+            payment_method.attach.return_value = SimpleNamespace(id="pm_visa")
+            yield SimpleNamespace(
+                subscription=subscription,
+                pull_products=pull_products,
+                pull_subscriptions=pull_subscriptions,
+            )
+
+    @staticmethod
+    def _price(price_id, amount, interval):
+        return SimpleNamespace(
+            id=price_id,
+            unit_amount=amount,
+            recurring=SimpleNamespace(interval=interval, interval_count=1),
+        )
+
+    def test_each_subscriber_gets_one_on_the_cheapest_monthly_price(self, sandbox):
+        call_command("seed_demo")
+
+        created = {
+            call.kwargs["customer"]: call.kwargs
+            for call in sandbox.subscription.create.call_args_list
+        }
+        assert set(created) == {
+            "cus_regular.user",
+            "cus_staff.user",
+            "cus_other.subscriber",
+        }
+        for kwargs in created.values():
+            assert kwargs["items"] == [{"price": "price_cheap"}]
+        assert created["cus_staff.user"]["trial_period_days"] == 14
+        assert "trial_period_days" not in created["cus_regular.user"]
+
+    def test_somebody_already_subscribed_is_not_given_a_second(self, sandbox):
+        sandbox.subscription.list.return_value = SimpleNamespace(
+            data=[SimpleNamespace(status="active")]
+        )
+
+        call_command("seed_demo")
+
+        sandbox.subscription.create.assert_not_called()
+
+    def test_super_user_is_left_with_nothing(self, sandbox):
+        call_command("seed_demo")
+
+        StripeUser = apps.get_model("drf_stripe", "StripeUser")
+        user = get_user_model().objects.get(username="super.user")
+        assert not StripeUser.objects.filter(pk=user.pk).exists()
+
+    def test_invented_subscriptions_from_an_offline_run_are_removed(self, sandbox):
+        Subscription = apps.get_model("drf_stripe", "Subscription")
+        StripeUser = apps.get_model("drf_stripe", "StripeUser")
+        stripe_user = StripeUser.objects.create(
+            user=get_user_model().objects.create_user(username="leftover"),
+            customer_id="cus_leftover",
+        )
+        Subscription.objects.create(
+            subscription_id="sub_demo_regular",
+            stripe_user=stripe_user,
+            status="active",
+            cancel_at_period_end=False,
+        )
+
+        call_command("seed_demo")
+
+        assert not Subscription.objects.filter(
+            subscription_id__startswith="sub_demo_"
+        ).exists()
+
+    def test_the_backends_own_synchronisation_reads_everything_back(self, sandbox):
+        call_command("seed_demo")
+
+        sandbox.pull_products.assert_called_once_with()
+        sandbox.pull_subscriptions.assert_called_once_with(
+            status="all", ignore_new_user_creation_errors=True
+        )

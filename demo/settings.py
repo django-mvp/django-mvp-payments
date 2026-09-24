@@ -127,6 +127,10 @@ DRF_STRIPE = {
 # account — and the provider's embed reports that it could not load (T009).
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
+    # The same portal, opened on its plan-change screen for the reader's own
+    # subscription. The backend ships nothing for this, so it is this
+    # project's (demo/views.py).
+    "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
     "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
         "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
     ),

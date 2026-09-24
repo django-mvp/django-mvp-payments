@@ -70,16 +70,27 @@ class SubscriptionPageView(PaymentPageView):
     who never subscribed would create one by their clicking it (D5).
 
     And ``plans_url``: the plans page is no longer in the Account Center's navigation, so this
-    page carries the way to it. Offered to everyone, unlike the portal, because somebody with no
-    subscription is exactly who needs it.
+    page carries the way to it, for somebody with no subscription to choose one.
+
+    And ``plan_switch_endpoint``: where the project mounted an endpoint that opens the provider's
+    own plan-change screen for this person's subscription, read from the same settings. A
+    subscriber switches there rather than on the plans page, because the provider's pricing table
+    knows nothing of a current plan and a purchase through it starts a second subscription beside
+    the first. Suppressed for anyone with nothing current, as the portal is.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         subscriptions = SubscriptionReader.for_user(self.request.user)
+        mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["subscriptions"] = subscriptions
         context["billing_portal_endpoint"] = (
-            getattr(settings, "MVP_PAYMENTS", {}).get("DRF_STRIPE_BILLING_PORTAL")
+            mvp_payments_settings.get("DRF_STRIPE_BILLING_PORTAL")
+            if subscriptions
+            else None
+        )
+        context["plan_switch_endpoint"] = (
+            mvp_payments_settings.get("DRF_STRIPE_PLAN_SWITCH")
             if subscriptions
             else None
         )
@@ -94,10 +105,17 @@ class PlansPageView(PaymentPageView):
     ``settings.MVP_PAYMENTS`` at render time rather than assumed (Article XIV). Both default
     to ``None`` where the setting is not supplied — the surface a project overriding this
     page's template relies on.
+
+    Also adds ``subscriptions``, this person's current subscriptions, and ``subscription_url``.
+    Somebody already subscribed is sent back to the subscription page to switch rather than
+    shown the pricing table: it cannot tell them which plan they are on, and buying from it
+    starts a second subscription beside the one they have.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
+        context["subscriptions"] = SubscriptionReader.for_user(self.request.user)
+        context["subscription_url"] = self.get_contribution().page_url("subscription")
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["pricing_table_id"] = mvp_payments_settings.get(
             "DRF_STRIPE_PRICING_TABLE_ID"

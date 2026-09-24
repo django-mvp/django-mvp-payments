@@ -22,7 +22,7 @@ disagree with the rest of your application on the day the backend's line moved.
 
 ## The context
 
-`SubscriptionPageView` adds three names to the template context:
+`SubscriptionPageView` adds four names to the template context:
 
 `subscriptions`
 : A tuple of `CurrentSubscription`, newest first, for the person making the request. Empty for
@@ -35,12 +35,17 @@ disagree with the rest of your application on the day the backend's line moved.
   endpoint creates a customer at the provider for whoever posts to it, so it is never offered to
   someone with nothing to manage.
 
+`plan_switch_endpoint`
+: Where your project mounted an endpoint that opens the provider's plan-change screen for this
+  person's subscription, read from `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`. `None` when that
+  setting is absent, and `None` for a person with no current subscription. See
+  [Switching plans](#switching-plans).
+
 `plans_url`
 : Where the plans page is mounted. The plans page is not in the Account Center's navigation, so
-  this page carries the way to it. Unlike the portal, it is offered to everybody: a person with no
-  subscription is exactly who needs it.
+  this page carries the way to it, for a person with no subscription to choose one.
 
-Everything else on the page is reached through those two names. If you override the template you
+Everything else on the page is reached through `subscriptions`. If you override the template you
 have all of it, and you need no view, no context processor and no query of your own.
 
 ### `CurrentSubscription`
@@ -115,7 +120,8 @@ applies to.
 <c-drf-stripe.plan :plan="plan" />
 <c-drf-stripe.amount :amount="plan.amount" />
 <c-drf-stripe.features :features="plan.features" />
-<c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
+<c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions"
+                         :switch_endpoint="plan_switch_endpoint" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
 <c-drf-stripe.no-subscription />
 ```
@@ -137,10 +143,14 @@ applies to.
   identifier otherwise. Given none, renders nothing at all — no heading and no empty list.
 
 `<c-drf-stripe.plans-link>`
-: Given a `url`, a control leading to the plans page. `subscribed` decides its wording: somebody
-  already on a plan is offered a switch, and somebody who is not is invited to choose one, because
-  "switch plans" reads as a mistake to a person with nothing to switch from. Given no `url` it
-  renders nothing at all rather than a control leading nowhere.
+: The way to another plan, which depends on `subscribed`. Somebody on no plan gets "Choose a
+  plan", a link to `url`, the plans page. Somebody on a plan gets "Switch plans", which posts to
+  `switch_endpoint` and follows the provider's plan-change screen, the same way the portal control
+  works. A subscriber is never sent to the plans page, because the pricing table there cannot show
+  which plan they are on, and buying from it starts a second subscription beside the first. With no
+  `url` for the first case, or no `switch_endpoint` for the second, it renders nothing at all
+  rather than a control leading nowhere. The subscriber's control reads `{{ csrf_token }}` from
+  context, as the portal control does.
 
 `<c-drf-stripe.portal-link>`
 : Given an `endpoint`, a control that posts to it and follows the address the backend answers
@@ -210,6 +220,40 @@ package emits no `<script>` tag of its own:
 The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`, and
 points the setting at its own endpoint rather than the backend's for the reason above.
 
+## Switching plans
+
+A subscriber changes plan on the provider's own plan-change screen, not on the plans page. That
+screen shows the plan they are on, what the change costs and when it takes effect, and it changes
+the subscription they already have. The provider's pricing table knows none of that, and a
+purchase through it starts a second subscription.
+
+Neither the backend nor this package ships an endpoint that opens that screen. The backend has
+none, and this package may not call a provider. So, as with the portal, your project mounts one and
+tells the page where it is:
+
+```python
+MVP_PAYMENTS = {
+    "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
+}
+```
+
+It answers a `POST` with `{"url": ...}`, like the portal endpoint, and `billing_portal.js` binds
+the control the same way. The endpoint creates a billing portal session for the person's customer
+record with `flow_data` of type `subscription_update`, naming their current subscription.
+`PlanSwitchView` in `demo/views.py` is a working one.
+
+Two things are set in the provider's dashboard, not here:
+
+- **Which plans can be switched to.** The customer portal's settings list the products and prices a
+  subscriber may move between. With none listed, the plan-change screen has nothing to offer.
+- **Where the change reaches your records.** The provider reports the change through webhooks,
+  which the backend handles. Until they arrive, your records still show the old plan. The demo has
+  no webhooks, so it sends the reader back through a view that asks the provider for the current
+  state first.
+
+Without the setting, a subscriber is offered no "Switch plans" control. The portal control still
+reaches the portal, which offers the same change if the portal's settings allow it.
+
 ## Replacing the page
 
 The shipped page is a starting point rather than a limit. Supply your own template at
@@ -232,10 +276,16 @@ precede `mvp` (see the README's Install step).
     {% empty %}
       <c-drf-stripe.no-subscription />
     {% endfor %}
-    <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
-    {% if subscriptions %}
-      <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
-    {% endif %}
+    {# Both ways onward on one line, wrapping on a narrow screen. #}
+    <div class="flex flex-wrap items-start gap-3"
+         data-mvp-payments-subscription-actions>
+      <c-drf-stripe.plans-link :url="plans_url"
+                               :subscribed="subscriptions"
+                               :switch_endpoint="plan_switch_endpoint" />
+      {% if subscriptions %}
+        <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+      {% endif %}
+    </div>
   </c-page>
 {% endblock account.content %}
 ```

@@ -311,14 +311,35 @@ class TestPlansLink:
     person reaches it.
     """
 
-    def test_a_subscriber_is_offered_a_switch(self, cotton_render):
+    def test_a_subscriber_is_offered_a_switch_through_the_plan_change_endpoint(
+        self, cotton_render
+    ):
+        """Never the plans page: its pricing table would sell them a second subscription."""
+        html = cotton_render(
+            "drf-stripe.plans-link",
+            url="/account/billing/plans/",
+            subscribed=True,
+            switch_endpoint="/api/plan-switch/",
+        )
+
+        assert "Switch plans" in html
+        assert "<button" in html
+        assert "data-mvp-payments-portal-link" in html
+        assert 'data-endpoint="/api/plan-switch/"' in html
+        assert re.search(r'data-csrf-token="[^"]+"', html)
+        assert "hidden data-mvp-payments-portal-link-failure" in html
+        assert "/account/billing/plans/" not in html
+        assert "Choose a plan" not in html
+
+    def test_a_subscriber_with_no_plan_change_endpoint_is_offered_nothing(
+        self, cotton_render
+    ):
+        """Suppressed rather than pointed at the plans page, which does the wrong thing."""
         html = cotton_render(
             "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=True
         )
 
-        assert 'href="/account/billing/plans/"' in html
-        assert "Switch plans" in html
-        assert "Choose a plan" not in html
+        assert html.strip() == ""
 
     def test_somebody_on_no_plan_is_offered_a_choice(self, cotton_render):
         """ "Switch plans" reads as a mistake to a person who is not on one."""
@@ -335,6 +356,25 @@ class TestPlansLink:
         html = cotton_render("drf-stripe.plans-link", url=None)
 
         assert html.strip() == ""
+
+
+class TestAlreadySubscribed:
+    """``<c-drf-stripe.already-subscribed>`` — the plans page, for somebody on a plan."""
+
+    def test_it_says_so_and_leads_to_the_subscription_page(self, cotton_render):
+        html = cotton_render(
+            "drf-stripe.already-subscribed", url="/account/billing/subscription/"
+        )
+
+        assert "You already have a subscription" in html
+        assert 'href="/account/billing/subscription/"' in html
+        assert "stripe-pricing-table" not in html
+
+    def test_given_no_address_it_still_says_so_without_a_dead_link(self, cotton_render):
+        html = cotton_render("drf-stripe.already-subscribed", url=None)
+
+        assert "You already have a subscription" in html
+        assert "href" not in html
 
 
 class TestPortalLink:
