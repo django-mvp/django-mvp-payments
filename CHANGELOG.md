@@ -62,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their subscription page, and "Switch plans" there opens the provider's plan-change screen instead
   of linking to the plans page. Without `DRF_STRIPE_PLAN_SWITCH`, a subscriber is offered no switch
   control. `<c-drf-stripe.plans-link>` takes a new `switch_endpoint` attribute.
+- `<c-drf-stripe.no-subscription>` says one thing, "You don't have an active subscription.", in
+  place of a heading and a sentence that repeated it.
 - A price synchronised by the backend on Python 3.12 or later shows its billing frequency in words.
   The backend stores `RecurringInterval.MONTH_1` there instead of `month_1`, and the frequency was
   shown as that raw text.

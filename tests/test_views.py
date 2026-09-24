@@ -761,7 +761,7 @@ class TestNoCurrentSubscription:
         content = response.content.decode()
 
         assert response.status_code == 200
-        assert "No current subscription" in content
+        assert "You don't have an active subscription." in content
         assert "Nobody's Plan Anymore" not in content
         assert "9,999.99 GBP" not in content
         assert "every year" not in content
@@ -777,7 +777,7 @@ class TestNoCurrentSubscription:
 
         assert response.status_code == 200
         content = response.content.decode()
-        assert "No current subscription" in content
+        assert "You don't have an active subscription." in content
         assert "data-mvp-payments-portal-link" not in content
 
     def _client_for(self, user):

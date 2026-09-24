@@ -412,11 +412,12 @@ class TestNoSubscription:
     """``<c-drf-stripe.no-subscription>`` — nothing current to show, on its own,
     given no attributes at all (T026, D11)."""
 
-    def test_renders_its_heading_and_message_given_nothing(self, cotton_render):
+    def test_renders_one_line_given_nothing(self, cotton_render):
+        """A single sentence. A second one only restated the first."""
         html = cotton_render("drf-stripe.no-subscription")
 
-        assert "No current subscription" in html
-        assert "You have no subscription that is currently active." in html
+        assert "You don't have an active subscription." in html
+        assert "<p" not in html
 
 
 class TestPlansUnavailable:
@@ -525,4 +526,4 @@ class TestStandalone:
         )
 
         assert "Welcome" in html
-        assert "No current subscription" in html
+        assert "You don't have an active subscription." in html

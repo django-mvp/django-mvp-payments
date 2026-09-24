@@ -7,6 +7,6 @@
 {# "subscription ended" alike, and this package has no way to    #}
 {# tell them apart, so it names neither (FR-008).                #}
 {# ============================================================ #}
-{% translate "No current subscription" as heading %}
-{% translate "You have no subscription that is currently active." as message %}
-<c-page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
+{# One line: a second sentence only restated the heading.         #}
+{% translate "You don't have an active subscription." as heading %}
+<c-page.list.empty icon="info" heading="{{ heading }}" />
