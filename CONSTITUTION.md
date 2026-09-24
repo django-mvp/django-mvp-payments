@@ -292,6 +292,11 @@ implement the same *view of a subscription*, it is not.
 Duplication between namespaces is the accepted cost of this article, and is not a finding at
 review.
 
+**One namespace never changes another's pages.** Adding, removing or changing a namespace leaves
+every other namespace's navigation entries, overview card, page addresses and URL names exactly as
+they were, and no two namespaces can declare the same URL name. The test suite proves this with a
+second namespace of its own, and a change that breaks it is refused rather than accommodated.
+
 ### Article XVI — Rendered output is a contract, and an amount is not a number
 
 Components render valid, semantic HTML. Every packaged component has a test proving it renders,
@@ -318,6 +323,11 @@ Components carry accessible names and states that assistive technology can read,
 that starts a checkout announces that it leads off-site. Colour comes from the daisyUI semantic
 palette supplied by django-mvp, never a literal value, and status is never conveyed by colour
 alone.
+
+**A page looks like the site it is installed in.** Components use the daisyUI classes and
+components django-mvp already ships, and follow whatever theme the project has chosen. This
+package ships no stylesheet, no build step and no theme of its own, so a project that changes its
+theme changes these pages with it.
 
 ### Article XVII — Compatibility
 
