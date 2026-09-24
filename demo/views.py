@@ -1,6 +1,10 @@
+import contextlib
+import io
+
 from django.apps import apps
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
 from mvp.views import MVPTemplateView
@@ -13,6 +17,28 @@ class HomeView(MVPTemplateView):
     page_title = "Home"
     page_subtitle = "Payment and subscription interfaces as Cotton components"
     breadcrumbs = [{"text": "Home"}]
+
+
+class PlansUnconfiguredView(MVPTemplateView):
+    """The package's own Plans template, reached with neither configured value
+    in context (US-4 scenarios 1 and 2).
+
+    This route and its template belong to the demonstration project, not the
+    package: nothing under ``mvp_payments/`` knows this view exists.
+    """
+
+    template_name = "demo/plans_unconfigured.html"
+    page_title = "Plans, unconfigured"
+    breadcrumbs = [{"text": "Home", "href": "/"}, {"text": "Plans, unconfigured"}]
+
+
+class NoLibraryView(MVPTemplateView):
+    """The pricing table component on a page whose provider library never
+    arrived (US-4 scenario 3) — the demonstration project's own route."""
+
+    template_name = "demo/no_library.html"
+    page_title = "Library never arrived"
+    breadcrumbs = [{"text": "Home", "href": "/"}, {"text": "Library never arrived"}]
 
 
 class BillingPortalView(LoginRequiredMixin, View):
@@ -55,10 +81,67 @@ class BillingPortalView(LoginRequiredMixin, View):
         if stripe_user is None:
             return JsonResponse({"detail": "No customer record."}, status=409)
 
-        return_url = request.build_absolute_uri(
-            reverse("payments:drf-stripe-subscription")
-        )
+        return_url = request.build_absolute_uri(reverse("billing-return"))
+        options = self.session_options(request, return_url)
+        if options is None:
+            return JsonResponse({"detail": "Nothing to change."}, status=409)
         session = stripe_api.billing_portal.Session.create(
-            customer=stripe_user.customer_id, return_url=return_url
+            customer=stripe_user.customer_id, return_url=return_url, **options
         )
         return JsonResponse({"url": session.url})
+
+    def session_options(self, request, return_url):
+        """Anything beyond the customer and the way back. The whole portal needs nothing."""
+        return {}
+
+
+class PlanSwitchView(BillingPortalView):
+    """Open the provider's portal directly on the plan-change screen for this person's plan.
+
+    The subscription page's "Switch plans" control posts here. The provider's pricing table is
+    the wrong place for a subscriber: it cannot show which plan they are on, and buying from it
+    starts a second subscription beside the first. The portal changes the one they have, showing
+    the current plan and the price difference, and only offers plans the portal's own settings
+    in the provider's dashboard allow switching to.
+
+    Answers 409 for somebody with no current subscription, who has nothing to switch from.
+    """
+
+    def session_options(self, request, return_url):
+        """Deep-link the session to changing this person's current subscription."""
+        from drf_stripe.stripe_api.subscriptions import list_user_subscriptions
+
+        subscription = list_user_subscriptions(request.user.id).first()
+        if subscription is None:
+            return None
+        return {
+            "flow_data": {
+                "type": "subscription_update",
+                "subscription_update": {"subscription": subscription.subscription_id},
+                "after_completion": {
+                    "type": "redirect",
+                    "redirect": {"return_url": return_url},
+                },
+            }
+        }
+
+
+class BillingReturnView(LoginRequiredMixin, View):
+    """Where the provider's portal sends a reader back to: refresh, then the subscription page.
+
+    A change made in the portal reaches a project through the provider's webhooks, and a
+    development server is not reachable from the provider without a forwarding tool running
+    beside it. So the demo asks the provider for the current state on the way back instead, using
+    the backend's own synchronisation, and the subscription page shows the plan the reader just
+    chose. A deployed project receives webhooks and needs none of this.
+    """
+
+    def get(self, request):
+        """Pull subscriptions from the provider into the backend's records, then go back."""
+        from drf_stripe.stripe_api.subscriptions import stripe_api_update_subscriptions
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            stripe_api_update_subscriptions(
+                status="all", ignore_new_user_creation_errors=True
+            )
+        return redirect("payments:drf-stripe-subscription")

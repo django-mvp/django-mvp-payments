@@ -54,12 +54,18 @@ class Plan:
         (`research.md`) — a Stripe-specific encoding, so parsing it belongs beside the rest of
         what this module already knows about the backend's vocabulary, and it is shown as itself
         rather than dropped when it is not one this table holds (Article XVI).
+
+        On Python 3.12 and later that f-string formats the backend's ``RecurringInterval`` enum
+        member by name, so the backend's own synchronisation stores ``RecurringInterval.MONTH_1``
+        where it means ``month_1``. Both spellings are read, because the second is what every
+        record synchronised from the provider carries on a current Python.
         """
         if not self.frequency:
             return ""
         interval, separator, count_text = self.frequency.rpartition("_")
         if not separator or not count_text.isdigit():
             return self.frequency
+        interval = interval.removeprefix("RecurringInterval.").lower()
         translator = self.FREQUENCY_TRANSLATORS.get(interval)
         if translator is None:
             return self.frequency

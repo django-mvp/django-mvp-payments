@@ -17,7 +17,8 @@ def _dev_env() -> dict[str, str]:
     hosted pages reachable from this demo, so the handoff to them can be
     exercised rather than described. Without the file the demo still runs, on
     values that are obviously not real, which is what a fresh clone and the
-    test suite get. Nothing here reaches a project that installs the package:
+    test suite get. `demo/.env.example` lists every value and where in the
+    provider's dashboard it comes from. Nothing here reaches a project that installs the package:
     a demo project is a demonstration target and ships to nobody.
     """
     values: dict[str, str] = {}
@@ -30,7 +31,12 @@ def _dev_env() -> dict[str, str]:
     values.update(
         {
             key: os.environ[key]
-            for key in ("STRIPE_TEST_SECRET_KEY", "DEMO_BASE_URL")
+            for key in (
+                "STRIPE_TEST_SECRET_KEY",
+                "STRIPE_TEST_PUBLISHABLE_KEY",
+                "STRIPE_TEST_PRICING_TABLE_ID",
+                "DEMO_BASE_URL",
+            )
             if key in os.environ
         }
     )
@@ -114,8 +120,23 @@ DRF_STRIPE = {
 # for anybody who has used it before — demo/views.py has the whole of it. Which
 # of the two a project points at is exactly the decision this setting exists to
 # let a project make.
+#
+# The pricing table id and publishable key come from `demo/.env` where that
+# file has them, so the Plans page can mount a real sandbox pricing table.
+# Without them they are obviously fake values — not a real table, not a real
+# account — and the provider's embed reports that it could not load (T009).
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
+    # The same portal, opened on its plan-change screen for the reader's own
+    # subscription. The backend ships nothing for this, so it is this
+    # project's (demo/views.py).
+    "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
+    "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
+        "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
+    ),
+    "DRF_STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
+        "STRIPE_TEST_PUBLISHABLE_KEY", "pk_test_not_a_real_key"
+    ),
 }
 
 SITE_ID = 1
@@ -166,12 +187,12 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
 CRISPY_TEMPLATE_PACK = "tailwind"
 
 # Where a view that requires a signed-in person sends everyone else, and where
-# signing in returns to. Django's default for the first is /accounts/login/,
-# which is where demo/urls.py mounts it, but stating it keeps the demo honest
-# about the contract a host project is expected to have.
-LOGIN_URL = "login"
+# signing in returns to. The sign-in and sign-out pages are django-mvp's own
+# development pages, registered by the Account Center's URLconf under these
+# names. The shell's sign-out control is drawn only when `account_logout`
+# resolves, and it submits a form, which Django's logout view requires.
+LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "account-center"
-LOGOUT_REDIRECT_URL = "home"
 
 # Which class draws the sidebar tree declared in demo/menus.py, and which draws
 # the dock shown below the sidebar breakpoint. Neither key is checked at

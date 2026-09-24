@@ -1,0 +1,23 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.already-subscribed> — the plans page, reached   #}
+{# by somebody who is on a plan already                           #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   url – where the subscription page is mounted                 #}
+{#                                                                #}
+{# plans.html renders this in place of the provider's pricing    #}
+{# table for a current subscriber. The table cannot say which    #}
+{# plan they are on, and buying from it starts a second          #}
+{# subscription beside the first, so they are sent to where the  #}
+{# change is made instead.                                       #}
+{# ============================================================ #}
+<c-vars url />
+{% translate "You already have a subscription" as heading %}
+{% translate "Plans are changed from your subscription page, where your current plan is shown." as message %}
+<c-page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
+{% if url %}
+  <div class="text-center">
+    <a href="{{ url }}" class="btn btn-primary">{% translate "Go to your subscription" %}</a>
+  </div>
+{% endif %}

@@ -10,7 +10,7 @@ obvious place for invoices and payment methods to arrive later.
 from django.utils.translation import gettext_lazy as _
 
 from mvp_payments.contributions import Contribution, Page
-from mvp_payments.views import SubscriptionPageView
+from mvp_payments.views import PlansPageView, SubscriptionPageView
 
 drf_stripe = Contribution(
     backend_app_name="drf_stripe",
@@ -28,6 +28,7 @@ drf_stripe = Contribution(
             label=_("Plans"),
             icon="plan",
             template_name="mvp_payments/drf_stripe/plans.html",
+            view=PlansPageView,
             in_navigation=False,
         ),
     ),

@@ -212,6 +212,9 @@ project's markup with no other change. Then override the page template and confi
   own element, and the provider's script brings all of them to life.
 - A reader with the provider's origin blocked. The element never comes to life, which is the same
   condition as the script not being loaded and reads the same way.
+- A current subscriber who reaches the Plans page, by its address or an old link. They are told
+  they already have a subscription and sent to where plans are changed, never shown a table that
+  would sell them a second one (FR-014).
 
 ## Requirements *(mandatory)*
 
@@ -247,6 +250,15 @@ project's markup with no other change. Then override the page template and confi
 - **FR-013**: The component, its attributes, the settings the Plans page reads and the project's
   responsibility for loading the provider's script MUST be documented on a page a reader can reach
   from the documentation's own navigation.
+- **FR-014**: The Plans page MUST NOT render the provider's pricing table for a person who already
+  has a current subscription. It MUST instead say that they already have one and lead them to the
+  subscription page. The pricing table cannot show which plan they are on, and a purchase through
+  it starts a second subscription beside the first.
+- **FR-015**: The subscription page's way to another plan MUST, for a current subscriber, lead to
+  the provider's own plan-change screen for their existing subscription, through an endpoint the
+  project names in its settings, and MUST NOT lead to the Plans page. Where the project names no
+  such endpoint, no plan-change control is offered to a subscriber. A person with no current
+  subscription is led to the Plans page.
 
 ### Key Entities
 
@@ -279,6 +291,8 @@ project's markup with no other change. Then override the page template and confi
 - **SC-006**: A project replaces the component with its own markup and the shipped page renders it,
   with no other change to the project.
 - **SC-007**: No figure about price appears anywhere in this package's own output.
+- **SC-008**: A current subscriber can reach no path in this package's pages that ends in a second
+  subscription beside the one they have.
 
 ## Assumptions
 

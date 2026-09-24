@@ -208,6 +208,15 @@ class TestPlanFrequencyDisplay:
     def test_no_frequency_renders_nothing(self):
         assert _plan(None).frequency_display == ""
 
+    def test_the_spelling_the_backends_own_sync_stores_renders_the_same(self):
+        """What the backend writes for a price synchronised from the provider on Python 3.12+.
+
+        Every real record carries this, so reading only ``month_1`` would show a subscriber
+        ``RecurringInterval.MONTH_1`` on their own subscription page.
+        """
+        assert _plan("RecurringInterval.MONTH_1").frequency_display == "every month"
+        assert _plan("RecurringInterval.YEAR_2").frequency_display == "every 2 years"
+
 
 class TestNoStatusIsNamed:
     """No status string appears anywhere in this module (D1)."""

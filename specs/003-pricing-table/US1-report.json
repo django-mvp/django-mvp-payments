@@ -1,0 +1,175 @@
+{
+  "story": "US1",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T001",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_renders_the_providers_element_with_its_table_id_and_publishable_key"
+        ],
+        "criteria": ["SC-002", "SC-007"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -x"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["77f5150"]
+    },
+    {
+      "id": "T002",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestPlansPage::test_context_and_content_carry_both_settings_values",
+          "tests/test_views.py::TestPlansPage::test_an_anonymous_visitor_is_sent_to_the_sign_in_page"
+        ],
+        "criteria": ["SC-001", "SC-002"],
+        "commands": ["poetry run pytest tests/test_views.py::TestPlansPage"],
+        "exit_code": 0
+      },
+      "commits": ["28b6666"]
+    },
+    {
+      "id": "T003",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestPlansPage::test_renders_with_mvp_payments_absent_from_settings_entirely",
+          "tests/test_views.py::TestPlansPage::test_importing_the_views_module_with_settings_unconfigured_raises_nothing"
+        ],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/test_views.py::TestPlansPage"],
+        "exit_code": 0
+      },
+      "commits": ["28b6666"]
+    },
+    {
+      "id": "T004",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_app.py::TestNoProviderScript::test_no_shipped_template_contains_a_script_element_with_a_host_src"
+        ],
+        "criteria": ["SC-002"],
+        "commands": ["poetry run pytest tests/test_app.py::TestNoProviderScript"],
+        "exit_code": 0
+      },
+      "commits": ["e418266"]
+    },
+    {
+      "id": "T005",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-002", "SC-007"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v",
+          "poetry run pytest tests/test_app.py::TestNoProviderScript -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["f180c74"]
+    },
+    {
+      "id": "T006",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-001"],
+        "commands": [
+          "DJANGO_SETTINGS_MODULE=tests.settings poetry run python -c \"import django; django.setup(); import mvp_payments.views\""
+        ],
+        "exit_code": 0
+      },
+      "commits": ["65b3785"]
+    },
+    {
+      "id": "T007",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-001"],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestPlansPage tests/test_views.py::TestPaymentPage tests/test_namespaces/test_drf_stripe.py"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["a414d39"]
+    },
+    {
+      "id": "T008",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-001"],
+        "commands": [
+          "poetry run pytest tests/test_views.py tests/test_app.py tests/test_components/test_drf_stripe.py tests/test_namespaces/"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["fc9a931"]
+    },
+    {
+      "id": "T009",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-001"],
+        "commands": ["poetry run pytest tests/"],
+        "exit_code": 1
+      },
+      "commits": ["acba2ff"]
+    },
+    {
+      "id": "T010",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": ["poetry run pytest tests/"],
+        "exit_code": 1
+      },
+      "commits": ["9cc7335"]
+    },
+    {
+      "id": "T011",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "diff <(sed -n '/^```html$/,/^```$/p' docs/plans-page.md | sed -n '/{% extends \"mvp\\/account\\/base.html\" %}/,/{% endblock account.content %}/p') mvp_payments/templates/mvp_payments/drf_stripe/plans.html"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["4e40b2f"]
+    }
+  ],
+  "deviations": [
+    {
+      "what": "No runtime assertion was added proving the Plans page's full rendered response carries no script element referencing the provider. A test doing exactly that was written under T002, then removed after T010 landed.",
+      "why": "T010 adds `demo/templates/base.html`'s own `{% block provider_library %}`, which loads `https://js.stripe.com/v3/pricing-table.js` for every page the demo serves, including the Plans page — correct behaviour under Article XIII's host-project split. That made the removed test fail for a reason that is not a defect: the demo, standing in for a host project, is doing exactly what it is supposed to do. The guarantee SC-002 actually asks for — this package's own templates never emit such a script — is held permanently and exhaustively by T004's static scan instead.",
+      "decision_ref": "decisions.md D2"
+    }
+  ],
+  "concerns": [
+    "tests/test_urls.py::TestPaymentURLs::test_declared_page_name_reverses_to_its_view[drf-stripe-plans-PaymentPageView] is a pre-existing test, outside this story's file scope and not authored by me, asserting that `drf-stripe-plans` resolves to exactly `PaymentPageView`. T007's own acceptance criterion requires the opposite (`drf-stripe-plans` must resolve to `PlansPageView`), and the design review already approved that routing with zero findings. I did not modify this test, per the hard prohibition on touching a pre-existing test I did not author. It is red on `main..HEAD` right now and will show as the one failure in `poetry run pytest tests/` and in `forge verify`'s test step. The fix is a one-line parametrize change mirroring the `SubscriptionPageView` entry already in the same list (`(\"drf-stripe-plans\", PaymentPageView)` → `(\"drf-stripe-plans\", PlansPageView)`), but it is outside my scope to make.",
+    "T002 and T003 were implemented as tests in one edit to one new class (`TestPlansPage`) before either was run, and committed together as `T002+T003` rather than as two separate commits. Both tasks' acceptance criteria are met and separately identifiable within that one commit's diff.",
+    "specs/003-pricing-table/US1-brief.json (the brief itself, placed in the worktree before I started) remains untracked. It is not part of this story's file scope and I have neither committed nor deleted it.",
+    "specs/003-pricing-table/feature-state.json carried a pre-existing uncommitted change when I started (state PLAN→DESIGN_REVIEW→IMPLEMENT, gates, state_history) that I did not make. I left those fields untouched and only flipped my own eleven tasks' status/attempts/evidence within the US1 story entry, then committed the file as I found it plus my own task-level edits."
+  ],
+  "blocked": []
+}

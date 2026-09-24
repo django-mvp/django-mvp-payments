@@ -28,6 +28,20 @@ DATABASES = {
     }
 }
 
+# A developer's own `demo/.env` holds real sandbox credentials. The suite runs
+# as a fresh clone and CI do, on the demo's obviously fake values, so a local
+# run never reaches the provider and never depends on whose machine it is.
+DEV_ENV: dict[str, str] = {}
+DRF_STRIPE = {
+    **DRF_STRIPE,  # noqa: F405
+    "STRIPE_API_SECRET": "sk_test_not_a_real_key",
+}
+MVP_PAYMENTS = {
+    **MVP_PAYMENTS,  # noqa: F405
+    "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_not_a_real_table",
+    "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_not_a_real_key",
+}
+
 # The demo's routes, behind a urlconf of the suite's own so a route that exists
 # only to exercise a component has somewhere to go.
 ROOT_URLCONF = "tests.urls"

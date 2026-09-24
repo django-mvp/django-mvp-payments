@@ -1,5 +1,6 @@
 """The package installs and exposes what a consuming project needs from it."""
 
+import re
 from pathlib import Path
 
 from django.apps import apps
@@ -7,6 +8,10 @@ from django.apps import apps
 import mvp_payments
 from mvp_payments.namespaces.drf_stripe import drf_stripe
 from tests.probes import run_probe
+
+_SCRIPT_WITH_HOST_SRC = re.compile(
+    r"""<script[^>]*\bsrc\s*=\s*['"](?:https?:)?//""", re.IGNORECASE
+)
 
 #: Boots a fresh Django process, signs a person in, opens the Account Center,
 #: and reports whether each of the backend's page names reverses. Run as a
@@ -151,6 +156,36 @@ class TestPackagedApp:
             Path("templatetags/mvp_payments.py"),
         }
         assert added_by_this_feature <= scanned
+
+
+class TestDocumentationLinkedFromReadme:
+    """A page's documentation is reachable from the README, the way every other
+    documentation page this package ships already is (T029, FR-013)."""
+
+    def test_the_plans_page_documentation_is_linked(self) -> None:
+        readme = (Path(__file__).resolve().parent.parent / "README.md").read_text()
+        assert "[docs/plans-page.md](docs/plans-page.md)" in readme
+
+
+class TestNoProviderScript:
+    """No template this package ships fetches a script from any host (T004, Article XIII, FR-002).
+
+    A component may mount a provider's custom element, but loading the library that brings it
+    to life is always the host project's decision, never this package's. This is the
+    repository-wide guarantee behind SC-002 and holds for every template this feature adds and
+    every one added to the package after it.
+    """
+
+    def test_no_shipped_template_contains_a_script_element_with_a_host_src(
+        self,
+    ) -> None:
+        package = Path(mvp_payments.__file__).parent / "templates"
+        offenders = sorted(
+            str(path.relative_to(package))
+            for path in package.rglob("*.html")
+            if _SCRIPT_WITH_HOST_SRC.search(path.read_text())
+        )
+        assert offenders == []
 
 
 class TestNothingWithoutABackend:

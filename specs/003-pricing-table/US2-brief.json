@@ -1,0 +1,116 @@
+{
+  "story": "US2",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 28,
+  "worktree": "/home/sam/projects/worktrees/dmp-003-pricing-table",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T012",
+    "T013",
+    "T014",
+    "T015"
+  ],
+  "context": {
+    "why": "US-1 landed the component and the Plans page: the provider's element is emitted with the pricing table identifier and the publishable key, and the page reads both from the project's settings. This story adds the one attribute that decides whether a purchase can be attributed to anybody.\n\nThe installed backend matches a customer at the provider back to an application user by EMAIL ADDRESS ALONE. Confirmed in its source at drf_stripe/stripe_api/customers.py:116-117: django_user_query_filters = {DJANGO_USER_EMAIL_FIELD: customer.email}. There is no other identifier in that path, and the attribute the provider built for exactly this reconciliation, client-reference-id, is read nowhere in the whole installed package.\n\nSo a signed-in person who clicks a plan, lands on the provider's checkout and types a different address gets one of two outcomes: the backend raises when the purchase arrives and the subscription attaches to nobody, or a second application user is created around the address they typed and the person who paid still sees nothing on their own subscription page. Passing the account's address closes that, costs one attribute, and is what the provider documents the attribute for.\n\nThe component already declares customer_email and does not read it. This story wires it: an address supplied as an attribute wins; otherwise the signed-in person's, read from request.user in the context the way portal_link.html already reads csrf_token; where there is neither, the attribute is OMITTED ENTIRELY rather than emitted empty, because an empty customer-email is not the same instruction to the provider as an absent one.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root /home/sam/projects/worktrees/dmp-003-pricing-table, which is a git worktree on branch feat/003-pricing-table. Tests: 'poetry run pytest'. Narrow scope: 'poetry run pytest tests/test_views.py::TestPlansPage'. The full verify command, to run ONCE at your report: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main'. The demonstration project is already serving this branch on port 8020 with autoreload, so a broken template is visible immediately at http://127.0.0.1:8020/payments/drf-stripe/plans/ \u2014 you do not need to start it and must not restart it.\n\nTHE PROVIDER'S ELEMENT \u2014 The provider is Stripe and the element is <stripe-pricing-table>. Its attributes, confirmed against the provider's published guide and recorded in research.md: 'pricing-table-id' (required), 'publishable-key' (required), 'customer-email' (optional, wired in US-2, NOT in this story), 'client-reference-id' (deliberately unused \u2014 the installed backend reads it nowhere). The element is brought to life by https://js.stripe.com/v3/pricing-table.js, which THIS PACKAGE NEVER EMITS. The demonstration project loads it, labelled as a demonstration convenience.\n\nCOMPONENTS AVAILABLE \u2014 django-mvp 0.23.0 ships the Cotton components the pages are assembled from, resolved at /home/sam/.cache/pypoetry/virtualenvs/django-mvp-payments-HngT1IMg-py3.14/lib/python3.14/site-packages/mvp \u2014 read its templates/cotton/ directory rather than guessing at attributes. This package's own components live in mvp_payments/templates/cotton/drf_stripe/ and are used as <c-drf-stripe.name>. mvp_payments/templates/cotton/drf_stripe/portal_link.html is the closest existing example of a component of ours: read it for the header-comment shape and for how it reads csrf_token out of the context rather than taking it as an attribute.",
+    "spec_sections": [
+      "User Story 2 - A purchase belongs to the person who made it",
+      "Requirements: FR-005, FR-006, FR-009",
+      "Success Criteria: SC-003",
+      "Edge Cases"
+    ],
+    "plan_sections": [
+      "Design",
+      "Technical Context"
+    ],
+    "prior_decisions": [
+      "The address is passed because the backend reads no other identifier. Do not add client-reference-id: passing a value nothing consumes would look like a guarantee and provide none.",
+      "An attribute supplied by a template author wins over the signed-in person's address, because a project placing the component on a page of its own may have a better answer than the session does.",
+      "The component reads no settings. Reading request.user out of the template context is not a settings read and is the established shape here \u2014 portal_link.html reads csrf_token the same way.",
+      "The component imposes no sign-in requirement of its own (FR-009). It must render for an anonymous visitor with no address and no error.",
+      "WATCH \u2014 assert the attribute's ABSENCE as absence, not as emptiness. A test that accepts customer-email=\"\" does not hold FR-005.",
+      "WATCH \u2014 a signed-in person whose account carries no email address is a real case: Django's user model allows a blank email. Scenario 2 is about that person.",
+      "D3 \u2014 tests/test_urls.py's routing registry was updated by Forge after US-1, as the mechanical consequence of routing the Plans page through its own view. It is now a pre-existing test again; do not touch it."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Plan",
+      "Checkout",
+      "Delivery",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md \u2014 Development workflow. CONSTITUTION.md Article I (test-first), VI (public API changes ship their docs in the same change), VIII (every user-facing string translatable \u2014 gettext_lazy in Python, {% translate %} in templates), X (test modules mirror the source tree; Test<Subject> classes; component tests go under the declared non-mirror path tests/test_components/), XII (an interface layer and nothing else \u2014 no payment logic in any language), XIII (no backend import, no provider script emitted), XIV (nothing at import time reads settings or reverses a URL), XVI (assert against rendered output, never against the presence of a class name).",
+    "verified_base": {
+      "commit": "ef53d92cb2cb6a1eef6f1026b892457231037227",
+      "verified_at": "2026-09-22T15:35:00Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "poetry:lint",
+        "poetry:typecheck",
+        "poetry:test",
+        "poetry:build"
+      ],
+      "note": "Green on the commit you are starting from, verified independently after US-1 was accepted: lint, typecheck, full suite, build, conformance and docs all clean. If the tree is red on arrival, or your HEAD is not this commit, stop and report blocked."
+    },
+    "acceptance": [
+      {
+        "task": "T012",
+        "given_when_then": "Given the component rendered for a signed-in person holding an email address, when the output is read, then the element carries customer-email with that address; given a signed-in person with no address, then no customer-email attribute appears at all and the rest of the element is unchanged; given an anonymous visitor, then none appears; given customer_email supplied as an attribute, then that value is used in preference to the signed-in person's."
+      },
+      {
+        "task": "T013",
+        "given_when_then": "Given a signed-in person opening the Plans page, when it renders, then the provider's element on that page carries that person's own address \u2014 asserted end to end through the page, not through the component alone."
+      },
+      {
+        "task": "T014",
+        "given_when_then": "Given the component, when it renders, then customer_email wins where supplied, the signed-in person's address is used where it is not, and the attribute is omitted entirely where there is neither; and the header comment says why the address is passed at all."
+      },
+      {
+        "task": "T015",
+        "given_when_then": "Given docs/plans-page.md, when someone reads it, then it says where the address comes from, that an attribute wins, and what its absence means for a purchase."
+      }
+    ]
+  },
+  "budgets": {
+    "attempts_per_task": 5,
+    "wallclock_minutes": 90
+  },
+  "rituals": [
+    "Load craft-tdd and craft-increments by name before anything else, and copy each RECEIPT line verbatim out of the file you read.",
+    "Read this brief in full, then your tasks T012-T015 in specs/003-pricing-table/tasks.md \u2014 your tasks only.",
+    "Read the plan.md sections this brief names by heading, and stop there.",
+    "Read the CONTEXT.md glossary entries named above and use that vocabulary in code, tests and commit messages.",
+    "git log --oneline -10.",
+    "Do NOT run the suite to check your starting point \u2014 context.verified_base is the assurance, already given. Confirm your HEAD equals that commit and start."
+  ],
+  "prohibitions": [
+    "Never modify or delete a test you did not author in this story. If a pre-existing test genuinely must change, mark the task blocked and say why in concerns.",
+    "Never touch files outside this story's scope: mvp_payments/templates/cotton/drf_stripe/pricing_table.html, docs/plans-page.md, tests/test_views.py, tests/test_components/test_drf_stripe.py, and the progress.md and decisions.md of this feature.",
+    "Do NOT edit CONSTITUTION.md. The amendment is T032 in US-5.",
+    "Do NOT emit a script element, or anything that causes the provider's library to be fetched, from any template under mvp_payments/.",
+    "Do NOT produce, read or render any amount, currency, billing frequency or plan name anywhere in this package.",
+    "Do NOT add client-reference-id or any other provider attribute this story does not name.",
+    "Do NOT build the landing-page placement (US-3), the unavailable state or the could-not-be-loaded message (US-4), or the override documentation (US-5).",
+    "Never edit feature-state.json beyond flipping your own tasks' status, attempts and evidence. Not the top-level state, not state_history, not your story's status, not any gate. Every code evidence entry must be path:line \u2014 the schema refuses a bare path.",
+    "You do not review, accept, merge or push your own story. No git merge, no bot-push, no gh, no token. Your story ends at a clean committed worktree and a report.",
+    "Never write a decisions.md entry, progress note or commit message that asserts a check you did not personally run, and never write one in Forge's voice.",
+    "Never weaken assertions, add skips or xfails, or special-case code to make a test pass.",
+    "No GitHub operations, no network beyond the package registry, never commit secrets."
+  ]
+}

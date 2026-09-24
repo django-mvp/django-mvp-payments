@@ -1,7 +1,8 @@
 /**
- * Binds <c-drf-stripe.portal-link>'s control: posts to the backend's portal
- * endpoint, carrying the CSRF token the component rendered as data, and
- * follows the address the answer carries. Reveals the control's own hidden
+ * Binds <c-drf-stripe.portal-link>'s control, and the "Switch plans" control
+ * <c-drf-stripe.plans-link> renders for a subscriber: posts to the endpoint
+ * the control carries, with the CSRF token the component rendered as data,
+ * and follows the address the answer carries. Reveals the control's own hidden
  * failure message on any failure rather than sending the reader nowhere
  * (D3, US-2 scenario 3).
  *

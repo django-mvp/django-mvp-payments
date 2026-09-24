@@ -1,10 +1,25 @@
 from django.apps import apps
 from django.urls import include, path
 
-from demo.views import BillingPortalView, HomeView
+from demo.views import (
+    BillingPortalView,
+    BillingReturnView,
+    HomeView,
+    NoLibraryView,
+    PlansUnconfiguredView,
+    PlanSwitchView,
+)
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    # US-4 scenarios 1, 2 and 3: neither value configured, and the library
+    # never having arrived — both the demonstration project's own routes.
+    path(
+        "plans-unconfigured/",
+        PlansUnconfiguredView.as_view(),
+        name="plans-unconfigured",
+    ),
+    path("no-library/", NoLibraryView.as_view(), name="no-library"),
     # The one line a project adds to mount this package's pages (FR-001).
     # Mounted inside the Account Center's own prefix, under the label the
     # navigation uses, so the address bar agrees with where a reader thinks
@@ -14,9 +29,6 @@ urlpatterns = [
     # The Account Center is django-mvp's, and this package contributes pages to
     # it. A project mounts it once; so does this demo.
     path("account/", include("mvp.urls")),
-    # Every page this package contributes requires a signed-in person, so the
-    # demo needs somewhere to sign in.
-    path("accounts/", include("django.contrib.auth.urls")),
 ]
 
 if apps.is_installed("drf_stripe"):
@@ -36,4 +48,14 @@ if apps.is_installed("drf_stripe"):
     # project's and the backend's URLconf is left exactly as it ships.
     urlpatterns.append(
         path("api/billing-portal/", BillingPortalView.as_view(), name="billing-portal")
+    )
+    # The same, opened on the provider's plan-change screen, which the
+    # subscription page's "Switch plans" control is pointed at.
+    urlpatterns.append(
+        path("api/plan-switch/", PlanSwitchView.as_view(), name="plan-switch")
+    )
+    # Where the provider sends a reader back to, so the demo can refresh the
+    # backend's records before showing them (demo/views.py says why).
+    urlpatterns.append(
+        path("billing/return/", BillingReturnView.as_view(), name="billing-return")
     )

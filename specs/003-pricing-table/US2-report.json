@@ -1,0 +1,85 @@
+{
+  "story": "US2",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T012",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_a_signed_in_person_with_an_address_carries_it_as_customer_email",
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_a_signed_in_person_with_no_address_carries_no_customer_email_attribute",
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_an_anonymous_visitor_carries_no_customer_email_attribute",
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_an_explicit_customer_email_wins_over_the_signed_in_persons_address"
+        ],
+        "criteria": ["SC-003"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v"
+        ],
+        "exit_code": 1
+      },
+      "commits": ["5b10949"]
+    },
+    {
+      "id": "T013",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestPlansPage::test_the_element_carries_the_signed_in_persons_own_address"
+        ],
+        "criteria": ["SC-003"],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestPlansPage -v"
+        ],
+        "exit_code": 1
+      },
+      "commits": ["bbbe616"]
+    },
+    {
+      "id": "T014",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-003"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable tests/test_views.py::TestPlansPage -v"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["6cf2849"]
+    },
+    {
+      "id": "T015",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "grep -n \"customer_email\\|is_authenticated\" mvp_payments/templates/cotton/drf_stripe/pricing_table.html"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["6715ee2"]
+    }
+  ],
+  "deviations": [
+    {
+      "what": "The four request.user-dependent TestPricingTable cases (T012) use the cotton_render_string fixture with an explicit context={\"request\": request}, instead of the cotton_render fixture the rest of the class and file use.",
+      "why": "cotton_render's render_component always resolves the request context key from its own fixed, anonymous RequestFactory request via the request context processor, which is looked up ahead of anything passed through context or kwargs -- there is no way to attach a signed-in user's request through it. cotton_render_string builds a plain Context with no processors and sets context[\"request\"] from what the caller supplies, so a test's authenticated request is the one the template actually sees.",
+      "decision_ref": "decisions.md D5"
+    }
+  ],
+  "concerns": [],
+  "blocked": []
+}

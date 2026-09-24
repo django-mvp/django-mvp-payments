@@ -1,0 +1,126 @@
+{
+  "story": "US5",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T028",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_views.py::TestPlansPageOverride::test_a_projects_own_component_renders_with_no_view_and_no_query",
+          "tests/test_views.py::TestPlansPageOverride::test_a_projects_own_page_template_receives_every_documented_context_name"
+        ],
+        "criteria": ["SC-006"],
+        "commands": [
+          "poetry run pytest tests/test_views.py::TestPlansPageOverride -x (red: failed on the expected assertion against the shipped component's own markup, before the override templates existed)",
+          "poetry run pytest tests/test_views.py::TestPlansPageOverride -v (green, after adding tests/project_app/templates/cotton/drf_stripe/pricing_table.html and tests/project_app/templates/mvp_payments/drf_stripe/plans.html)",
+          "poetry run pytest tests/test_views.py -q",
+          "poetry run ruff check tests/test_views.py tests/project_app/",
+          "poetry run ruff format --check tests/test_views.py tests/project_app/"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["3af8bf0"]
+    },
+    {
+      "id": "T029",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_app.py::TestDocumentationLinkedFromReadme::test_the_plans_page_documentation_is_linked"
+        ],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_app.py::TestDocumentationLinkedFromReadme -v (red, committed alone: the link did not exist until T031)",
+          "poetry run pytest tests/test_app.py::TestDocumentationLinkedFromReadme -v (green, after T031)",
+          "poetry run ruff check tests/test_app.py",
+          "poetry run ruff format --check tests/test_app.py"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["1fd395e"]
+    },
+    {
+      "id": "T030",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_app.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["361eb04"]
+    },
+    {
+      "id": "T031",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_app.py::TestDocumentationLinkedFromReadme -v",
+          "poetry run pytest tests/test_app.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["f79674b"]
+    },
+    {
+      "id": "T032",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "poetry run pytest tests/test_app.py tests/test_views.py -q"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["e9dc57f"]
+    },
+    {
+      "id": "T033",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": [],
+        "commands": [
+          "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["a827824"]
+    }
+  ],
+  "deviations": [
+    {
+      "what": "T028's three acceptance scenarios (component override, page-template override, no-view/no-query) are covered by two tests rather than a literal one-per-scenario split, and scenario 1 is proved by rendering the component directly rather than through a Plans-page HTTP request.",
+      "why": "Both override templates live in the same tests/project_app application, matching this repo's one-app override pattern (tests/settings_with_project_template_override.py) instead of a second settings module. With both templates present at once, any HTTP request to the shipped Plans page URL always resolves the project's own plans.html first, so a scenario-1 test built as 'request the Plans page with only the component overridden' is unreachable without either a second settings module (which the brief rules out as an invented mechanism) or committing the page override separately from the component override (which the brief also rules out — both are meant to be added to the existing project app). Rendering the component directly with RequestFactory sidesteps the conflict and is also the more literal proof of scenario 3's 'no view' requirement, since it dispatches through no URL and no view at all.",
+      "decision_ref": "D11"
+    },
+    {
+      "what": "T031's README edit also corrects the sentence immediately before the new link, which claimed the plans page 'do[es] not show anything yet' — narrower than 'just add the link' but inside the same paragraph.",
+      "why": "That claim is now false: this story is what makes the plans page show something. Left as written it would have directly contradicted the new link's own caption in the same paragraph. The correction narrows the remaining not-yet-built claim to the billing page, which is still accurate. The README's ## Status section, a few lines above and outside this paragraph, carries the same stale claim and was left untouched — see concerns.",
+      "decision_ref": "D13"
+    }
+  ],
+  "concerns": [
+    "README.md's ## Status section (lines 19-22) still says the drf-stripe namespace has 'three pages, of which the subscription page is built' and that 'the plans and billing pages are routed and reachable but do not show anything yet' — stale as of this story, which ships the plans page. T031's own paragraph (the Namespaces section, further down) was corrected because it sat directly beside this story's new link; the Status section is a separate paragraph outside T031's or any other task's named scope in this brief, so it was left alone rather than edited on my own authority.",
+    "CHANGELOG.md's [Unreleased] section has no entry for User Stories 1 through 4 of this feature (the address resolution, the demo landing-page placement, or either unavailable state) — only the subscription page's earlier feature and this story's T033 entry are recorded. T033's acceptance criterion asked for one entry covering exactly the component, the two settings and the documentation page, which is what was written; backfilling the changelog for US-1 through US-4 was outside that criterion and outside this story's task list, so it was not attempted.",
+    "docs/plans-page.md's 'The page' section keeps the pre-existing pricing_table_id/publishable_key table from an earlier story rather than duplicating it under the new 'Replacing the component or the page' section — confirmed this reads correctly as one table referenced from two places rather than two competing tables, but flagging the structural choice in case a reader expects the override section to be fully self-contained."
+  ],
+  "blocked": []
+}

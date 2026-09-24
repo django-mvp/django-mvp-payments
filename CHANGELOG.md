@@ -33,9 +33,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subscription page's template context.
 - A page's view now receives its `Contribution` as well as its `Page`, so a page can address a
   sibling with `get_contribution().page_url(slug)` rather than a hard-coded URL name.
+- The plans page now mounts the provider's own pricing table with `<c-drf-stripe.pricing-table>`,
+  configured by two settings, `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` and
+  `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]`. `docs/plans-page.md` documents the component, the
+  two settings, and how to replace either the component or the page with your own.
+- The pricing table carries the signed-in person's email address, so a purchase reaches the
+  account that made it — the backend matches a customer to a user by address and reads no other
+  identifier. An address passed as an attribute wins; where there is neither, the attribute is
+  omitted rather than sent empty.
+- `<c-drf-stripe.plans-unavailable>`, and the plans page's two ways of saying there is nothing to
+  show: the sentence it renders when either setting is missing, and a message revealed in the
+  browser when the provider's library never arrived. Both are translatable, and neither leaves a
+  reader looking at empty space.
+- `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`, naming an endpoint of the project's own that opens the
+  provider's plan-change screen for a subscriber's existing subscription. "Switch plans" posts to
+  it. `docs/subscription-page.md` says what the endpoint does, and the demo has a working one.
+- `<c-drf-stripe.already-subscribed>`, shown on the plans page to somebody who already has a
+  subscription, with a link to their subscription page.
 
 ### Changed
 
+- Requires django-mvp 0.24.0 or later. The demo now signs in and out through django-mvp's own
+  development pages (`LOGIN_URL = "account_login"`) in place of Django's, which fixes its sign-out
+  control. That control is drawn only when `account_logout` resolves, and Django's logout view
+  refuses the plain link a project without it would need.
+- **A subscriber no longer sees the pricing table.** It cannot show which plan they are on, and
+  buying from it started a second subscription beside the first. The plans page now sends them to
+  their subscription page, and "Switch plans" there opens the provider's plan-change screen instead
+  of linking to the plans page. Without `DRF_STRIPE_PLAN_SWITCH`, a subscriber is offered no switch
+  control. `<c-drf-stripe.plans-link>` takes a new `switch_endpoint` attribute.
+- `<c-drf-stripe.no-subscription>` says one thing, "You don't have an active subscription.", in
+  place of a heading and a sentence that repeated it.
+- A price synchronised by the backend on Python 3.12 or later shows its billing frequency in words.
+  The backend stores `RecurringInterval.MONTH_1` there instead of `month_1`, and the frequency was
+  shown as that raw text.
+
+- The rule forbidding a publishable key to be read from Django settings now applies to a
+  component rather than to the whole package. A page this package ships may read it and pass it
+  to a component as an attribute; a component still never reads it. Without that distinction a
+  shipped, configurable page could not exist, because every project would have to build and route
+  the page itself to supply the attribute.
 - The drf-stripe namespace contributes one navigation entry, Subscription, under a **Billing**
   group, in place of three entries under a Payments group. The plans page is still there and is
   reached from a control on the subscription page.
@@ -47,13 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to its payment provider has no business in an address a person reads, and URL *names* still
   carry the namespace, so nothing about collision safety changes. The demo now mounts the package
   at `account/billing/`, inside the Account Center's own prefix.
-
-### Removed
-
-- The drf-stripe billing page and its address (`payments:drf-stripe-billing`). It never had
-  content, and what it was going to hold is the portal control that already sits on the
-  subscription page.
-
 - `mvp_payments` now goes **before** `mvp` in `INSTALLED_APPS`. The package ships its own copy of
   the Account Center's overview template and extends the name from inside it, which only resolves
   when this application is found first. The previous instruction would have left a project with
@@ -61,3 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A page here may have whatever view it needs, built on django-mvp's view classes, rather than only
   a template-rendering one. It still holds no state, decides nothing about money and reaches no
   payment provider.
+
+### Removed
+
+- The drf-stripe billing page and its address (`payments:drf-stripe-billing`). It never had
+  content, and what it was going to hold is the portal control that already sits on the
+  subscription page.

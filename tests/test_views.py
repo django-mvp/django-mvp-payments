@@ -89,6 +89,74 @@ print(json.dumps({
 }))
 """
 
+_COMPONENT_TEMPLATE_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import AnonymousUser
+from django.db import connection
+from django.template import Context, Template
+from django.test import RequestFactory
+from django.test.utils import CaptureQueriesContext, setup_test_environment
+from django_cotton.compiler_regex import CottonCompiler
+
+setup_test_environment()
+
+compiler = CottonCompiler()
+request = RequestFactory().get("/")
+request.user = AnonymousUser()
+
+compiled = compiler.process(
+    '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+    'publishable_key="pk_test_456" />'
+)
+template = Template(compiled)
+context = Context({"request": request})
+context.request = request
+
+with CaptureQueriesContext(connection) as captured:
+    html = template.render(context)
+
+print(json.dumps({"html": html, "query_count": len(captured)}))
+"""
+
+_PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.test import Client, override_settings
+from django.test.utils import setup_test_environment
+from django.urls import reverse
+
+setup_test_environment()
+call_command("migrate", verbosity=0, run_syncdb=True)
+
+User.objects.create_user(username="person", password="password")
+client = Client()
+client.login(username="person", password="password")
+
+with override_settings(
+    MVP_PAYMENTS={
+        "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+        "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+    }
+):
+    response = client.get(reverse("payments:drf-stripe-plans"))
+
+print(json.dumps({
+    "status_code": response.status_code,
+    "content": response.content.decode(),
+}))
+"""
+
 
 class TestPaymentPage:
     """A signed-in request renders; an anonymous one is sent to sign in."""
@@ -114,7 +182,154 @@ class TestPaymentPage:
         response = client.get(reverse("payments:drf-stripe-subscription"))
 
         assert response.status_code == 302
-        assert response.url.startswith(reverse("login"))
+        assert response.url.startswith(reverse("account_login"))
+
+
+def _content_region(content: str) -> str:
+    """The page's content, with the Account Center's navigation cut out.
+
+    "Plans" is also the navigation's label for this page, and django-mvp draws that
+    navigation twice (``tests.markup``). Cutting both copies out narrows an assertion
+    about the page's own content to markup nothing else could have produced.
+    """
+    for region in account_navigation_regions(content):
+        content = content.replace(region, "")
+    return content
+
+
+@pytest.mark.django_db
+class TestPlansPage:
+    """The Plans page mounts the provider's pricing table from settings (T002, T003).
+
+    No script element for the provider is a separate, repository-wide guarantee held by
+    ``tests.test_app.TestNoProviderScript`` (T004) against every template this package ships,
+    rather than a check here — the demo project's own base template legitimately loads the
+    provider's library for every page it serves (T010), which this page inherits the way any
+    host project's shell choices reach every page it renders (Article XIII's host-project
+    split; see ``decisions.md``).
+    """
+
+    def test_context_and_content_carry_both_settings_values(self, logged_in_client):
+        with override_settings(
+            MVP_PAYMENTS={
+                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+            }
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        assert response.status_code == 200
+        assert response.context["pricing_table_id"] == "prctbl_test123"
+        assert response.context["publishable_key"] == "pk_test_456"
+
+        content = _content_region(response.content.decode())
+        assert "<stripe-pricing-table" in content
+        assert 'pricing-table-id="prctbl_test123"' in content
+        assert 'publishable-key="pk_test_456"' in content
+
+    def test_the_element_carries_the_signed_in_persons_own_address(
+        self, logged_in_client, user
+    ):
+        user.email = "person@example.com"
+        user.save()
+
+        with override_settings(
+            MVP_PAYMENTS={
+                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+            }
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert 'customer-email="person@example.com"' in content
+
+    def test_a_subscriber_is_sent_to_their_subscription_instead_of_the_table(
+        self, subscriber_client
+    ):
+        """The table cannot say which plan they are on, and would sell them a second one."""
+        with override_settings(
+            MVP_PAYMENTS={
+                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+            }
+        ):
+            response = subscriber_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "stripe-pricing-table" not in content
+        assert "You already have a subscription" in content
+        assert f'href="{reverse("payments:drf-stripe-subscription")}"' in content
+
+    def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
+        response = client.get(reverse("payments:drf-stripe-plans"))
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("account_login"))
+
+    def test_renders_with_mvp_payments_absent_from_settings_entirely(
+        self, logged_in_client, settings
+    ):
+        """Article XIV: the context names are read at render time, not at import (T003)."""
+        del settings.MVP_PAYMENTS
+
+        response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        assert response.status_code == 200
+        assert response.context["pricing_table_id"] is None
+        assert response.context["publishable_key"] is None
+
+    def test_importing_the_views_module_with_settings_unconfigured_raises_nothing(self):
+        import importlib
+
+        import mvp_payments.views as views_module
+
+        importlib.reload(views_module)
+
+    def test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id(
+        self, logged_in_client
+    ):
+        """Scenario 1: no pricing table identifier configured (FR-007, SC-005)."""
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "stripe-pricing-table" not in content
+        assert "Plans not available" in content
+
+    def test_states_plans_unavailable_and_emits_no_provider_element_without_a_publishable_key(
+        self, logged_in_client
+    ):
+        """Scenario 2: no publishable key configured (FR-007, SC-005)."""
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123"}
+        ):
+            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "stripe-pricing-table" not in content
+        assert "Plans not available" in content
+
+    def test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged(
+        self, logged_in_client, settings
+    ):
+        """Scenario 4: nothing raises, and the rest of the page — its heading, the
+        account navigation — renders unchanged, alongside the unavailable sentence."""
+        del settings.MVP_PAYMENTS
+
+        response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert re.search(r"<h1[^>]*>\s*Plans\s*</h1>", content)
+        assert 'aria-label="Account navigation"' in content
+        assert "stripe-pricing-table" not in content
+        assert "Plans not available" in _content_region(content)
 
 
 class TestPageViewConfiguration:
@@ -370,19 +585,54 @@ class TestSubscriptionPage:
             re.S,
         )
         assert row is not None
+        # Both controls carry the portal-link attributes the same script binds, so
+        # their order is read from their labels.
         assert "Switch plans" in row.group(1)
-        assert "data-mvp-payments-portal-link" in row.group(1)
+        assert "Manage subscription" in row.group(1)
         assert row.group(1).index("Switch plans") < row.group(1).index(
-            "data-mvp-payments-portal-link"
+            "Manage subscription"
         )
 
-    def test_a_subscriber_is_offered_the_way_to_switch_plans(self, subscriber_client):
-        """The plans page left the navigation, so this control is how it is reached."""
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
-        content = response.content.decode()
+    def test_a_subscriber_switches_through_the_plan_change_endpoint(
+        self, subscriber_client
+    ):
+        """Not the plans page: its pricing table would start a second subscription."""
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
+        ):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+        content = _content_region(response.content.decode())
 
-        assert f'href="{reverse("payments:drf-stripe-plans")}"' in content
+        assert response.context["plan_switch_endpoint"] == "/api/plan-switch/"
         assert "Switch plans" in content
+        assert 'data-endpoint="/api/plan-switch/"' in content
+        assert f'href="{reverse("payments:drf-stripe-plans")}"' not in content
+
+    def test_without_a_plan_change_endpoint_a_subscriber_is_offered_no_switch(
+        self, subscriber_client
+    ):
+        with override_settings(MVP_PAYMENTS={}):
+            response = subscriber_client.get(
+                reverse("payments:drf-stripe-subscription")
+            )
+        content = _content_region(response.content.decode())
+
+        assert response.context["plan_switch_endpoint"] is None
+        assert "Switch plans" not in content
+
+    def test_the_plan_change_endpoint_is_withheld_from_somebody_with_no_subscription(
+        self, user
+    ):
+        client = self._client_for(user)
+        with override_settings(
+            MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
+        ):
+            response = client.get(reverse("payments:drf-stripe-subscription"))
+
+        assert response.context["plan_switch_endpoint"] is None
+        assert "/api/plan-switch/" not in response.content.decode()
 
     def test_someone_with_no_subscription_is_invited_to_choose_one(self, user):
         """ "Switch plans" reads wrong to somebody who is not on one yet."""
@@ -511,7 +761,7 @@ class TestNoCurrentSubscription:
         content = response.content.decode()
 
         assert response.status_code == 200
-        assert "No current subscription" in content
+        assert "You don't have an active subscription." in content
         assert "Nobody's Plan Anymore" not in content
         assert "9,999.99 GBP" not in content
         assert "every year" not in content
@@ -527,7 +777,7 @@ class TestNoCurrentSubscription:
 
         assert response.status_code == 200
         content = response.content.decode()
-        assert "No current subscription" in content
+        assert "You don't have an active subscription." in content
         assert "data-mvp-payments-portal-link" not in content
 
     def _client_for(self, user):
@@ -568,3 +818,51 @@ class TestTemplateOverride:
         # project hands a reader to is the project's to choose, and what this proves is
         # that the value reaches the project's own template, not what the value is.
         assert settings.MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"] in content
+
+
+class TestPlansPageOverride:
+    """A project's own templates, found before this package's, replace the Plans page's
+    markup with no view and no query against the backend (T028, FR-012, FR-013, SC-007).
+
+    The app-directories template loader decides which application's copy of a name wins
+    from ``INSTALLED_APPS`` order, fixed at process start (D4, 001-pages-arrive-on-install) —
+    the same reason ``TestTemplateOverride`` above boots a fresh process rather than
+    reordering ``INSTALLED_APPS`` mid-test.
+    """
+
+    def test_a_projects_own_component_renders_with_no_view_and_no_query(self):
+        """Scenario 1: a project's own ``cotton/drf_stripe/pricing_table.html`` is what
+        appears. Scenario 3: rendering it costs no view and no query — the same
+        ``django_assert_num_queries(0)`` guarantee
+        ``TestPricingTable.test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor``
+        (T016) holds for the shipped component, now held for a project's own override.
+        """
+        result = run_probe(
+            _COMPONENT_TEMPLATE_OVERRIDE_PROBE,
+            "tests.settings_with_project_template_override",
+        )
+
+        assert result["query_count"] == 0
+        html = result["html"]
+        assert 'data-testid="the-hosting-projects-own-pricing-table"' in html
+        assert 'data-table-id="prctbl_test123"' in html
+        assert 'data-publishable-key="pk_test_456"' in html
+
+    def test_a_projects_own_page_template_receives_every_documented_context_name(self):
+        """Scenario 2: a project's own ``mvp_payments/drf_stripe/plans.html`` renders, and
+        both context names the shipped page would have used — ``pricing_table_id`` and
+        ``publishable_key`` — are available to it. The project's own template also places
+        ``<c-drf-stripe.pricing-table>``, so this run shows the component override (scenario
+        1) holding inside a page-template override too.
+        """
+        result = run_probe(
+            _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE,
+            "tests.settings_with_project_template_override",
+        )
+
+        assert result["status_code"] == 200
+        content = result["content"]
+        assert 'data-testid="the-hosting-projects-own-plans-page"' in content
+        assert '<p data-testid="pricing-table-id">prctbl_test123</p>' in content
+        assert '<p data-testid="publishable-key">pk_test_456</p>' in content
+        assert 'data-testid="the-hosting-projects-own-pricing-table"' in content

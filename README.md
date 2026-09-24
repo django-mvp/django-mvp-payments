@@ -17,16 +17,17 @@ than leaving you to build and route them.
 ## Status
 
 Version 0.0.1. The `drf-stripe` namespace contributes one entry to the Account Center,
-Subscription, under a Billing group. That page is built: it shows a signed-in person what they are
-currently subscribed to, what each plan grants them, the way to switch plans, and the way through
-to the provider's billing portal. The plans page it leads to is routed and reachable but does not
-show anything yet. Nothing here is stable.
+Subscription, under a Billing group. That page shows a signed-in person what they are currently
+subscribed to, what each plan grants them, the way to switch plans, and the way through to the
+provider's billing portal. The plans page it leads to mounts the provider's own pricing table,
+configured by two settings, and says so plainly when it has not been configured or when the
+provider's library never arrived. Nothing here is stable.
 
 ## Requirements
 
 - Python 3.12+
 - Django 5.2 or 6.0
-- django-mvp 0.23.0+
+- django-mvp 0.24.0+
 - A payment backend of your choosing, installed and configured separately
 
 ## Install
@@ -89,14 +90,17 @@ webhooks locally and hands checkout and billing management to Stripe's hosted pa
 contributes a subscription page and a plans page, of which only the first is in the navigation.
 The subscription page shows what a person is currently subscribed to, reading the backend's own
 records directly and calling one of its HTTP endpoints, `customer-portal/`, to hand the reader to
-Stripe's own billing portal. It also carries the way to the plans page, which is routed and
-reachable but does not show anything yet. Namespaces for other backends
+Stripe's own billing portal. It also carries the way to the plans page, which mounts the
+provider's own pricing table from two settings. Namespaces for other backends
 are welcome and do not need this one's agreement about anything: adding one is adding it beside
 the ones already installed, and changes nothing about their navigation entries, their card or
 their pages.
 
 [docs/subscription-page.md](docs/subscription-page.md) covers the subscription page: what it puts
 in the template context, the components it is built from, and how to replace it with your own.
+
+[docs/plans-page.md](docs/plans-page.md) covers the plans page: the component it mounts, the
+settings it reads, and how to replace the component or the page with your own.
 
 [docs/namespaces.md](docs/namespaces.md) is how you add a namespace: what one declares, the two
 questions it answers about itself, and what it may not do.
@@ -149,6 +153,22 @@ The standing directions this package works toward are in [GOALS.md](GOALS.md).
 **Tie-breaks.** When two of these pull against each other: match the backend rather than
 generalise; route and render rather than compute; render less rather than assume how a page is
 laid out.
+
+## Running the demo
+
+```bash
+poetry install
+poetry run python manage.py migrate
+poetry run python manage.py seed_demo
+poetry run python manage.py runserver 8020
+```
+
+Sign in as `regular.user`, `staff.user` or `super.user`, password `password`. Out of the box the
+pages run on fake Stripe values, so the billing portal and the pricing table say they could not be
+reached. To see them working, copy `demo/.env.example` to `demo/.env` and fill it in from your own
+Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo accounts get real
+sandbox customers and subscriptions. The file lists the one portal setting "Switch plans" needs
+from your sandbox.
 
 ## Licence
 

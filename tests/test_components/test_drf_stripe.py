@@ -7,6 +7,7 @@ overriding this page's template, or placing one of these components elsewhere, r
 
 import re
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from mvp_payments.money import Money
@@ -15,6 +16,127 @@ from mvp_payments.namespaces.drf_stripe_records import (
     Plan,
     PlanFeature,
 )
+
+
+class TestPricingTable:
+    """``<c-drf-stripe.pricing-table>`` mounts the provider's own embed (T001, FR-011, SC-007).
+
+    No amount, currency, billing frequency or plan name is produced by this component or
+    anywhere else in this package — the provider renders every price inside its own frame.
+    """
+
+    def test_renders_the_providers_element_with_its_table_id_and_publishable_key(
+        self, cotton_render
+    ):
+        html = cotton_render(
+            "drf-stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+        )
+
+        assert "<stripe-pricing-table" in html
+        assert 'pricing-table-id="prctbl_test123"' in html
+        assert 'publishable-key="pk_test_456"' in html
+        assert "<script" not in html
+        assert not re.search(r"\d[\d,]*\.\d{2,3}", html)
+
+    def test_carries_a_hidden_could_not_be_loaded_message_and_its_marker(
+        self, cotton_render
+    ):
+        """The message is present in the markup and hidden, never absent, so
+        revealing it needs no string from JavaScript (scenario 3, FR-010)."""
+        html = cotton_render(
+            "drf-stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+        )
+
+        assert "hidden data-mvp-payments-pricing-table-unavailable" in html
+        assert "The plans could not be loaded. Try again later." in html
+
+    def test_a_signed_in_person_with_an_address_carries_it_as_customer_email(
+        self, cotton_render_string, rf, user
+    ):
+        user.email = "person@example.com"
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" />',
+            context={"request": request},
+        )
+
+        assert 'customer-email="person@example.com"' in html
+
+    def test_a_signed_in_person_with_no_address_carries_no_customer_email_attribute(
+        self, cotton_render_string, rf, user
+    ):
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" />',
+            context={"request": request},
+        )
+
+        assert "customer-email" not in html
+        assert 'pricing-table-id="prctbl_test123"' in html
+        assert 'publishable-key="pk_test_456"' in html
+
+    def test_an_anonymous_visitor_carries_no_customer_email_attribute(
+        self, cotton_render_string, rf
+    ):
+        request = rf.get("/")
+        request.user = AnonymousUser()
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" />',
+            context={"request": request},
+        )
+
+        assert "customer-email" not in html
+
+    def test_an_explicit_customer_email_wins_over_the_signed_in_persons_address(
+        self, cotton_render_string, rf, user
+    ):
+        user.email = "person@example.com"
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" customer_email="explicit@example.com" />',
+            context={"request": request},
+        )
+
+        assert 'customer-email="explicit@example.com"' in html
+        assert "person@example.com" not in html
+
+    def test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor(
+        self, cotton_render_string, rf, django_assert_num_queries, db
+    ):
+        """No view, no context processor, no query — a page of the host project's own
+        can place this component and give it nothing but its two attributes (T016,
+        FR-001, FR-009, FR-011)."""
+        request = rf.get("/")
+        request.user = AnonymousUser()
+
+        with django_assert_num_queries(0):
+            html = cotton_render_string(
+                "<article><h2>Order summary</h2>"
+                '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+                'publishable_key="pk_test_456" /></article>',
+                context={"request": request},
+            )
+
+        assert "Order summary" in html
+        assert "<stripe-pricing-table" in html
+        assert 'pricing-table-id="prctbl_test123"' in html
+        assert 'publishable-key="pk_test_456"' in html
+        assert "customer-email" not in html
 
 
 class TestAmount:
@@ -189,14 +311,35 @@ class TestPlansLink:
     person reaches it.
     """
 
-    def test_a_subscriber_is_offered_a_switch(self, cotton_render):
+    def test_a_subscriber_is_offered_a_switch_through_the_plan_change_endpoint(
+        self, cotton_render
+    ):
+        """Never the plans page: its pricing table would sell them a second subscription."""
+        html = cotton_render(
+            "drf-stripe.plans-link",
+            url="/account/billing/plans/",
+            subscribed=True,
+            switch_endpoint="/api/plan-switch/",
+        )
+
+        assert "Switch plans" in html
+        assert "<button" in html
+        assert "data-mvp-payments-portal-link" in html
+        assert 'data-endpoint="/api/plan-switch/"' in html
+        assert re.search(r'data-csrf-token="[^"]+"', html)
+        assert "hidden data-mvp-payments-portal-link-failure" in html
+        assert "/account/billing/plans/" not in html
+        assert "Choose a plan" not in html
+
+    def test_a_subscriber_with_no_plan_change_endpoint_is_offered_nothing(
+        self, cotton_render
+    ):
+        """Suppressed rather than pointed at the plans page, which does the wrong thing."""
         html = cotton_render(
             "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=True
         )
 
-        assert 'href="/account/billing/plans/"' in html
-        assert "Switch plans" in html
-        assert "Choose a plan" not in html
+        assert html.strip() == ""
 
     def test_somebody_on_no_plan_is_offered_a_choice(self, cotton_render):
         """ "Switch plans" reads as a mistake to a person who is not on one."""
@@ -213,6 +356,25 @@ class TestPlansLink:
         html = cotton_render("drf-stripe.plans-link", url=None)
 
         assert html.strip() == ""
+
+
+class TestAlreadySubscribed:
+    """``<c-drf-stripe.already-subscribed>`` — the plans page, for somebody on a plan."""
+
+    def test_it_says_so_and_leads_to_the_subscription_page(self, cotton_render):
+        html = cotton_render(
+            "drf-stripe.already-subscribed", url="/account/billing/subscription/"
+        )
+
+        assert "You already have a subscription" in html
+        assert 'href="/account/billing/subscription/"' in html
+        assert "stripe-pricing-table" not in html
+
+    def test_given_no_address_it_still_says_so_without_a_dead_link(self, cotton_render):
+        html = cotton_render("drf-stripe.already-subscribed", url=None)
+
+        assert "You already have a subscription" in html
+        assert "href" not in html
 
 
 class TestPortalLink:
@@ -250,11 +412,23 @@ class TestNoSubscription:
     """``<c-drf-stripe.no-subscription>`` — nothing current to show, on its own,
     given no attributes at all (T026, D11)."""
 
-    def test_renders_its_heading_and_message_given_nothing(self, cotton_render):
+    def test_renders_one_line_given_nothing(self, cotton_render):
+        """A single sentence. A second one only restated the first."""
         html = cotton_render("drf-stripe.no-subscription")
 
-        assert "No current subscription" in html
-        assert "You have no subscription that is currently active." in html
+        assert "You don't have an active subscription." in html
+        assert "<p" not in html
+
+
+class TestPlansUnavailable:
+    """``<c-drf-stripe.plans-unavailable>`` — plans cannot be shown yet, said
+    plainly, on its own, given no attributes at all (T020, T022, FR-007)."""
+
+    def test_renders_its_sentence_given_nothing(self, cotton_render):
+        html = cotton_render("drf-stripe.plans-unavailable")
+
+        assert "Plans not available" in html
+        assert "This project has not configured its plans yet." in html
 
 
 class TestStandalone:
@@ -352,4 +526,4 @@ class TestStandalone:
         )
 
         assert "Welcome" in html
-        assert "No current subscription" in html
+        assert "You don't have an active subscription." in html

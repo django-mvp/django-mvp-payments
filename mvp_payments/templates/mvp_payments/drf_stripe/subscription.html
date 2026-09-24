@@ -10,7 +10,9 @@
     {# Both ways onward on one line, wrapping on a narrow screen. #}
     <div class="flex flex-wrap items-start gap-3"
          data-mvp-payments-subscription-actions>
-      <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions" />
+      <c-drf-stripe.plans-link :url="plans_url"
+                               :subscribed="subscriptions"
+                               :switch_endpoint="plan_switch_endpoint" />
       {% if subscriptions %}
         <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
       {% endif %}

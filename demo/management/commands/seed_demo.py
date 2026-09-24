@@ -8,11 +8,14 @@ rule ``mvp_payments/`` itself follows (Article XIII) — the demo shows the pack
 way a host project would use it, not a shortcut available only here.
 """
 
+import contextlib
+import io
+
 import stripe
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 PASSWORD = "password"
 
@@ -26,6 +29,18 @@ ACCOUNTS = [
         "is_superuser": True,
     },
 ]
+
+
+#: Who gets a real sandbox subscription, and for how many trial days. ``super.user`` is left
+#: out so the empty state stays reachable.
+SANDBOX_SUBSCRIBERS = [
+    ("regular.user", None),
+    ("staff.user", 14),
+    ("other.subscriber", None),
+]
+
+#: Statuses under which a sandbox subscription still counts as the one a person is on.
+LIVE_STATUSES = {"active", "trialing", "past_due", "unpaid", "incomplete"}
 
 
 class Command(BaseCommand):
@@ -47,7 +62,98 @@ class Command(BaseCommand):
             verb = "created" if created else "reset"
             self.stdout.write(f"{verb} {username} ({account['email']})")
 
-        self._seed_subscriptions(user_model)
+        if getattr(settings, "DEV_ENV", {}).get("STRIPE_TEST_SECRET_KEY"):
+            self.seed_sandbox_subscriptions(user_model)
+        else:
+            self._seed_subscriptions(user_model)
+
+    def seed_sandbox_subscriptions(self, user_model):
+        """Real subscriptions in the provider's sandbox, pulled back into the backend's records.
+
+        Used instead of the invented records whenever ``demo/.env`` holds a sandbox key. The
+        provider's portal shows, switches and cancels only subscriptions it holds itself, so a
+        subscription that exists only in this database reaches the portal as a customer with
+        nothing on it.
+
+        ``regular.user`` and the unlisted ``other.subscriber`` get an active subscription and
+        ``staff.user`` a trialing one, each on the cheapest monthly plan in the sandbox and paid
+        with the provider's test card. ``super.user`` gets nothing, as offline. A person who
+        already has a live subscription there keeps it, so running this twice creates nothing
+        new and a plan switched in the portal is not switched back.
+
+        Invented subscriptions left by an earlier offline run are removed, so the page never
+        shows one beside a real one. Products, prices and subscriptions are then read back
+        through the backend's own synchronisation, exactly as its management commands do.
+        """
+        from drf_stripe.stripe_api.products import stripe_api_update_products_prices
+        from drf_stripe.stripe_api.subscriptions import stripe_api_update_subscriptions
+
+        stripe.api_key = settings.DEV_ENV["STRIPE_TEST_SECRET_KEY"]
+        stripe_user_model = apps.get_model("drf_stripe", "StripeUser")
+        subscription_model = apps.get_model("drf_stripe", "Subscription")
+
+        other_user, _ = user_model.objects.get_or_create(
+            username="other.subscriber",
+            defaults={"email": "other.subscriber@example.com"},
+        )
+        other_user.set_password(PASSWORD)
+        other_user.save()
+
+        price_id = self.cheapest_monthly_price()
+        for username, trial_days in SANDBOX_SUBSCRIBERS:
+            user = user_model.objects.get(username=username)
+            stripe_user = self._stripe_user(stripe_user_model, user, None)
+            self.ensure_sandbox_subscription(
+                stripe_user.customer_id, price_id, trial_days
+            )
+
+        subscription_model.objects.filter(
+            subscription_id__startswith="sub_demo_"
+        ).delete()
+        with contextlib.redirect_stdout(io.StringIO()):
+            stripe_api_update_products_prices()
+            stripe_api_update_subscriptions(
+                status="all", ignore_new_user_creation_errors=True
+            )
+        self.stdout.write("pulled sandbox products, prices and subscriptions")
+
+    def cheapest_monthly_price(self):
+        """The sandbox's cheapest active monthly price, so every run picks the same one."""
+        prices = [
+            price
+            for price in stripe.Price.list(
+                active=True, type="recurring", limit=100
+            ).data
+            if price.recurring.interval == "month"
+            and price.recurring.interval_count == 1
+        ]
+        if not prices:
+            raise CommandError(
+                "The sandbox has no active monthly price to subscribe the demo accounts to."
+            )
+        return min(prices, key=lambda price: price.unit_amount or 0).id
+
+    def ensure_sandbox_subscription(self, customer_id, price_id, trial_days):
+        """Subscribe this customer with the provider's test card, unless they are already."""
+        live = [
+            subscription
+            for subscription in stripe.Subscription.list(
+                customer=customer_id, status="all", limit=100
+            ).data
+            if subscription.status in LIVE_STATUSES
+        ]
+        if live:
+            return
+        payment_method = stripe.PaymentMethod.attach(
+            "pm_card_visa", customer=customer_id
+        )
+        stripe.Customer.modify(
+            customer_id, invoice_settings={"default_payment_method": payment_method.id}
+        )
+        options = {"trial_period_days": trial_days} if trial_days else {}
+        stripe.Subscription.create(
+            customer=customer_id, items=[{"price": price_id}], **options
+        )
 
     def _customer_id(self, email, fallback):
         """A provider customer for this person, real where the demo has credentials.

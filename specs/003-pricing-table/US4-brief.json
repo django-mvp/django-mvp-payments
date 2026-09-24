@@ -1,0 +1,146 @@
+{
+  "story": "US4",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 30,
+  "worktree": "/home/sam/projects/worktrees/dmp-003-pricing-table",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T019",
+    "T020",
+    "T021",
+    "T022",
+    "T023",
+    "T024",
+    "T025",
+    "T026",
+    "T027"
+  ],
+  "budgets": {
+    "attempts_per_task": 5,
+    "wallclock_minutes": 150
+  },
+  "rituals": [
+    "Load craft-tdd and craft-increments by name before anything else, and copy each RECEIPT line verbatim out of the file you read.",
+    "Read this brief in full, then your tasks T019-T027 in specs/003-pricing-table/tasks.md — your tasks only.",
+    "Read the plan.md sections this brief names by heading, and stop there.",
+    "Read the CONTEXT.md glossary entries named above and use that vocabulary in code, tests and commit messages.",
+    "git log --oneline -10.",
+    "Do NOT run the suite to check your starting point — context.verified_base is the assurance, already given. Confirm your HEAD equals that commit and start."
+  ],
+  "context": {
+    "why": "US-1 to US-3 built the working path: the Plans page renders the provider's element, it carries the signed-in person's address, and the component can be placed on a project's own page. All of that assumes the project has configured the two values and loaded the provider's library.\n\nThis story is about every project's FIRST RUN, and about the failure that follows it, which is silent. The provider's element renders as NOTHING AT ALL when it cannot work — no error, no empty box, no clue. A reader gets a page with a heading and blank space under it, and nobody can tell whether the plans are missing, the page is broken, or there is nothing to buy.\n\nThere are two distinct causes and they are detected in two different places, which is why this story has two halves.\n\nFIRST — the project has not supplied a pricing table identifier or a publishable key. That is knowable while rendering, on the server. The page renders a plain sentence instead of the element, and emits NO provider element at all.\n\nSECOND — both values are present, but the project never loaded the provider's library, or the reader's browser could not reach the provider. That is only knowable in the browser, after load, and there is no event to listen for. The check is one line: customElements.get(\"stripe-pricing-table\") being undefined means the element will never come to life. A timing-based check — wait n milliseconds and see — was considered and rejected; research.md's 'Rejected without further reading' section has the reasoning, and your comment in the file should name what it looks for and why the timing approach was rejected.\n\nThe message for the second case is rendered into the markup HIDDEN, never injected. It is present and hidden, so revealing it needs no string from JavaScript — that is FR-010 and it is what makes the message translatable. portal_link.html already does exactly this with its own failure message: read it.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root /home/sam/projects/worktrees/dmp-003-pricing-table, which is a git worktree on branch feat/003-pricing-table. Tests: 'poetry run pytest'. Narrow scope: 'poetry run pytest tests/test_views.py::TestPlansPage'. The full verify command, to run ONCE at your report: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main'.\n\nThe demonstration project is already serving this branch on port 8020 with autoreload, so a broken template is visible immediately at http://127.0.0.1:8020/ — you do not need to start it and must not restart it. Your two new demo routes will be reachable there as you add them.\n\nEXISTING SHAPES TO FOLLOW, read each before writing its counterpart:\n- mvp_payments/templates/cotton/drf_stripe/no_subscription.html — the shape for T022. Takes no props, loads i18n, assigns translated strings with {% translate ... as name %}, and renders django-mvp's <c-page.list.empty> so it reads as part of the page rather than as an error.\n- mvp_payments/templates/cotton/drf_stripe/portal_link.html — the shape for T024's hidden message: a <p hidden data-...> carrying a {% translate %} string, with a data attribute the script binds to.\n- mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js — the shape for T025: a header comment naming what it binds and why, no build step and no bundler (Article XIII), and querySelectorAll over its own marker rather than assuming a control is present.\n- mvp_payments/templates/mvp_payments/drf_stripe/plans.html — the page T023 branches. It currently renders the pricing table unconditionally.\n\nCOMPONENTS AVAILABLE — django-mvp 0.23.0 ships the Cotton components these pages are assembled from, resolved under the project virtualenv's site-packages/mvp — read its templates/cotton/ directory rather than guessing at attributes, particularly <c-page.list.empty>.",
+    "spec_sections": [
+      "User Story 4 - Nothing to show yet, said plainly",
+      "Requirements: FR-007, FR-010",
+      "Success Criteria: SC-005, SC-006",
+      "Edge Cases"
+    ],
+    "plan_sections": [
+      "Design",
+      "The page",
+      "Telling a reader the library never arrived",
+      "What the demonstration project shows"
+    ],
+    "prior_decisions": [
+      "The hidden message is RENDERED HIDDEN and revealed, never injected by JavaScript. A string that lives in a .js file is not translatable and this package's strings are all translatable (Article VIII, FR-010). portal_link.html is the precedent.",
+      "The detection is customElements.get(\"stripe-pricing-table\") after load, nothing else. Undefined means the library never arrived. Defined means the element is the provider's to render — INCLUDING when the provider renders an error of its own, which this package does not interpret and must not try to.",
+      "A timing-based check was rejected in research.md. Name that in the file's comment; do not reintroduce a setTimeout.",
+      "This package still emits no script element and never causes the provider's library to be fetched (Article XIII). pricing_table.js is OUR file, served as a static asset the host project loads; it is not the provider's library and it does not load it.",
+      "The demo's two new routes are the DEMONSTRATION PROJECT'S, not the package's. Nothing in mvp_payments/ may know they exist. Link both from the demo's landing page so every state is reachable by clicking.",
+      "D4 — SC-002 is a guarantee about this package's output, not the demo's page. The demo loading the provider's library is expected; the no_library route deliberately empties that block.",
+      "WATCH — scenario 4 is the one most easily missed: with MVP_PAYMENTS absent from settings ENTIRELY, nothing raises and the rest of the page (its heading, the account navigation) renders unchanged. There are already tests in TestPlansPage for the absent-settings case from US-1; extend the behaviour, do not duplicate or rewrite them.",
+      "WATCH — assert the provider element's ABSENCE as absence. 'no stripe-pricing-table in the rendered output' is the assertion scenario 1 needs; a test that only checks the sentence is present would pass with both on the page.",
+      "WATCH — assert against rendered output, never against the presence of a class name (constitution Article XVI)."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Plan",
+      "Checkout",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md — Development workflow. CONSTITUTION.md Article I (test-first), VI (public API changes ship their docs in the same change), VIII (every user-facing string translatable — gettext_lazy in Python, {% translate %} in templates), X (test modules mirror the source tree; Test<Subject> classes; component tests go under the declared non-mirror path tests/test_components/), XII (an interface layer and nothing else — no payment logic in any language), XIII (no backend import, no provider script emitted, no build step), XIV (nothing at import time reads settings or reverses a URL), XVI (assert against rendered output, never against the presence of a class name).",
+    "verified_base": {
+      "commit": "ac144e1d3a05869612e510f5ac2b706d7a859a67",
+      "verified_at": "2026-09-22T20:56:53Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "poetry:lint",
+        "poetry:typecheck",
+        "poetry:test",
+        "poetry:build"
+      ],
+      "note": "Green on the commit you are starting from, verified independently after US-3 was accepted: lint, typecheck, full suite (137 passed), build, conformance and docs all clean. If the tree is red on arrival, or your HEAD is not this commit, stop and report blocked."
+    },
+    "acceptance": [
+      {
+        "task": "T019",
+        "given_when_then": "Given a project that has supplied no pricing table identifier, when the Plans page renders, then it states plans cannot be shown and its output contains no stripe-pricing-table element (scenario 1); given no publishable key, then the same (scenario 2); given MVP_PAYMENTS absent from settings entirely, then nothing raises and the page's heading and account navigation render unchanged (scenario 4)."
+      },
+      {
+        "task": "T020",
+        "given_when_then": "Given the unavailable component rendered standalone, when it renders, then its sentence appears and it takes no props."
+      },
+      {
+        "task": "T021",
+        "given_when_then": "Given the pricing table component rendered, when the output is read, then it carries a hidden element holding the could-not-be-loaded message and the marker the script binds to — present in the markup and hidden, never absent, so revealing it needs no string from JavaScript (scenario 3, FR-010)."
+      },
+      {
+        "task": "T022",
+        "given_when_then": "Given the plans-unavailable component, when placed on a page, then it renders a translated sentence through django-mvp's empty-state component, reading as part of the page rather than as an error, and takes no props."
+      },
+      {
+        "task": "T023",
+        "given_when_then": "Given both configured values present, when the Plans page renders, then the pricing table component appears; given either absent, then the plans-unavailable component appears in its place and no provider element is emitted."
+      },
+      {
+        "task": "T024",
+        "given_when_then": "Given the pricing table component, when it renders, then the hidden could-not-be-loaded message and its marker are in the output alongside the provider element."
+      },
+      {
+        "task": "T025",
+        "given_when_then": "Given the page loaded in a browser where the provider's library never arrived, when load has fired, then the hidden message is revealed because customElements.get(\"stripe-pricing-table\") is undefined; given the library present, then the message stays hidden and the element is the provider's to render."
+      },
+      {
+        "task": "T026",
+        "given_when_then": "Given the demonstration project, when a visitor opens its landing page, then both new states are reachable by clicking: a route rendering the package's page template with neither value in its context, and a route rendering the component on a page whose provider_library block is empty."
+      },
+      {
+        "task": "T027",
+        "given_when_then": "Given a reader of docs/plans-page.md, when they look for what happens before configuring anything, then both states are documented: what is seen before the project has configured anything, and what is seen when the library never arrived."
+      }
+    ]
+  },
+  "prohibitions": [
+    "Never modify or delete a test you did not author in this story. If a pre-existing test genuinely must change, mark the task blocked and say why in concerns. TestPlansPage's existing absent-settings tests from US-1 are pre-existing — extend the behaviour around them, do not rewrite them.",
+    "Never touch files outside this story's scope: mvp_payments/templates/cotton/drf_stripe/plans_unavailable.html, mvp_payments/templates/cotton/drf_stripe/pricing_table.html, mvp_payments/templates/mvp_payments/drf_stripe/plans.html, mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js, demo/views.py, demo/urls.py, demo/templates/demo/plans_unconfigured.html, demo/templates/demo/no_library.html, demo/templates/demo/home.html, docs/plans-page.md, tests/test_views.py, tests/test_components/test_drf_stripe.py, and the progress.md and decisions.md of this feature.",
+    "Do NOT edit CONSTITUTION.md. The amendment is T032 in US-5.",
+    "Do NOT emit a script element, or anything that causes the provider's library to be fetched, from any template under mvp_payments/. pricing_table.js is a static asset the host project loads; the package never emits a tag that fetches it or the provider's library.",
+    "Do NOT put a user-facing string in pricing_table.js. Every message is rendered hidden in the template and revealed — a string in JavaScript is untranslatable and fails FR-010.",
+    "Do NOT add a setTimeout or any timing-based detection. It was considered and rejected; research.md holds the reasoning.",
+    "Do NOT interpret or reformat an error the provider's own element renders. Once the custom element is defined, what it displays is the provider's business.",
+    "Do NOT produce, read or render any amount, currency, billing frequency or plan name anywhere in this package.",
+    "Do NOT build the override documentation (US-5), and do not let anything in mvp_payments/ reference the demo's routes.",
+    "Never edit feature-state.json beyond flipping your own tasks' status, attempts and evidence. Not the top-level state, not state_history, not your story's status, not any gate. Every code evidence entry must be path:line — the schema refuses a bare path.",
+    "You do not review, accept, merge or push your own story. No git merge, no bot-push, no gh, no token. Your story ends at a clean committed worktree and a report.",
+    "Never write a decisions.md entry, progress note or commit message that asserts a check you did not personally run, and never write one in Forge's voice.",
+    "Never weaken assertions, add skips or xfails, or special-case code to make a test pass.",
+    "No GitHub operations, no network beyond the package registry, never commit secrets."
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "story": "US3",
+  "repo": "django-mvp/django-mvp-payments",
+  "issue": 29,
+  "worktree": "/home/sam/projects/worktrees/dmp-003-pricing-table",
+  "required_skills": [
+    {
+      "name": "craft-tdd",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e"
+    },
+    {
+      "name": "craft-increments",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+      "receipt": "craft-increments/2026-08-05/d3dce07f"
+    }
+  ],
+  "tasks": [
+    "T016",
+    "T017",
+    "T018"
+  ],
+  "budgets": {
+    "attempts_per_task": 5,
+    "wallclock_minutes": 60
+  },
+  "rituals": [
+    "Load craft-tdd and craft-increments by name before anything else, and copy each RECEIPT line verbatim out of the file you read.",
+    "Read this brief in full, then your tasks T016-T018 in specs/003-pricing-table/tasks.md — your tasks only.",
+    "Read the plan.md sections this brief names by heading, and stop there.",
+    "Read the CONTEXT.md glossary entries named above and use that vocabulary in code, tests and commit messages.",
+    "git log --oneline -10.",
+    "Do NOT run the suite to check your starting point — context.verified_base is the assurance, already given. Confirm your HEAD equals that commit and start."
+  ],
+  "context": {
+    "why": "US-1 landed the component and the package's own Plans page inside the Account Center; US-2 wired the signed-in person's address onto the element. Both of those are about a page this package ships and routes.\n\nThis story is about the other place plans go: somebody else's template. A project building on this package wants plans on its public landing page too, and the Account Center cannot serve that page — a landing page has no signed-in person, no view of ours, and no reason to involve our routing at all.\n\nThe claim being tested is that the component is genuinely self-sufficient. Given a pricing table identifier and a publishable key as attributes, it must produce the complete element with no view, no context processor, and no query against the backend, for a reader who is not signed in. If that claim already holds, T016 passes the moment it is written, and that is a real result rather than a problem — the design intended it. SAY SO PLAINLY IN YOUR REPORT: state whether T016 was red before T018 or passed on first run. Do not manufacture a failure to make the cycle look conventional, and do not weaken the test so that it fails.\n\nT018 is the demonstration of the same thing: the component placed on the demo's landing page, the page a visitor reaches without signing in, with a line of copy saying this is the same component the Account Center's Plans page renders.",
+    "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root /home/sam/projects/worktrees/dmp-003-pricing-table, which is a git worktree on branch feat/003-pricing-table. Tests: 'poetry run pytest'. Narrow scope: 'poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable'. The full verify command, to run ONCE at your report: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main'.\n\nThe demonstration project is already serving this branch on port 8020 with autoreload, so a broken template is visible immediately at http://127.0.0.1:8020/ — you do not need to start it and must not restart it.\n\nTHE PROVIDER'S ELEMENT — The provider is Stripe and the element is <stripe-pricing-table>. Its attributes: 'pricing-table-id' (required), 'publishable-key' (required), 'customer-email' (optional, wired in US-2). The element is brought to life by https://js.stripe.com/v3/pricing-table.js, which THIS PACKAGE NEVER EMITS. The demonstration project loads it in base.html's {% block provider_library %}, labelled a demonstration convenience — it is already there and this story does not change it.\n\nDEMO VALUES — demo/settings.py already carries 'DRF_STRIPE_PRICING_TABLE_ID': 'prctbl_not_a_real_table' and 'DRF_STRIPE_PUBLISHABLE_KEY': 'pk_test_not_a_real_key'. The landing page placement supplies its values as ATTRIBUTES, the way a project's own template would; how it reaches those two strings is yours to choose, but the point of the placement is that the component is given them directly rather than reading them itself.\n\nCOMPONENTS AVAILABLE — django-mvp 0.23.0 ships the Cotton components the demo's pages are assembled from, resolved under the project virtualenv's site-packages/mvp — read its templates/cotton/ directory rather than guessing at attributes. demo/templates/demo/home.html is built from <c-section>, <c-text>, <c-grid> and <c-card>; match the page's existing shape and copy voice rather than introducing a new idiom for one block.",
+    "spec_sections": [
+      "User Story 3 - The same plans on a page of the project's own",
+      "Requirements: FR-001, FR-009, FR-011",
+      "Edge Cases"
+    ],
+    "plan_sections": [
+      "Design",
+      "The component",
+      "What the demonstration project shows"
+    ],
+    "prior_decisions": [
+      "The component reads no settings and requires no view. That is the guarantee this story tests; do not add a context processor, a template tag or a view to make the landing-page placement work.",
+      "The component imposes no sign-in requirement of its own (FR-009). It must render for an anonymous visitor with no address and no error — US-2 already omits customer-email entirely in that case, which is correct and is not yours to change.",
+      "D4 — SC-002 is a guarantee about this package's output, not about the demonstration project's page. The demo loads the provider's library; that is expected and is not a violation to fix.",
+      "D2 — the script-absence guarantee is held at the template source. tests/test_app.py already asserts no shipped template under mvp_payments/ carries a script element with a host src; that is a pre-existing test and is not yours to touch.",
+      "WATCH — T016 may pass the moment it is written, because US-1 built the component to satisfy exactly this. Report which it was, honestly. A test that passes on first run here is evidence the design held.",
+      "WATCH — assert against rendered output, never against the presence of a class name (constitution Article XVI). For the query-count assertion use django_assert_num_queries(0) around a render carrying only the attributes.",
+      "WATCH — the demo landing page is a page a visitor reaches WITHOUT signing in. Do not place the component behind a login, and assert the anonymous case in tests/test_demo.py."
+    ],
+    "glossary_terms": [
+      "Payment component",
+      "Provider",
+      "Backend",
+      "Namespace",
+      "Host project",
+      "Plan",
+      "Theme"
+    ],
+    "conventions": "AGENTS.md — Development workflow. CONSTITUTION.md Article I (test-first), VI (public API changes ship their docs in the same change), VIII (every user-facing string translatable — gettext_lazy in Python, {% translate %} in templates), X (test modules mirror the source tree; Test<Subject> classes; component tests go under the declared non-mirror path tests/test_components/), XII (an interface layer and nothing else — no payment logic in any language), XIII (no backend import, no provider script emitted from this package), XIV (nothing at import time reads settings or reverses a URL), XVI (assert against rendered output, never against the presence of a class name).",
+    "verified_base": {
+      "commit": "7055812396af6586acd8536c258bcb3d1c93a0df",
+      "verified_at": "2026-09-22T20:41:22Z",
+      "steps": [
+        "conformance",
+        "docs",
+        "poetry:lint",
+        "poetry:typecheck",
+        "poetry:test",
+        "poetry:build"
+      ],
+      "note": "Green on the commit you are starting from, verified independently after US-2 was accepted: lint, typecheck, full suite (134 passed), build, conformance and docs all clean. If the tree is red on arrival, or your HEAD is not this commit, stop and report blocked."
+    },
+    "acceptance": [
+      {
+        "task": "T016",
+        "given_when_then": "Given the component rendered in a template unrelated to any page of this package, with a pricing table identifier and a publishable key as its only attributes, when it renders for an anonymous visitor, then the complete provider element is produced from those attributes alone (scenarios 1 and 2); and given that same render wrapped in django_assert_num_queries(0), then it completes without a single query, demonstrating it needs no view, no context processor and no backend (scenario 3)."
+      },
+      {
+        "task": "T017",
+        "given_when_then": "Given an anonymous visitor opening the demonstration project's landing page, when it renders, then the provider's element is present on it with the demo's values."
+      },
+      {
+        "task": "T018",
+        "given_when_then": "Given the demonstration project's landing page, when a visitor who is not signed in opens it, then the pricing table appears there with a line of copy saying it is the same component the Account Center's Plans page renders."
+      }
+    ]
+  },
+  "prohibitions": [
+    "Never modify or delete a test you did not author in this story. If a pre-existing test genuinely must change, mark the task blocked and say why in concerns.",
+    "Never touch files outside this story's scope: demo/templates/demo/home.html, tests/test_demo.py, tests/test_components/test_drf_stripe.py, and the progress.md and decisions.md of this feature.",
+    "Do NOT modify the component itself. mvp_payments/templates/cotton/drf_stripe/pricing_table.html is finished for this story — if T016 cannot pass without changing it, that is a finding: mark the task blocked and say so, do not edit it.",
+    "Do NOT edit CONSTITUTION.md. The amendment is T032 in US-5.",
+    "Do NOT emit a script element, or anything that causes the provider's library to be fetched, from any template under mvp_payments/.",
+    "Do NOT produce, read or render any amount, currency, billing frequency or plan name anywhere in this package.",
+    "Do NOT build the unavailable state or the could-not-be-loaded message (US-4), or the override documentation (US-5).",
+    "Never edit feature-state.json beyond flipping your own tasks' status, attempts and evidence. Not the top-level state, not state_history, not your story's status, not any gate. Every code evidence entry must be path:line — the schema refuses a bare path.",
+    "You do not review, accept, merge or push your own story. No git merge, no bot-push, no gh, no token. Your story ends at a clean committed worktree and a report.",
+    "Never write a decisions.md entry, progress note or commit message that asserts a check you did not personally run, and never write one in Forge's voice.",
+    "Never weaken assertions, add skips or xfails, or special-case code to make a test pass.",
+    "No GitHub operations, no network beyond the package registry, never commit secrets."
+  ]
+}

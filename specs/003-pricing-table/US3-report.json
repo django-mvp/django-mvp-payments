@@ -1,0 +1,68 @@
+{
+  "story": "US3",
+  "skills_loaded": [
+    {
+      "name": "craft-tdd",
+      "receipt": "craft-tdd/2026-09-16/3c401f5e",
+      "loaded_via": "skill-tool"
+    },
+    {
+      "name": "craft-increments",
+      "receipt": "craft-increments/2026-08-05/d3dce07f",
+      "loaded_via": "skill-tool"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T016",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_components/test_drf_stripe.py::TestPricingTable::test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor"
+        ],
+        "criteria": ["SC-004"],
+        "commands": [
+          "poetry run pytest tests/test_components/test_drf_stripe.py::TestPricingTable -v"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["eba9c21ccccfd2896aab72e7a5700f61afd702f2"]
+    },
+    {
+      "id": "T017",
+      "status": "done",
+      "evidence": {
+        "tests_added": [
+          "tests/test_demo.py::TestHomePage::test_the_pricing_table_is_present_with_the_demos_values_for_an_anonymous_visitor",
+          "tests/test_demo.py::TestHomePage::test_the_copy_names_it_as_the_same_component_the_account_center_renders"
+        ],
+        "criteria": ["SC-004"],
+        "commands": [
+          "poetry run pytest tests/test_demo.py::TestHomePage::test_the_pricing_table_is_present_with_the_demos_values_for_an_anonymous_visitor tests/test_demo.py::TestHomePage::test_the_copy_names_it_as_the_same_component_the_account_center_renders -v"
+        ],
+        "exit_code": 1
+      },
+      "commits": ["0984f25c8477bc66d62289dfaa3c69e7e644a22e"]
+    },
+    {
+      "id": "T018",
+      "status": "done",
+      "evidence": {
+        "tests_added": [],
+        "criteria": ["SC-004"],
+        "commands": [
+          "poetry run pytest tests/test_demo.py -v",
+          "poetry run djlint demo/templates/demo/home.html --profile django"
+        ],
+        "exit_code": 0
+      },
+      "commits": ["6d58c83df9d38043b47f78c10c3a8757705a7cbe"]
+    }
+  ],
+  "deviations": [],
+  "concerns": [
+    "docs/plans-page.md already states the component's central US-3 guarantee verbatim -- 'The component reads no settings and imposes no sign-in requirement, so it can be placed on any page of your own project, whether or not this package's Account Center pages are in use.' Nothing under docs/ needed a change for T016-T018; no public API or documented surface moved.",
+    "T016 was red on its first run for an environment reason, not the design reason it exists to test: django_assert_num_queries's own setup calls ensure_connection() even to prove zero queries ran, which pytest-django blocks without a db-enabling fixture. Adding the db fixture (D6 in decisions.md) made it pass immediately, with no change to pricing_table.html. The component's self-sufficiency claim held on first real attempt, exactly as the brief's WATCH note anticipated -- recorded honestly rather than smoothed into a conventional red/green story."
+  ],
+  "blocked": []
+}

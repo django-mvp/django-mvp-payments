@@ -1,0 +1,20 @@
+{% extends "page_view.html" %}
+{% block provider_library %}
+  {% comment %}
+    Emptied deliberately (US-4 scenario 3): the mount point below renders
+    with both configured values present, and the provider's library never
+    arrives to bring it to life. D4 — this is a guarantee about the demo's
+    own page, not about this package's output.
+  {% endcomment %}
+{% endblock provider_library %}
+{% block page.content %}
+  <c-section title="The library never arrived" icon="info">
+    <c-text>
+      Both a pricing table id and a publishable key are configured below, and the mount point is
+      emitted — but this page never loads the provider's library, so the element never comes to
+      life.
+    </c-text>
+    <c-drf-stripe.pricing-table table_id="prctbl_not_a_real_table"
+                                 publishable_key="pk_test_not_a_real_key" />
+  </c-section>
+{% endblock page.content %}
