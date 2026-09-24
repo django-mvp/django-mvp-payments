@@ -29,13 +29,15 @@ backends.
 
 ## Stack & commands
 
-- **Stack:** Python 3.12+ / Django 5.2 and 6.0, Poetry-managed, built on django-mvp and Cotton
-- **Install:** `poetry install`
-- **Test:** `poetry run pytest`
-- **Lint:** `poetry run pre-commit run --all-files` (ruff lint + format, mypy, deptry)
-- **Type-check:** `poetry run mypy`
-- **Build:** `poetry build`
-- **Demo project:** `poetry run python manage.py runserver 0.0.0.0:8020`
+- **Stack:** Python 3.12+ / Django 5.2, 6.0 and 6.1, uv-managed (hatchling build backend), built on django-mvp and Cotton
+- **Install:** `uv sync`
+- **Test:** `uv run pytest`
+- **Lint:** `uv run pre-commit run --all-files` (ruff lint + format, mypy, deptry)
+- **Type-check:** `uv run mypy`
+- **Build:** `uv build`
+- **Bump the version:** `uv version`. Never edit `pyproject.toml` alone, because `uv.lock`
+  records this package's own version too
+- **Demo project:** `uv run python manage.py runserver 0.0.0.0:8020`
 
 Lint is the pre-commit run, not a bare `ruff check .`: the hook config excludes `docs/` and
 migrations, and a raw invocation reports findings in paths the gate does not cover.

@@ -130,8 +130,10 @@ class TestPackagedApp:
         """
         import importlib.metadata
 
+        from packaging.requirements import Requirement
+
         requires = importlib.metadata.requires("django-mvp-payments") or []
-        names = {r.split()[0].split("[")[0].split(";")[0].lower() for r in requires}
+        names = {Requirement(r).name.lower() for r in requires}
         assert names == {"django", "django-mvp"}
 
     def test_the_import_scan_reaches_every_module_this_feature_added(self) -> None:
