@@ -34,7 +34,8 @@ document.querySelectorAll("[data-mvp-payments-portal-link]").forEach((link) => {
 
   button.addEventListener("click", () => {
     failure.hidden = true;
-    stale.hidden = true;
+    // Absent from markup a project wrote before this message existed.
+    if (stale) stale.hidden = true;
 
     fetch(endpoint, {
       method: "POST",
@@ -44,7 +45,7 @@ document.querySelectorAll("[data-mvp-payments-portal-link]").forEach((link) => {
       .then((response) => {
         // Refused, or sent to sign in: the page is older than the session,
         // and reloading it is what helps.
-        if (response.status === 403 || response.redirected) {
+        if (stale && (response.status === 403 || response.redirected)) {
           stale.hidden = false;
           return null;
         }

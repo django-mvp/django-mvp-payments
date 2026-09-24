@@ -81,6 +81,14 @@ class TestBillingPortalScript:
         assert outcome["failureShown"] is True
         assert outcome["staleShown"] is False
 
+    def test_markup_without_the_reload_message_falls_back_to_the_failure_message(
+        self,
+    ):
+        """A project that wrote its own control before that message existed still hears why."""
+        outcome = click(renderedToken="stale", status=403, noStaleMessage=True)
+
+        assert outcome["failureShown"] is True
+
     def test_a_page_waiting_on_the_provider_reloads_to_the_address_it_names(self):
         outcome = click(refreshTo="/account/billing/subscription/?returned=2")
 

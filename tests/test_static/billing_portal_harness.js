@@ -14,7 +14,7 @@ const scenario = JSON.parse(scenarioJson);
 const element = () => ({ hidden: true });
 const messages = {
   "[data-mvp-payments-portal-link-failure]": element(),
-  "[data-mvp-payments-portal-link-stale]": element(),
+  "[data-mvp-payments-portal-link-stale]": scenario.noStaleMessage ? null : element(),
 };
 let clickHandler = null;
 const button = { addEventListener: (_, handler) => { clickHandler = handler; } };
@@ -72,7 +72,10 @@ setTimeout(() => {
     JSON.stringify({
       token: sent.token,
       failureShown: !messages["[data-mvp-payments-portal-link-failure]"].hidden,
-      staleShown: !messages["[data-mvp-payments-portal-link-stale]"].hidden,
+      staleShown: Boolean(
+        messages["[data-mvp-payments-portal-link-stale]"] &&
+          !messages["[data-mvp-payments-portal-link-stale]"].hidden
+      ),
       location: context.window.location.href,
       timers,
     })
