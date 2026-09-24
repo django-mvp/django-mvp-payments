@@ -7,7 +7,7 @@ on:
     paths:
       - 'mvp_payments/**'
       - 'pyproject.toml'
-      - 'poetry.lock'
+      - 'uv.lock'
       - '.pre-commit-config.yaml'
       - 'ruff-base.toml'
       - '.github/workflows/build.yml'
@@ -19,7 +19,7 @@ on:
 
 jobs:
   call-build:
-    uses: django-mvp/shared/.github/workflows/build.yml@v0.4.1
+    uses: django-mvp/shared/.github/workflows/build.yml@v0.6.0
     with:
       source-dir: mvp_payments
     secrets: inherit

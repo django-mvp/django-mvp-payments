@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Django 6.1 is supported, and tested on every change alongside 5.2 and 6.0.
 - Build pipeline, test harness and demo project.
 - The URL configuration a project includes once (`mvp_payments.urls`), and the drf-stripe
   namespace's pages arriving in django-mvp's Account Center when the backend is installed, under a
@@ -53,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The package is built with hatchling instead of poetry-core, and developed with uv instead of
+  Poetry. The wheel contains the same files as before. The source distribution does too, plus the
+  repository's `.gitignore`, which hatchling includes so that a build from it leaves out the same
+  files.
 - Requires django-mvp 0.24.0 or later. The demo now signs in and out through django-mvp's own
   development pages (`LOGIN_URL = "account_login"`) in place of Django's, which fixes its sign-out
   control. That control is drawn only when `account_logout` resolves, and Django's logout view

@@ -20,6 +20,7 @@ classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -34,9 +35,16 @@ Homepage = "https://github.com/django-mvp/django-mvp-payments"
 Repository = "https://github.com/django-mvp/django-mvp-payments"
 Issues = "https://github.com/django-mvp/django-mvp-payments/issues"
 
-[tool.poetry]
-packages = [{ include = "mvp_payments" }]
-requires-poetry = '>=2.0,<3.0'
+[tool.hatch.build.targets.wheel]
+packages = ["mvp_payments"]
+
+# Hatchling's default source distribution is the whole working tree: tests, the
+# demonstration project, documentation, CI configuration and the repository's
+# own records. Listing what ships keeps it to the package, the readme and the
+# licence. Hatchling adds .gitignore itself, so that a build from the source
+# distribution leaves out what the repository does.
+[tool.hatch.build.targets.sdist]
+include = ["/mvp_payments", "/README.md", "/LICENSE"]
 
 # No payment backend is declared as a dependency, and none ever will be. A
 # namespace is templates and static files that speak to one backend's HTTP
@@ -48,29 +56,30 @@ requires-poetry = '>=2.0,<3.0'
 # it exactly, a second constraint here could only ever fight that one, and this
 # package has no say in which version a project runs.
 
-[tool.poetry.group.dev.dependencies]
-# Shared toolchain bundle from django-mvp/shared, pinned to a release tag so
-# every package in this organisation runs one version of each tool. Ships ruff,
-# mypy, deptry, pre-commit, pytest, pytest-django, coverage and django-stubs.
-mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.4.1", extras = [
-    "dev",
-    "test",
-] }
-# The first backend, for the demo project and the test suite only. The rule
-# above is about what a project installing this package inherits, and a
-# development dependency is inherited by nobody. The demo needs the real
-# backend because what it demonstrates is a real backend's pages arriving.
-#
-# `stripe` is held below 8 because drf_stripe/serializers.py imports
-# `stripe.error.StripeError`, removed at version 8, so mounting the backend's
-# URL configuration raises without the bound. The backend's own metadata
-# declares no upper bound on anything, so nothing else needs pinning.
-drf-stripe-subscription = "^1.2.2"
-stripe = "<8"
+[dependency-groups]
+dev = [
+    # Shared toolchain bundle from django-mvp/shared, pinned to a release tag so
+    # every package in this organisation runs one version of each tool. Ships ruff,
+    # mypy, deptry, pre-commit, pytest, pytest-django, coverage and django-stubs.
+    "mvp-shared[dev,test]",
+    # The first backend, for the demo project and the test suite only. The rule
+    # above is about what a project installing this package inherits, and a
+    # development dependency is inherited by nobody. The demo needs the real
+    # backend because what it demonstrates is a real backend's pages arriving.
+    "drf-stripe-subscription>=1.2.2,<2",
+    # `stripe` is held below 8 because drf_stripe/serializers.py imports
+    # `stripe.error.StripeError`, removed at version 8, so mounting the backend's
+    # URL configuration raises without the bound. The backend's own metadata
+    # declares no upper bound on anything, so nothing else needs pinning.
+    "stripe<8",
+]
+
+[tool.uv.sources]
+mvp-shared = { git = "https://github.com/django-mvp/shared.git", tag = "v0.6.0" }
 
 [build-system]
-requires = ['poetry-core (>=2.0,<3.0)']
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
