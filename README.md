@@ -154,6 +154,21 @@ The standing directions this package works toward are in [GOALS.md](GOALS.md).
 generalise; route and render rather than compute; render less rather than assume how a page is
 laid out.
 
+## Running the demo
+
+```bash
+poetry install
+poetry run python manage.py migrate
+poetry run python manage.py seed_demo
+poetry run python manage.py runserver 8020
+```
+
+Sign in as `regular.user`, `staff.user` or `super.user`, password `password`. Out of the box the
+pages run on fake Stripe values, so the billing portal and the pricing table say they could not be
+reached. To see them working, copy `demo/.env.example` to `demo/.env` and fill it in from your own
+Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo accounts get real
+sandbox customers.
+
 ## Licence
 
 MIT.

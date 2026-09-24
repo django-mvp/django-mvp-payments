@@ -17,7 +17,8 @@ def _dev_env() -> dict[str, str]:
     hosted pages reachable from this demo, so the handoff to them can be
     exercised rather than described. Without the file the demo still runs, on
     values that are obviously not real, which is what a fresh clone and the
-    test suite get. Nothing here reaches a project that installs the package:
+    test suite get. `demo/.env.example` lists every value and where in the
+    provider's dashboard it comes from. Nothing here reaches a project that installs the package:
     a demo project is a demonstration target and ships to nobody.
     """
     values: dict[str, str] = {}
@@ -30,7 +31,12 @@ def _dev_env() -> dict[str, str]:
     values.update(
         {
             key: os.environ[key]
-            for key in ("STRIPE_TEST_SECRET_KEY", "DEMO_BASE_URL")
+            for key in (
+                "STRIPE_TEST_SECRET_KEY",
+                "STRIPE_TEST_PUBLISHABLE_KEY",
+                "STRIPE_TEST_PRICING_TABLE_ID",
+                "DEMO_BASE_URL",
+            )
             if key in os.environ
         }
     )
