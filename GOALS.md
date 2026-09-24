@@ -16,9 +16,8 @@ Importance is a tag on each goal, not a ranking:
 
 | ID | Goal | Importance | Status | Notes |
 |----|------|------------|--------|-------|
-| G1 | Adding a backend to a project takes minimal setup and no page-building | Essential | | |
-| G2 | Both a native interface and the provider's own embed are first-class ways to get a working page | Essential | | |
-| G3 | One backend's pages never affect another's | Essential | | |
-| G4 | Whatever the installed backend can do, there is a page for it | Expected | | |
+| G1 | A project using a supported payment backend gets that backend's pages, looking like the rest of its django-mvp site, without building them | Essential | | |
+| G2 | At least one payment backend is supported | Essential | | drf-stripe-subscription, chosen in [ADR 0009](docs/adr/0009-drf-stripe-subscription-is-the-first-backend.md) |
+| G3 | More than one payment backend is supported | Aspirational | | Which one waits for a project that needs it |
 
-_Written 2026-09-21. Revise as the goals change._
+_Written 2026-09-24. Revise as the goals change._
