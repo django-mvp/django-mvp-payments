@@ -1,0 +1,33 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.provider-return> — the reader has just come     #}
+{# back from the provider                                        #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   state      – the page's provider_return, or None            #}
+{#   subscribed – whether anything current is showing            #}
+{#                                                                #}
+{# The provider tells the backend what happened separately from  #}
+{# sending the reader back, so the page can be reached first.    #}
+{# With nothing current yet, it says the payment is being        #}
+{# confirmed, and billing_portal.js reloads to state.refresh_url #}
+{# until something is, or the reloads run out. With something    #}
+{# current, it says a change can take a moment to show. Renders  #}
+{# nothing on an ordinary visit.                                  #}
+{# ============================================================ #}
+<c-vars state subscribed=False />
+{% if state %}
+  {% if subscribed %}
+    <c-alert variant="info">
+      {% translate "A change you made on the provider's site can take a moment to show here. Reload this page if you don't see yours yet." %}
+    </c-alert>
+  {% elif state.refresh_url %}
+    <c-alert variant="info" data-mvp-payments-refresh-to="{{ state.refresh_url }}">
+      {% translate "Confirming your payment with the provider. This page updates by itself in a few seconds." %}
+    </c-alert>
+  {% else %}
+    <c-alert variant="warning">
+      {% translate "Your payment hasn't reached this site yet. It can take a few minutes. Reload this page later." %}
+    </c-alert>
+  {% endif %}
+{% endif %}

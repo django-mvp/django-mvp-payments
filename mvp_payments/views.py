@@ -77,11 +77,24 @@ class SubscriptionPageView(PaymentPageView):
     subscriber switches there rather than on the plans page, because the provider's pricing table
     knows nothing of a current plan and a purchase through it starts a second subscription beside
     the first. Suppressed for anyone with nothing current, as the portal is.
+
+    And ``provider_return``, set when the reader has just come back from the provider: the page
+    was reached with ``?returned=N``, the address a project gives the provider's checkout and
+    portal to send people back to. The provider tells the backend what happened separately from
+    sending the reader back, so the page can be reached before the backend knows. ``None`` on an
+    ordinary visit. Otherwise a dict: ``attempt``, the ``N`` it was reached with, and
+    ``refresh_url``, the address to reload to while there is still nothing current to show, or
+    ``None`` once there is, or once ``RETURN_REFRESH_LIMIT`` reloads have been spent.
     """
+
+    #: How many times the page reloads itself, waiting for a subscription to arrive after the
+    #: reader comes back from the provider, before it stops and says to reload later.
+    RETURN_REFRESH_LIMIT = 5
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         subscriptions = SubscriptionReader.for_user(self.request.user)
+        context["provider_return"] = self.provider_return(subscriptions)
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["subscriptions"] = subscriptions
         context["billing_portal_endpoint"] = (
@@ -96,6 +109,20 @@ class SubscriptionPageView(PaymentPageView):
         )
         context["plans_url"] = self.get_contribution().page_url("plans")
         return context
+
+    def provider_return(self, subscriptions: Any) -> dict[str, Any] | None:
+        """Where the reader stands after coming back from the provider, or ``None``."""
+        returned = self.request.GET.get("returned")
+        if returned is None:
+            return None
+        attempt = int(returned) if returned.isdigit() and int(returned) > 0 else 1
+        waiting = not subscriptions and attempt < self.RETURN_REFRESH_LIMIT
+        return {
+            "attempt": attempt,
+            "refresh_url": f"{self.request.path}?returned={attempt + 1}"
+            if waiting
+            else None,
+        }
 
 
 class PlansPageView(PaymentPageView):

@@ -2,10 +2,13 @@
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
+    <c-drf-stripe.provider-return :state="provider_return" :subscribed="subscriptions" />
     {% for subscription in subscriptions %}
       <c-drf-stripe.subscription :subscription="subscription" />
     {% empty %}
-      <c-drf-stripe.no-subscription />
+      {% if not provider_return %}
+        <c-drf-stripe.no-subscription />
+      {% endif %}
     {% endfor %}
     {# Both ways onward on one line, wrapping on a narrow screen. #}
     <div class="flex flex-wrap items-start gap-3"

@@ -28,8 +28,11 @@
          data-endpoint="{{ switch_endpoint }}"
          data-csrf-token="{{ csrf_token }}">
       <button type="button" class="btn btn-outline">{% translate "Switch plans" %}</button>
-      <p hidden data-mvp-payments-portal-link-failure class="text-sm text-error">
+      <p hidden role="alert" data-mvp-payments-portal-link-failure class="text-sm text-error">
         {% translate "Plans could not be changed right now. Try again later." %}
+      </p>
+      <p hidden role="alert" data-mvp-payments-portal-link-stale class="text-sm text-error">
+        {% translate "This page is out of date. Reload it and try again." %}
       </p>
     </div>
   {% endif %}

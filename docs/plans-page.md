@@ -79,7 +79,12 @@ their place when either is absent. Somebody who already has a subscription gets 
 `<c-drf-stripe.already-subscribed>` instead, which says they already have one and links to their
 subscription page. The pricing table cannot show which plan they are on, and buying from it starts
 a second subscription beside the first. Changing plan happens on the provider's plan-change screen,
-reached from the subscription page's "Switch plans" control. It keeps `LoginRequiredMixin`, so an anonymous visitor is sent
+reached from the subscription page's "Switch plans" control.
+
+Where a buyer goes after paying is set on the pricing table in the provider's dashboard. Send them
+to the subscription page with `?returned=1` on the address, so the page waits for the payment to
+reach the backend instead of telling them they have no subscription. See
+[Coming back from the provider](subscription-page.md#coming-back-from-the-provider). It keeps `LoginRequiredMixin`, so an anonymous visitor is sent
 to sign in rather than shown the page.
 
 ```html

@@ -327,7 +327,14 @@ class TestPlansLink:
         assert "data-mvp-payments-portal-link" in html
         assert 'data-endpoint="/api/plan-switch/"' in html
         assert re.search(r'data-csrf-token="[^"]+"', html)
-        assert "hidden data-mvp-payments-portal-link-failure" in html
+        assert re.search(
+            r'<p hidden role="alert" data-mvp-payments-portal-link-failure', html
+        )
+        assert re.search(
+            r'<p hidden role="alert" data-mvp-payments-portal-link-stale[^>]*>\s*'
+            r"This page is out of date\. Reload it and try again\.",
+            html,
+        )
         assert "/account/billing/plans/" not in html
         assert "Choose a plan" not in html
 
@@ -356,6 +363,48 @@ class TestPlansLink:
         html = cotton_render("drf-stripe.plans-link", url=None)
 
         assert html.strip() == ""
+
+
+class TestProviderReturn:
+    """``<c-drf-stripe.provider-return>`` — the reader has just come back from the provider."""
+
+    def test_renders_nothing_on_an_ordinary_visit(self, cotton_render):
+        assert cotton_render("drf-stripe.provider-return", state=None).strip() == ""
+
+    def test_waiting_on_a_payment_it_names_the_address_to_reload_to(
+        self, cotton_render
+    ):
+        html = cotton_render(
+            "drf-stripe.provider-return",
+            state={"attempt": 1, "refresh_url": "/billing/?returned=2"},
+            subscribed=False,
+        )
+
+        assert 'role="alert"' in html
+        assert 'data-mvp-payments-refresh-to="/billing/?returned=2"' in html
+        assert "Confirming your payment" in html
+
+    def test_out_of_reloads_it_says_to_reload_later(self, cotton_render):
+        html = cotton_render(
+            "drf-stripe.provider-return",
+            state={"attempt": 5, "refresh_url": None},
+            subscribed=False,
+        )
+
+        assert "data-mvp-payments-refresh-to" not in html
+        assert "Reload this page later." in html
+
+    def test_with_a_subscription_showing_it_notes_the_delay_and_never_reloads(
+        self, cotton_render
+    ):
+        html = cotton_render(
+            "drf-stripe.provider-return",
+            state={"attempt": 1, "refresh_url": None},
+            subscribed=True,
+        )
+
+        assert "data-mvp-payments-refresh-to" not in html
+        assert "can take a moment to show here" in html
 
 
 class TestAlreadySubscribed:
@@ -396,7 +445,14 @@ class TestPortalLink:
         note_id = re.search(r'aria-describedby="([\w-]+)"', html).group(1)
         assert f'id="{note_id}"' in html
         assert "provider" in html.lower()
-        assert "hidden data-mvp-payments-portal-link-failure" in html
+        assert re.search(
+            r'<p hidden role="alert" data-mvp-payments-portal-link-failure', html
+        )
+        assert re.search(
+            r'<p hidden role="alert" data-mvp-payments-portal-link-stale[^>]*>\s*'
+            r"This page is out of date\. Reload it and try again\.",
+            html,
+        )
 
     def test_given_no_endpoint_it_states_the_provider_manages_it_and_renders_no_control(
         self, cotton_render

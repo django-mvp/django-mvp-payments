@@ -134,6 +134,9 @@ class BillingReturnView(LoginRequiredMixin, View):
     beside it. So the demo asks the provider for the current state on the way back instead, using
     the backend's own synchronisation, and the subscription page shows the plan the reader just
     chose. A deployed project receives webhooks and needs none of this.
+
+    It arrives with ``?returned=1``, so if the provider still has not caught up the page says a
+    change is on its way rather than showing the state from before it.
     """
 
     def get(self, request):
@@ -144,4 +147,4 @@ class BillingReturnView(LoginRequiredMixin, View):
             stripe_api_update_subscriptions(
                 status="all", ignore_new_user_creation_errors=True
             )
-        return redirect("payments:drf-stripe-subscription")
+        return redirect(reverse("payments:drf-stripe-subscription") + "?returned=1")

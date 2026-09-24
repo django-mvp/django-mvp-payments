@@ -22,7 +22,7 @@ disagree with the rest of your application on the day the backend's line moved.
 
 ## The context
 
-`SubscriptionPageView` adds four names to the template context:
+`SubscriptionPageView` adds five names to the template context:
 
 `subscriptions`
 : A tuple of `CurrentSubscription`, newest first, for the person making the request. Empty for
@@ -44,6 +44,12 @@ disagree with the rest of your application on the day the backend's line moved.
 `plans_url`
 : Where the plans page is mounted. The plans page is not in the Account Center's navigation, so
   this page carries the way to it, for a person with no subscription to choose one.
+
+`provider_return`
+: `None` on an ordinary visit. Set when the page was reached with `?returned=N`, which marks the
+  reader as just back from the provider. It is a dict with `attempt`, the `N` the page was reached
+  with, and `refresh_url`, the address to reload to while nothing current is showing yet. See
+  [Coming back from the provider](#coming-back-from-the-provider).
 
 Everything else on the page is reached through `subscriptions`. If you override the template you
 have all of it, and you need no view, no context processor and no query of your own.
@@ -111,7 +117,7 @@ package worked out is a number the provider never stood behind.
 
 ## The components
 
-Seven components render the page. You can place any of them in a template of your own, and each
+Eight components render the page. You can place any of them in a template of your own, and each
 renders from the attributes you give it — with one exception, noted against the component it
 applies to.
 
@@ -123,6 +129,7 @@ applies to.
 <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions"
                          :switch_endpoint="plan_switch_endpoint" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+<c-drf-stripe.provider-return :state="provider_return" :subscribed="subscriptions" />
 <c-drf-stripe.no-subscription />
 ```
 
@@ -165,6 +172,13 @@ applies to.
     rather than from a context you assembled yourself. Rendered without one the control looks
     right and every post it makes is rejected.
 
+`<c-drf-stripe.provider-return>`
+: Given the page's `provider_return`, a notice for a reader just back from the provider, and
+  nothing at all on an ordinary visit. With nothing current showing yet it says the payment is
+  being confirmed and names the address the page reloads to. Once the reloads run out it says to
+  reload later. With a subscription showing it says a change can take a moment to appear, and
+  never reloads.
+
 `<c-drf-stripe.no-subscription>`
 : Takes no attributes. States that there is no current subscription, for someone who never had one
   and for someone whose subscription has ended alike — the backend reports both the same way, and
@@ -206,9 +220,18 @@ absolute and `tests/test_app.py` enforces. A project of your own is bound by nei
 
 `<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
 JavaScript behaviour — so a small static file does it: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`.
-It binds every portal-link control on the page, posts with the CSRF token the component already
-rendered as data, and follows the address a successful answer carries. On any failure it reveals
-the control's own hidden failure message instead of sending the reader nowhere.
+It binds every portal-link control on the page, posts, and follows the address a successful answer
+carries.
+
+It sends the CSRF token from Django's `csrftoken` cookie, not the one the component rendered.
+Signing in again replaces the token, so a page left open in one tab while the person signed out and
+back in in another would otherwise post a token Django refuses. The rendered token is the fallback
+for a project that keeps its token in the session (`CSRF_USE_SESSIONS`).
+
+It never sends the reader nowhere. If the post is refused, or the endpoint redirects to the sign-in
+page, the control says the page is out of date and to reload it. On any other failure it says the
+portal could not be reached. The same file also does the reloading described in
+[Coming back from the provider](#coming-back-from-the-provider).
 
 You load that file yourself, the way you already load your project's other static assets — this
 package emits no `<script>` tag of its own:
@@ -254,6 +277,32 @@ Two things are set in the provider's dashboard, not here:
 Without the setting, a subscriber is offered no "Switch plans" control. The portal control still
 reaches the portal, which offers the same change if the portal's settings allow it.
 
+## Coming back from the provider
+
+The provider sends a person back to your site separately from telling the backend what they did,
+so the page they land on can be reached before the backend has heard. Somebody who has just paid
+could be told they have no subscription, and somebody who has just switched plans could see the
+old one.
+
+So send them back to the subscription page with `?returned=1` on the address:
+
+- **Checkout.** In the provider's dashboard, set the pricing table to redirect to your website
+  after payment, at the subscription page's address with `?returned=1`.
+- **The portal.** Pass the same address as the `return_url` when your endpoint creates the portal
+  session, and as the `after_completion` redirect for the plan-change screen.
+
+On that visit, with nothing current showing yet, the page says the payment is being confirmed
+instead of saying there is no subscription, and `billing_portal.js` reloads it every three seconds.
+Each reload counts up `returned`, and the reloading stops as soon as a subscription appears or after
+`SubscriptionPageView.RETURN_REFRESH_LIMIT` reloads (five). After the last one the page says the
+payment has not reached the site yet and to reload later. With a subscription already showing, as
+after most visits to the portal, the page notes that a change can take a moment to appear and does
+not reload.
+
+What makes the change arrive is the provider's webhooks reaching the backend. This only covers the
+seconds in between. The demo has no webhooks, so its return address is a view that asks the
+provider for the current state first and then redirects here with `?returned=1`.
+
 ## Replacing the page
 
 The shipped page is a starting point rather than a limit. Supply your own template at
@@ -271,10 +320,13 @@ precede `mvp` (see the README's Install step).
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
+    <c-drf-stripe.provider-return :state="provider_return" :subscribed="subscriptions" />
     {% for subscription in subscriptions %}
       <c-drf-stripe.subscription :subscription="subscription" />
     {% empty %}
-      <c-drf-stripe.no-subscription />
+      {% if not provider_return %}
+        <c-drf-stripe.no-subscription />
+      {% endif %}
     {% endfor %}
     {# Both ways onward on one line, wrapping on a narrow screen. #}
     <div class="flex flex-wrap items-start gap-3"

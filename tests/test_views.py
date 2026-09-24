@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from mvp_payments.namespaces.drf_stripe import drf_stripe
+from mvp_payments.views import SubscriptionPageView
 from tests.factories import (
     FeatureFactory,
     PriceFactory,
@@ -665,6 +666,68 @@ class TestSubscriptionPage:
 
     def _another_user(self):
         return UserFactory()
+
+
+@pytest.mark.django_db
+class TestComingBackFromTheProvider:
+    """``?returned=N``: the reader has just come back from the provider's checkout or portal.
+
+    The provider tells the backend what happened separately from sending the reader back, so
+    the page can be reached before the backend knows anything changed.
+    """
+
+    def _page(self, client, query=""):
+        return client.get(reverse("payments:drf-stripe-subscription") + query)
+
+    def test_an_ordinary_visit_carries_no_return_state(self, logged_in_client):
+        response = self._page(logged_in_client)
+
+        assert response.context["provider_return"] is None
+        content = _content_region(response.content.decode())
+        assert "data-mvp-payments-refresh-to" not in content
+        assert "You don't have an active subscription." in content
+
+    def test_just_paid_with_nothing_showing_yet_is_told_it_is_being_confirmed(
+        self, logged_in_client
+    ):
+        """Never "you don't have an active subscription" to somebody who has just paid."""
+        response = self._page(logged_in_client, "?returned=1")
+
+        content = _content_region(response.content.decode())
+        assert "Confirming your payment with the provider." in content
+        assert "You don't have an active subscription." not in content
+        assert (
+            'data-mvp-payments-refresh-to="'
+            f'{reverse("payments:drf-stripe-subscription")}?returned=2"'
+        ) in content
+
+    def test_the_reloads_stop_once_the_limit_is_reached(self, logged_in_client):
+        limit = SubscriptionPageView.RETURN_REFRESH_LIMIT
+
+        response = self._page(logged_in_client, f"?returned={limit}")
+
+        content = _content_region(response.content.decode())
+        assert response.context["provider_return"]["refresh_url"] is None
+        assert "data-mvp-payments-refresh-to" not in content
+        assert "Your payment hasn't reached this site yet." in content
+        assert "You don't have an active subscription." not in content
+
+    def test_once_the_subscription_arrives_the_reloads_stop(self, subscriber_client):
+        """Back from the portal, or the payment has landed: a note, and no reloading."""
+        response = self._page(subscriber_client, "?returned=3")
+
+        content = _content_region(response.content.decode())
+        assert response.context["provider_return"]["refresh_url"] is None
+        assert "data-mvp-payments-refresh-to" not in content
+        assert "can take a moment to show here" in content
+
+    @pytest.mark.parametrize("value", ["", "abc", "0", "-4"])
+    def test_a_malformed_count_is_read_as_the_first_return(
+        self, logged_in_client, value
+    ):
+        response = self._page(logged_in_client, f"?returned={value}")
+
+        assert response.context["provider_return"]["attempt"] == 1
 
 
 @pytest.mark.django_db
