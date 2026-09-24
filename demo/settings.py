@@ -115,13 +115,18 @@ DRF_STRIPE = {
 # of the two a project points at is exactly the decision this setting exists to
 # let a project make.
 #
-# The pricing table id and publishable key are this demonstration's own,
-# obviously fake values — not a real table, not a real account — for the
-# Plans page to mount the provider's pricing table with (T009).
+# The pricing table id and publishable key come from `demo/.env` where that
+# file has them, so the Plans page can mount a real sandbox pricing table.
+# Without them they are obviously fake values — not a real table, not a real
+# account — and the provider's embed reports that it could not load (T009).
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
-    "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_not_a_real_table",
-    "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_not_a_real_key",
+    "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
+        "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
+    ),
+    "DRF_STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
+        "STRIPE_TEST_PUBLISHABLE_KEY", "pk_test_not_a_real_key"
+    ),
 }
 
 SITE_ID = 1
