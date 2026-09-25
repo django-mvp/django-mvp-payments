@@ -71,7 +71,7 @@ dev = [
     # `stripe.error.StripeError`, removed at version 8, so mounting the backend's
     # URL configuration raises without the bound. The backend's own metadata
     # declares no upper bound on anything, so nothing else needs pinning.
-    "stripe<8",
+    "stripe<16",
 ]
 
 [tool.uv.sources]
