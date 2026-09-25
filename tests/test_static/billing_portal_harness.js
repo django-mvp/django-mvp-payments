@@ -3,8 +3,8 @@
 // revealed, and where it sent the reader.
 //
 // Usage: node billing_portal_harness.js <path to billing_portal.js> '<scenario JSON>'
-// Scenario: { cookie, renderedToken, status, redirected, body } for the control,
-// or { refreshTo } for a page waiting on the provider, with no control on it.
+// Scenario: { cookie, renderedToken, status, redirected, body, noStaleMessage,
+//             clickOutside }
 const fs = require("fs");
 const vm = require("vm");
 
@@ -16,39 +16,28 @@ const messages = {
   "[data-mvp-payments-portal-link-failure]": element(),
   "[data-mvp-payments-portal-link-stale]": scenario.noStaleMessage ? null : element(),
 };
-let clickHandler = null;
-const button = { addEventListener: (_, handler) => { clickHandler = handler; } };
 const link = {
   dataset: { endpoint: "/api/billing-portal/", csrfToken: scenario.renderedToken },
-  querySelector: (selector) => (selector === "button" ? button : messages[selector] || null),
+  querySelector: (selector) => messages[selector] || null,
+};
+// What was clicked: the control's button, or something elsewhere on the page.
+const target = {
+  closest: (selector) => {
+    if (scenario.clickOutside) return null;
+    return selector === "[data-mvp-payments-portal-link]" ? link : {};
+  },
 };
 
-const notice = { dataset: { mvpPaymentsRefreshTo: scenario.refreshTo } };
+let clickListener = null;
 const sent = {};
-const timers = [];
 const context = {
   document: {
     cookie: scenario.cookie || "",
-    querySelectorAll: (selector) => {
-      if (selector === "[data-mvp-payments-portal-link]") {
-        return scenario.refreshTo ? [] : [link];
-      }
-      return scenario.refreshTo ? [notice] : [];
+    addEventListener: (type, listener) => {
+      if (type === "click") clickListener = listener;
     },
   },
-  window: {
-    location: {
-      href: "about:blank",
-      replace(url) {
-        this.href = url;
-      },
-    },
-  },
-  // Runs a timer at once, recording its delay, so a test never waits on it.
-  setTimeout: (callback, delay) => {
-    timers.push(delay);
-    callback();
-  },
+  window: { location: { href: "about:blank" } },
   fetch: (url, options) => {
     sent.url = url;
     sent.token = options.headers["X-CSRFToken"];
@@ -65,19 +54,17 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(scriptPath, "utf8"), context);
-if (clickHandler) clickHandler();
+clickListener({ target });
 
 setTimeout(() => {
+  const stale = messages["[data-mvp-payments-portal-link-stale]"];
   console.log(
     JSON.stringify({
       token: sent.token,
+      posted: sent.url !== undefined,
       failureShown: !messages["[data-mvp-payments-portal-link-failure]"].hidden,
-      staleShown: Boolean(
-        messages["[data-mvp-payments-portal-link-stale]"] &&
-          !messages["[data-mvp-payments-portal-link-stale]"].hidden
-      ),
+      staleShown: Boolean(stale && !stale.hidden),
       location: context.window.location.href,
-      timers,
     })
   );
 }, 20);

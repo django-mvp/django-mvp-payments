@@ -78,18 +78,18 @@ class SubscriptionPageView(PaymentPageView):
     knows nothing of a current plan and a purchase through it starts a second subscription beside
     the first. Suppressed for anyone with nothing current, as the portal is.
 
-    And ``provider_return``, set when the reader has just come back from the provider: the page
-    was reached with ``?returned=N``, the address a project gives the provider's checkout and
-    portal to send people back to. The provider tells the backend what happened separately from
-    sending the reader back, so the page can be reached before the backend knows. ``None`` on an
-    ordinary visit. Otherwise a dict: ``attempt``, the ``N`` it was reached with, and
-    ``refresh_url``, the address to reload to while there is still nothing current to show, or
-    ``None`` once there is, or once ``RETURN_REFRESH_LIMIT`` reloads have been spent.
+    And ``provider_return``, set when the reader has just paid and nothing current shows yet. The
+    page was reached with ``?returned=N``, the address a project gives the provider's checkout to
+    send people back to, and the provider tells the backend about the payment separately from
+    sending the reader back, so the page can be reached before the backend knows. ``None``
+    otherwise, including whenever a subscription is showing. When set, a dict: ``attempt``, the
+    ``N`` it was reached with, and ``poll_url``, the address the page's subscription region polls
+    for, or ``None`` once ``RETURN_POLL_LIMIT`` polls have been spent.
     """
 
-    #: How many times the page reloads itself, waiting for a subscription to arrive after the
-    #: reader comes back from the provider, before it stops and says to reload later.
-    RETURN_REFRESH_LIMIT = 5
+    #: How many times the subscription region polls for a payment to arrive after the reader
+    #: comes back from the provider, before it stops and says to reload later.
+    RETURN_POLL_LIMIT = 5
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
@@ -111,16 +111,15 @@ class SubscriptionPageView(PaymentPageView):
         return context
 
     def provider_return(self, subscriptions: Any) -> dict[str, Any] | None:
-        """Where the reader stands after coming back from the provider, or ``None``."""
+        """Whether the reader is waiting on a payment to arrive, and where to poll for it."""
         returned = self.request.GET.get("returned")
-        if returned is None:
+        if returned is None or subscriptions:
             return None
         attempt = int(returned) if returned.isdigit() and int(returned) > 0 else 1
-        waiting = not subscriptions and attempt < self.RETURN_REFRESH_LIMIT
         return {
             "attempt": attempt,
-            "refresh_url": f"{self.request.path}?returned={attempt + 1}"
-            if waiting
+            "poll_url": f"{self.request.path}?returned={attempt + 1}"
+            if attempt < self.RETURN_POLL_LIMIT
             else None,
         }
 

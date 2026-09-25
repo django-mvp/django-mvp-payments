@@ -670,21 +670,27 @@ class TestSubscriptionPage:
 
 @pytest.mark.django_db
 class TestComingBackFromTheProvider:
-    """``?returned=N``: the reader has just come back from the provider's checkout or portal.
+    """``?returned=N``: the reader has just come back from paying at the provider.
 
-    The provider tells the backend what happened separately from sending the reader back, so
+    The provider tells the backend about the payment separately from sending the reader back, so
     the page can be reached before the backend knows anything changed.
     """
 
     def _page(self, client, query=""):
         return client.get(reverse("payments:drf-stripe-subscription") + query)
 
+    def _region(self, response):
+        """The subscription region's opening tag, where the polling is declared."""
+        return re.search(
+            r'<div id="mvp-payments-subscription"[^>]*>', response.content.decode()
+        ).group(0)
+
     def test_an_ordinary_visit_carries_no_return_state(self, logged_in_client):
         response = self._page(logged_in_client)
 
         assert response.context["provider_return"] is None
+        assert "hx-trigger" not in self._region(response)
         content = _content_region(response.content.decode())
-        assert "data-mvp-payments-refresh-to" not in content
         assert "You don't have an active subscription." in content
 
     def test_just_paid_with_nothing_showing_yet_is_told_it_is_being_confirmed(
@@ -696,30 +702,45 @@ class TestComingBackFromTheProvider:
         content = _content_region(response.content.decode())
         assert "Confirming your payment with the provider." in content
         assert "You don't have an active subscription." not in content
-        assert (
-            'data-mvp-payments-refresh-to="'
-            f'{reverse("payments:drf-stripe-subscription")}?returned=2"'
-        ) in content
 
-    def test_the_reloads_stop_once_the_limit_is_reached(self, logged_in_client):
-        limit = SubscriptionPageView.RETURN_REFRESH_LIMIT
+    def test_while_waiting_the_region_polls_for_itself_and_counts_up(
+        self, logged_in_client
+    ):
+        """Only the region is fetched and swapped, not the whole page reloaded."""
+        region = self._region(self._page(logged_in_client, "?returned=1"))
+
+        page = reverse("payments:drf-stripe-subscription")
+        assert f'hx-get="{page}?returned=2"' in region
+        assert 'hx-trigger="every 3s"' in region
+        assert 'hx-select="#mvp-payments-subscription"' in region
+        assert 'hx-swap="outerHTML"' in region
+
+    def test_the_polling_stops_once_the_limit_is_reached(self, logged_in_client):
+        limit = SubscriptionPageView.RETURN_POLL_LIMIT
 
         response = self._page(logged_in_client, f"?returned={limit}")
 
+        assert response.context["provider_return"]["poll_url"] is None
+        assert "hx-trigger" not in self._region(response)
         content = _content_region(response.content.decode())
-        assert response.context["provider_return"]["refresh_url"] is None
-        assert "data-mvp-payments-refresh-to" not in content
         assert "Your payment hasn't reached this site yet." in content
         assert "You don't have an active subscription." not in content
 
-    def test_once_the_subscription_arrives_the_reloads_stop(self, subscriber_client):
-        """Back from the portal, or the payment has landed: a note, and no reloading."""
+    def test_with_a_subscription_showing_there_is_nothing_to_wait_for(
+        self, subscriber_client
+    ):
+        """The poll that finds the payment stops polling, and a reload says nothing more.
+
+        This is also what somebody back from the portal sees: the page cannot tell whether a
+        change made there has landed yet, so it shows the subscription as it stands.
+        """
         response = self._page(subscriber_client, "?returned=3")
 
+        assert response.context["provider_return"] is None
+        assert "hx-trigger" not in self._region(response)
         content = _content_region(response.content.decode())
-        assert response.context["provider_return"]["refresh_url"] is None
-        assert "data-mvp-payments-refresh-to" not in content
-        assert "can take a moment to show here" in content
+        assert "Confirming your payment" not in content
+        assert "hasn't reached this site yet" not in content
 
     @pytest.mark.parametrize("value", ["", "abc", "0", "-4"])
     def test_a_malformed_count_is_read_as_the_first_return(

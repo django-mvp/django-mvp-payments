@@ -46,10 +46,11 @@ disagree with the rest of your application on the day the backend's line moved.
   this page carries the way to it, for a person with no subscription to choose one.
 
 `provider_return`
-: `None` on an ordinary visit. Set when the page was reached with `?returned=N`, which marks the
-  reader as just back from the provider. It is a dict with `attempt`, the `N` the page was reached
-  with, and `refresh_url`, the address to reload to while nothing current is showing yet. See
-  [Coming back from the provider](#coming-back-from-the-provider).
+: Set when the reader has just paid and nothing current shows yet: the page was reached with
+  `?returned=N`, which marks the reader as just back from the provider's checkout. A dict with
+  `attempt`, the `N` the page was reached with, and `poll_url`, the address the subscription region
+  polls, or `None` once the polls have run out. `None` on an ordinary visit and whenever a
+  subscription is showing. See [Coming back from the provider](#coming-back-from-the-provider).
 
 Everything else on the page is reached through `subscriptions`. If you override the template you
 have all of it, and you need no view, no context processor and no query of your own.
@@ -129,7 +130,7 @@ applies to.
 <c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions"
                          :switch_endpoint="plan_switch_endpoint" />
 <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
-<c-drf-stripe.provider-return :state="provider_return" :subscribed="subscriptions" />
+<c-drf-stripe.provider-return :state="provider_return" />
 <c-drf-stripe.no-subscription />
 ```
 
@@ -173,11 +174,9 @@ applies to.
     right and every post it makes is rejected.
 
 `<c-drf-stripe.provider-return>`
-: Given the page's `provider_return`, a notice for a reader just back from the provider, and
-  nothing at all on an ordinary visit. With nothing current showing yet it says the payment is
-  being confirmed and names the address the page reloads to. Once the reloads run out it says to
-  reload later. With a subscription showing it says a change can take a moment to appear, and
-  never reloads.
+: Given the page's `provider_return`, a notice that the payment is being confirmed while the page
+  polls for it, or that it has not arrived yet once the polls run out. Renders nothing when given
+  `None`.
 
 `<c-drf-stripe.no-subscription>`
 : Takes no attributes. States that there is no current subscription, for someone who never had one
@@ -230,8 +229,11 @@ for a project that keeps its token in the session (`CSRF_USE_SESSIONS`).
 
 It never sends the reader nowhere. If the post is refused, or the endpoint redirects to the sign-in
 page, the control says the page is out of date and to reload it. On any other failure it says the
-portal could not be reached. The same file also does the reloading described in
-[Coming back from the provider](#coming-back-from-the-provider).
+portal could not be reached.
+
+It listens for clicks on the whole document rather than binding each control when the page loads,
+so a control that arrives later still works. That happens on the subscription page when it polls
+for a payment and swaps its own contents in.
 
 You load that file yourself, the way you already load your project's other static assets — this
 package emits no `<script>` tag of its own:
@@ -279,29 +281,29 @@ reaches the portal, which offers the same change if the portal's settings allow 
 
 ## Coming back from the provider
 
-The provider sends a person back to your site separately from telling the backend what they did,
-so the page they land on can be reached before the backend has heard. Somebody who has just paid
-could be told they have no subscription, and somebody who has just switched plans could see the
-old one.
+The provider sends a person back to your site separately from telling the backend what they
+bought, so the page they land on can be reached before the backend has heard. Somebody who has
+just paid could be told they have no subscription.
 
-So send them back to the subscription page with `?returned=1` on the address:
-
-- **Checkout.** In the provider's dashboard, set the pricing table to redirect to your website
-  after payment, at the subscription page's address with `?returned=1`.
-- **The portal.** Pass the same address as the `return_url` when your endpoint creates the portal
-  session, and as the `after_completion` redirect for the plan-change screen.
+So have the provider's checkout send them back to the subscription page with `?returned=1` on the
+address. In the provider's dashboard, set the pricing table to redirect to your website after
+payment, at that address.
 
 On that visit, with nothing current showing yet, the page says the payment is being confirmed
-instead of saying there is no subscription, and `billing_portal.js` reloads it every three seconds.
-Each reload counts up `returned`, and the reloading stops as soon as a subscription appears or after
-`SubscriptionPageView.RETURN_REFRESH_LIMIT` reloads (five). After the last one the page says the
-payment has not reached the site yet and to reload later. With a subscription already showing, as
-after most visits to the portal, the page notes that a change can take a moment to appear and does
-not reload.
+instead of saying there is no subscription, and polls for it with htmx, which django-mvp already
+loads on every page. Every three seconds it fetches the page again and swaps in only its
+subscription region (`#mvp-payments-subscription`). Nothing else on the page reloads. Each poll
+counts up `returned`, and the polling stops by itself as soon as a subscription appears, or after
+`SubscriptionPageView.RETURN_POLL_LIMIT` polls (five). After the last one the page says the payment
+has not reached the site yet and to reload later.
 
-What makes the change arrive is the provider's webhooks reaching the backend. This only covers the
-seconds in between. The demo has no webhooks, so its return address is a view that asks the
-provider for the current state first and then redirects here with `?returned=1`.
+Once a subscription is showing, `?returned` changes nothing. Reloading the page afterwards shows
+it as normal, and so does coming back from the portal. The page cannot tell whether a change made
+in the portal has landed yet, so it shows the subscription as the backend currently has it.
+
+What makes a payment or a change arrive is the provider's webhooks reaching the backend, and this
+only covers the seconds in between. The demo has no webhooks, so its return address is a view that
+asks the provider for the current state first and then redirects here with `?returned=1`.
 
 ## Replacing the page
 
@@ -320,23 +322,28 @@ precede `mvp` (see the README's Install step).
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
-    <c-drf-stripe.provider-return :state="provider_return" :subscribed="subscriptions" />
-    {% for subscription in subscriptions %}
-      <c-drf-stripe.subscription :subscription="subscription" />
-    {% empty %}
-      {% if not provider_return %}
-        <c-drf-stripe.no-subscription />
-      {% endif %}
-    {% endfor %}
-    {# Both ways onward on one line, wrapping on a narrow screen. #}
-    <div class="flex flex-wrap items-start gap-3"
-         data-mvp-payments-subscription-actions>
-      <c-drf-stripe.plans-link :url="plans_url"
-                               :subscribed="subscriptions"
-                               :switch_endpoint="plan_switch_endpoint" />
-      {% if subscriptions %}
-        <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
-      {% endif %}
+    {# Polls for itself while a payment is on its way; see provider_return. #}
+    <div id="mvp-payments-subscription"
+         class="flex flex-col gap-6"
+         {% if provider_return.poll_url %}hx-get="{{ provider_return.poll_url }}" hx-trigger="every 3s" hx-select="#mvp-payments-subscription" hx-swap="outerHTML"{% endif %}>
+      <c-drf-stripe.provider-return :state="provider_return" />
+      {% for subscription in subscriptions %}
+        <c-drf-stripe.subscription :subscription="subscription" />
+      {% empty %}
+        {% if not provider_return %}
+          <c-drf-stripe.no-subscription />
+        {% endif %}
+      {% endfor %}
+      {# Both ways onward on one line, wrapping on a narrow screen. #}
+      <div class="flex flex-wrap items-start gap-3"
+           data-mvp-payments-subscription-actions>
+        <c-drf-stripe.plans-link :url="plans_url"
+                                 :subscribed="subscriptions"
+                                 :switch_endpoint="plan_switch_endpoint" />
+        {% if subscriptions %}
+          <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+        {% endif %}
+      </div>
     </div>
   </c-page>
 {% endblock account.content %}

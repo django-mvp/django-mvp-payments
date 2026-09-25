@@ -89,13 +89,7 @@ class TestBillingPortalScript:
 
         assert outcome["failureShown"] is True
 
-    def test_a_page_waiting_on_the_provider_reloads_to_the_address_it_names(self):
-        outcome = click(refreshTo="/account/billing/subscription/?returned=2")
+    def test_a_click_anywhere_else_on_the_page_does_nothing(self):
+        outcome = click(renderedToken="token", status=200, clickOutside=True)
 
-        assert outcome["location"] == "/account/billing/subscription/?returned=2"
-        assert outcome["timers"] == [3000]
-
-    def test_an_ordinary_page_never_reloads(self):
-        outcome = click(renderedToken="token", status=500)
-
-        assert outcome["timers"] == []
+        assert outcome["posted"] is False

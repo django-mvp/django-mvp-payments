@@ -51,12 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it. `docs/subscription-page.md` says what the endpoint does, and the demo has a working one.
 - `<c-drf-stripe.already-subscribed>`, shown on the plans page to somebody who already has a
   subscription, with a link to their subscription page.
-- A reader who comes back from the provider to the subscription page with `?returned=1` on the
-  address is told their payment is being confirmed while the backend catches up, never that they
-  have no subscription. The page reloads itself every three seconds until the subscription appears,
-  up to five times, then says to reload later. With a subscription already showing, it notes a
-  change can take a moment to appear. New: `<c-drf-stripe.provider-return>` and the page's
-  `provider_return` context name.
+- A reader who comes back from paying at the provider to the subscription page with `?returned=1`
+  on the address is told their payment is being confirmed while the backend catches up, never that
+  they have no subscription. The page's subscription region polls for itself with htmx every three
+  seconds until the subscription appears, up to five times, then says to reload later. New:
+  `<c-drf-stripe.provider-return>` and the page's `provider_return` context name.
 
 ### Changed
 

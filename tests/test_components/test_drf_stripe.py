@@ -366,45 +366,28 @@ class TestPlansLink:
 
 
 class TestProviderReturn:
-    """``<c-drf-stripe.provider-return>`` — the reader has just come back from the provider."""
+    """``<c-drf-stripe.provider-return>`` — waiting on a payment to arrive."""
 
-    def test_renders_nothing_on_an_ordinary_visit(self, cotton_render):
+    def test_renders_nothing_without_a_state(self, cotton_render):
         assert cotton_render("drf-stripe.provider-return", state=None).strip() == ""
 
-    def test_waiting_on_a_payment_it_names_the_address_to_reload_to(
-        self, cotton_render
-    ):
+    def test_while_polling_it_says_the_payment_is_being_confirmed(self, cotton_render):
         html = cotton_render(
             "drf-stripe.provider-return",
-            state={"attempt": 1, "refresh_url": "/billing/?returned=2"},
-            subscribed=False,
+            state={"attempt": 1, "poll_url": "/billing/?returned=2"},
         )
 
         assert 'role="alert"' in html
-        assert 'data-mvp-payments-refresh-to="/billing/?returned=2"' in html
         assert "Confirming your payment" in html
 
-    def test_out_of_reloads_it_says_to_reload_later(self, cotton_render):
+    def test_out_of_polls_it_says_to_reload_later(self, cotton_render):
         html = cotton_render(
             "drf-stripe.provider-return",
-            state={"attempt": 5, "refresh_url": None},
-            subscribed=False,
+            state={"attempt": 5, "poll_url": None},
         )
 
-        assert "data-mvp-payments-refresh-to" not in html
         assert "Reload this page later." in html
-
-    def test_with_a_subscription_showing_it_notes_the_delay_and_never_reloads(
-        self, cotton_render
-    ):
-        html = cotton_render(
-            "drf-stripe.provider-return",
-            state={"attempt": 1, "refresh_url": None},
-            subscribed=True,
-        )
-
-        assert "data-mvp-payments-refresh-to" not in html
-        assert "can take a moment to show here" in html
+        assert "Confirming your payment" not in html
 
 
 class TestAlreadySubscribed:

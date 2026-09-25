@@ -135,8 +135,8 @@ class BillingReturnView(LoginRequiredMixin, View):
     the backend's own synchronisation, and the subscription page shows the plan the reader just
     chose. A deployed project receives webhooks and needs none of this.
 
-    It arrives with ``?returned=1``, so if the provider still has not caught up the page says a
-    change is on its way rather than showing the state from before it.
+    It arrives with ``?returned=1``, so if a payment has still not reached the backend the page
+    says it is being confirmed and polls for it, rather than saying there is no subscription.
     """
 
     def get(self, request):
