@@ -55,7 +55,12 @@ if apps.is_installed("drf_stripe"):
         path("api/plan-switch/", PlanSwitchView.as_view(), name="plan-switch")
     )
     # Where the provider sends a reader back to, so the demo can refresh the
-    # backend's records before showing them (demo/views.py says why).
+    # backend's records before showing them (demo/views.py says why). Under
+    # the Billing section's own prefix, beside the pages it leads back to.
     urlpatterns.append(
-        path("billing/return/", BillingReturnView.as_view(), name="billing-return")
+        path(
+            "account/billing/return/",
+            BillingReturnView.as_view(),
+            name="billing-return",
+        )
     )
