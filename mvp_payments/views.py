@@ -77,11 +77,24 @@ class SubscriptionPageView(PaymentPageView):
     subscriber switches there rather than on the plans page, because the provider's pricing table
     knows nothing of a current plan and a purchase through it starts a second subscription beside
     the first. Suppressed for anyone with nothing current, as the portal is.
+
+    And ``provider_return``, set when the reader has just paid and nothing current shows yet. The
+    page was reached with ``?returned=N``, the address a project gives the provider's checkout to
+    send people back to, and the provider tells the backend about the payment separately from
+    sending the reader back, so the page can be reached before the backend knows. ``None``
+    otherwise, including whenever a subscription is showing. When set, a dict: ``attempt``, the
+    ``N`` it was reached with, and ``poll_url``, the address the page's subscription region polls
+    for, or ``None`` once ``RETURN_POLL_LIMIT`` polls have been spent.
     """
+
+    #: How many times the subscription region polls for a payment to arrive after the reader
+    #: comes back from the provider, before it stops and says to reload later.
+    RETURN_POLL_LIMIT = 5
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         subscriptions = SubscriptionReader.for_user(self.request.user)
+        context["provider_return"] = self.provider_return(subscriptions)
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["subscriptions"] = subscriptions
         context["billing_portal_endpoint"] = (
@@ -96,6 +109,19 @@ class SubscriptionPageView(PaymentPageView):
         )
         context["plans_url"] = self.get_contribution().page_url("plans")
         return context
+
+    def provider_return(self, subscriptions: Any) -> dict[str, Any] | None:
+        """Whether the reader is waiting on a payment to arrive, and where to poll for it."""
+        returned = self.request.GET.get("returned")
+        if returned is None or subscriptions:
+            return None
+        attempt = int(returned) if returned.isdigit() and int(returned) > 0 else 1
+        return {
+            "attempt": attempt,
+            "poll_url": f"{self.request.path}?returned={attempt + 1}"
+            if attempt < self.RETURN_POLL_LIMIT
+            else None,
+        }
 
 
 class PlansPageView(PaymentPageView):

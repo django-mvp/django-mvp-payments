@@ -30,8 +30,11 @@
     <p id="mvp-payments-portal-link-note" class="text-sm text-base-content/60">
       {% translate "Opens the provider's own site." %}
     </p>
-    <p hidden data-mvp-payments-portal-link-failure class="text-sm text-error">
+    <p hidden role="alert" data-mvp-payments-portal-link-failure class="text-sm text-error">
       {% translate "The billing portal could not be reached. Try again later." %}
+    </p>
+    <p hidden role="alert" data-mvp-payments-portal-link-stale class="text-sm text-error">
+      {% translate "This page is out of date. Reload it and try again." %}
     </p>
   </div>
 {% else %}

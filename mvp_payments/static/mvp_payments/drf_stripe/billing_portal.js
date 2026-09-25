@@ -2,38 +2,62 @@
  * Binds <c-drf-stripe.portal-link>'s control, and the "Switch plans" control
  * <c-drf-stripe.plans-link> renders for a subscriber: posts to the endpoint
  * the control carries, with the CSRF token the component rendered as data,
- * and follows the address the answer carries. Reveals the control's own hidden
- * failure message on any failure rather than sending the reader nowhere
- * (D3, US-2 scenario 3).
+ * and follows the address the answer carries. Reveals one of the control's own
+ * hidden messages on any failure rather than sending the reader nowhere
+ * (D3, US-2 scenario 3): "reload the page" when the page has outlived the
+ * session, "could not be reached" otherwise.
  *
  * No build step and no bundler (Article XIII) — this file is loaded exactly
- * as the host project loads its other static assets, and states what it
- * needs by looking for its own control rather than assuming one is present.
+ * as the host project loads its other static assets, and acts only on a click
+ * inside its own control rather than assuming one is present.
  */
-document.querySelectorAll("[data-mvp-payments-portal-link]").forEach((link) => {
-  const button = link.querySelector("button");
+// The token Django checks is the one in its cookie now, not the one the page
+// was rendered with: signing in again replaces it, so a page left open would
+// send a token that is refused. The rendered one is the fallback for a
+// project that keeps its token in the session instead of a cookie.
+function currentCsrfToken(fallback) {
+  const cookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("csrftoken="));
+  return cookie ? decodeURIComponent(cookie.slice("csrftoken=".length)) : fallback;
+}
+
+// One listener on the document rather than one per control, so a control
+// swapped in later still works: the subscription region replaces itself when
+// it polls for a payment that has just been made.
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("[data-mvp-payments-portal-link]");
+  if (!link || !event.target.closest("button")) return;
+
   const failure = link.querySelector("[data-mvp-payments-portal-link-failure]");
-  const endpoint = link.dataset.endpoint;
-  const csrfToken = link.dataset.csrfToken;
+  const stale = link.querySelector("[data-mvp-payments-portal-link-stale]");
 
-  button.addEventListener("click", () => {
-    failure.hidden = true;
+  failure.hidden = true;
+  // Absent from markup a project wrote before this message existed.
+  if (stale) stale.hidden = true;
 
-    fetch(endpoint, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "X-CSRFToken": csrfToken },
+  fetch(link.dataset.endpoint, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "X-CSRFToken": currentCsrfToken(link.dataset.csrfToken) },
+  })
+    .then((response) => {
+      // Refused, or sent to sign in: the page is older than the session,
+      // and reloading it is what helps.
+      if (stale && (response.status === 403 || response.redirected)) {
+        stale.hidden = false;
+        return null;
+      }
+      if (!response.ok) throw new Error("billing portal request failed");
+      return response.json();
     })
-      .then((response) => {
-        if (!response.ok) throw new Error("billing portal request failed");
-        return response.json();
-      })
-      .then((data) => {
-        if (!data.url) throw new Error("billing portal response carried no url");
-        window.location.href = data.url;
-      })
-      .catch(() => {
-        failure.hidden = false;
-      });
-  });
+    .then((data) => {
+      if (data === null) return;
+      if (!data.url) throw new Error("billing portal response carried no url");
+      window.location.href = data.url;
+    })
+    .catch(() => {
+      failure.hidden = false;
+    });
 });

@@ -1,0 +1,25 @@
+{% load i18n %}
+{# ============================================================ #}
+{# <c-drf-stripe.provider-return> — waiting on a payment         #}
+{#                                                                #}
+{# Props:                                                        #}
+{#   state – the page's provider_return, or None                 #}
+{#                                                                #}
+{# The provider tells the backend about a payment separately     #}
+{# from sending the reader back, so the page can be reached      #}
+{# first. While the page polls (state.poll_url), this says the   #}
+{# payment is being confirmed. Once the polls run out, it says   #}
+{# to reload later. Renders nothing when state is None.          #}
+{# ============================================================ #}
+<c-vars state />
+{% if state %}
+  {% if state.poll_url %}
+    <c-alert variant="info">
+      {% translate "Confirming your payment with the provider. This page updates by itself in a few seconds." %}
+    </c-alert>
+  {% else %}
+    <c-alert variant="warning">
+      {% translate "Your payment hasn't reached this site yet. It can take a few minutes. Reload this page later." %}
+    </c-alert>
+  {% endif %}
+{% endif %}

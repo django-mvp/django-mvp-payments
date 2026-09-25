@@ -2,20 +2,28 @@
 {% block account.content %}
   <c-page>
     <c-page.title :title="page.title" />
-    {% for subscription in subscriptions %}
-      <c-drf-stripe.subscription :subscription="subscription" />
-    {% empty %}
-      <c-drf-stripe.no-subscription />
-    {% endfor %}
-    {# Both ways onward on one line, wrapping on a narrow screen. #}
-    <div class="flex flex-wrap items-start gap-3"
-         data-mvp-payments-subscription-actions>
-      <c-drf-stripe.plans-link :url="plans_url"
-                               :subscribed="subscriptions"
-                               :switch_endpoint="plan_switch_endpoint" />
-      {% if subscriptions %}
-        <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
-      {% endif %}
+    {# Polls for itself while a payment is on its way; see provider_return. #}
+    <div id="mvp-payments-subscription"
+         class="flex flex-col gap-6"
+         {% if provider_return.poll_url %}hx-get="{{ provider_return.poll_url }}" hx-trigger="every 3s" hx-select="#mvp-payments-subscription" hx-swap="outerHTML"{% endif %}>
+      <c-drf-stripe.provider-return :state="provider_return" />
+      {% for subscription in subscriptions %}
+        <c-drf-stripe.subscription :subscription="subscription" />
+      {% empty %}
+        {% if not provider_return %}
+          <c-drf-stripe.no-subscription />
+        {% endif %}
+      {% endfor %}
+      {# Both ways onward on one line, wrapping on a narrow screen. #}
+      <div class="flex flex-wrap items-start gap-3"
+           data-mvp-payments-subscription-actions>
+        <c-drf-stripe.plans-link :url="plans_url"
+                                 :subscribed="subscriptions"
+                                 :switch_endpoint="plan_switch_endpoint" />
+        {% if subscriptions %}
+          <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+        {% endif %}
+      </div>
     </div>
   </c-page>
 {% endblock account.content %}

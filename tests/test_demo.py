@@ -408,7 +408,9 @@ class TestBillingReturn:
 
         sync.assert_called_once_with(status="all", ignore_new_user_creation_errors=True)
         assert response.status_code == 302
-        assert response.url == reverse("payments:drf-stripe-subscription")
+        assert (
+            response.url == reverse("payments:drf-stripe-subscription") + "?returned=1"
+        )
 
     def test_signing_in_is_required(self, client, db):
         with patch(self.SYNC) as sync:
