@@ -122,11 +122,14 @@ one to copy into production without thinking about it.
 amount of JavaScript some components need, and just enough Python to put a page at a URL and an
 entry in a menu.
 
-Two ways of building a page are supported equally. A **native** component renders your backend's
-own data as daisyUI markup, so it themes with the rest of your site and can show a person their
-own state. A **provider embed** — Stripe's pricing table, for instance — is a thin wrapper around
-the drop-in the provider already publishes, which is the faster answer where there is no
-signed-in user to reflect. Neither is the fallback for the other.
+Think of it as a skin for a payment backend. Each supported backend gets pages that look like the
+rest of your django-mvp site, because they are drawn with the same daisyUI classes and follow the
+same theme. The pages show a person where they stand. Anything that changes what they pay, such as
+choosing a plan, switching, cancelling or updating a card, is handed to the provider's own hosted
+pages, which already do it well. Where the provider publishes a drop-in, such as Stripe's pricing
+table, a page mounts it rather than rebuilding it.
+
+One backend is supported today: drf-stripe-subscription.
 
 The standing directions this package works toward are in [GOALS.md](GOALS.md).
 
