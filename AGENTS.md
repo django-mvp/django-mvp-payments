@@ -112,6 +112,8 @@ The required checks are:
 - `call-tests / Test Python 3.12, Django 6.0`
 - `call-tests / Test Python 3.13, Django 5.2`
 - `call-tests / Test Python 3.13, Django 6.0`
+- `call-tests / Test Python 3.12, Django 6.1`
+- `call-tests / Test Python 3.13, Django 6.1`
 
 `tests.yml` and `build.yml` deliberately carry no `paths:` filter on `pull_request`. A required
 check that is filtered out never reports, and a check that never reports blocks the merge.
