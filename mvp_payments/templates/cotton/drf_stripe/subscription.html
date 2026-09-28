@@ -1,16 +1,7 @@
 {% load i18n %}
-{# ============================================================ #}
-{# <c-drf-stripe.subscription> — one current subscription        #}
-{#                                                                #}
-{# Props:                                                        #}
-{#   subscription – a mvp_payments.namespaces.drf_stripe_records #}
-{#                   .CurrentSubscription                        #}
-{#                                                                #}
-{# The status is shown as the backend recorded it, whether or    #}
-{# not it is one of the three this component recognises — an     #}
-{# unrecognised one still renders, as itself, with a neutral      #}
-{# badge (Article XV).                                          #}
-{# ============================================================ #}
+{# @description One current subscription: its status as a badge, the current period, and each priced item on it. #}
+{# @prop subscription:text | description:"A mvp_payments.namespaces.drf_stripe_records.CurrentSubscription." | required #}
+{# A status this component does not recognise still renders, as itself, with a neutral badge (Article XV). #}
 <c-vars subscription />
 <c-card>
   <c-slot name="badges">

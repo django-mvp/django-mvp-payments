@@ -26,11 +26,8 @@ class TestDrfStripeContribution:
         self, logged_in_client
     ):
         content = logged_in_client.get(reverse("account-center")).content.decode()
-        # django-mvp draws the Account Center's navigation twice — a collapsed
-        # copy above the content and a persistent one beside it — so one entry
-        # renders once per region. The assertion stays inside the navigation
-        # because the same label also appears on the overview card, which is a
-        # different surface with its own tests.
+        # django-mvp draws the Account Center's navigation twice, so one entry renders
+        # once per region. Counting inside the navigation keeps the overview card out.
         regions = account_navigation_regions(content)
         assert len(regions) == 2
         for region in regions:

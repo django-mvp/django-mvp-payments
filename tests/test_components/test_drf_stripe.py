@@ -1,4 +1,4 @@
-"""Every component this story adds renders standalone, from its attributes alone (T014).
+"""Every component renders standalone, from its attributes alone.
 
 No view runs to produce these — ``cotton_render`` builds a bare request and passes each
 dataclass straight through as a component attribute, which is exactly the guarantee a project

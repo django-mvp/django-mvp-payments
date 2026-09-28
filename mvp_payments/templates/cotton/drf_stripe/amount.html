@@ -1,8 +1,4 @@
-{# ============================================================ #}
-{# <c-drf-stripe.amount> — a Money, rendered in its own currency #}
-{#                                                                #}
-{# Props:                                                        #}
-{#   amount – a mvp_payments.money.Money                         #}
-{# ============================================================ #}
+{# @description A minor-unit amount, rendered in its own currency, or nothing when it has none. #}
+{# @prop amount:text | description:"A mvp_payments.money.Money." | required #}
 <c-vars amount />
 <span>{{ amount }}</span>

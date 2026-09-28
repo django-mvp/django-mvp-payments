@@ -1,3 +1,5 @@
+"""The demonstration project's own pages and its handoffs to the provider."""
+
 import contextlib
 import io
 
@@ -11,7 +13,7 @@ from mvp.views import MVPTemplateView
 
 
 class HomeView(MVPTemplateView):
-    """What this package is, and where the component pages will appear."""
+    """Show what this package is, and where the component pages appear."""
 
     template_name = "demo/home.html"
     page_title = "Home"
@@ -20,11 +22,10 @@ class HomeView(MVPTemplateView):
 
 
 class PlansUnconfiguredView(MVPTemplateView):
-    """The package's own Plans template, reached with neither configured value
-    in context (US-4 scenarios 1 and 2).
+    """Render the package's own Plans template with neither pricing-table value configured.
 
-    This route and its template belong to the demonstration project, not the
-    package: nothing under ``mvp_payments/`` knows this view exists.
+    Demonstrates the unavailable state (FS-003). The route belongs to the demonstration
+    project: nothing under ``mvp_payments/`` knows this view exists.
     """
 
     template_name = "demo/plans_unconfigured.html"
@@ -33,8 +34,7 @@ class PlansUnconfiguredView(MVPTemplateView):
 
 
 class NoLibraryView(MVPTemplateView):
-    """The pricing table component on a page whose provider library never
-    arrived (US-4 scenario 3) — the demonstration project's own route."""
+    """Render the pricing table on a page whose provider library never arrived (FS-003)."""
 
     template_name = "demo/no_library.html"
     page_title = "Library never arrived"
@@ -48,8 +48,7 @@ class BillingPortalView(LoginRequiredMixin, View):
     everybody who has used it before. ``get_or_create_stripe_user(user_id=...)`` looks a customer
     record up by ``(user_id, customer_id=None)``; the first call creates that record and then
     fills the second field in, so every call after it matches nothing, tries to insert a second
-    record for a person who already has one, and the database refuses. Open on the backend's own
-    tracker.
+    record for a person who already has one, and the database refuses.
 
     A host project cannot wait for that, so it does the two things the backend's endpoint does
     either side of the broken lookup: read the customer identifier the backend already keeps, and
@@ -74,10 +73,8 @@ class BillingPortalView(LoginRequiredMixin, View):
             user=request.user, customer_id__isnull=False
         ).first()
 
-        # Nobody without a customer record at the provider has a portal to be sent to, and the
-        # control is already absent for them. Reaching here anyway means a stale page or a direct
-        # post, and creating a customer for whoever asks is how the backend's endpoint earned
-        # that suppression in the first place (D5).
+        # Only a stale page or a direct post gets here, and creating a customer for whoever
+        # asks is what the control's suppression exists to prevent (ADR 0007).
         if stripe_user is None:
             return JsonResponse({"detail": "No customer record."}, status=409)
 
@@ -91,7 +88,16 @@ class BillingPortalView(LoginRequiredMixin, View):
         return JsonResponse({"url": session.url})
 
     def session_options(self, request, return_url):
-        """Anything beyond the customer and the way back. The whole portal needs nothing."""
+        """Build the session options beyond the customer and the way back.
+
+        Args:
+            request: The request being answered.
+            return_url: Where the provider sends the reader afterwards.
+
+        Returns:
+            Extra keyword arguments for the portal session, or ``None`` when there is
+            nothing to open. The whole portal needs none.
+        """
         return {}
 
 
@@ -108,7 +114,16 @@ class PlanSwitchView(BillingPortalView):
     """
 
     def session_options(self, request, return_url):
-        """Deep-link the session to changing this person's current subscription."""
+        """Deep-link the session to changing this person's current subscription.
+
+        Args:
+            request: The request being answered.
+            return_url: Where the provider sends the reader afterwards.
+
+        Returns:
+            The plan-change flow for the person's current subscription, or ``None`` when
+            they have none.
+        """
         from drf_stripe.stripe_api.subscriptions import list_user_subscriptions
 
         subscription = list_user_subscriptions(request.user.id).first()

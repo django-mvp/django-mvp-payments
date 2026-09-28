@@ -13,13 +13,9 @@ _SCRIPT_WITH_HOST_SRC = re.compile(
     r"""<script[^>]*\bsrc\s*=\s*['"](?:https?:)?//""", re.IGNORECASE
 )
 
-#: Boots a fresh Django process, signs a person in, opens the Account Center,
-#: and reports whether each of the backend's page names reverses. Run as a
-#: subprocess because `mvp_payments/urls.py` builds `urlpatterns` once, at
-#: import time, and `MvpPaymentsConfig.ready()` registers navigation entries
-#: once too — overriding `INSTALLED_APPS` mid-process leaves both exactly as
-#: they were built with the backend present, so only a process that never had
-#: the backend installed shows what a project without it actually gets.
+#: Opens the Account Center in a fresh process that never had the backend installed:
+#: `urlpatterns` and the navigation entries are both built once, so overriding
+#: `INSTALLED_APPS` mid-process would leave them as built with the backend present.
 _ACCOUNT_CENTER_WITHOUT_THE_BACKEND_PROBE = """
 import json
 
@@ -152,8 +148,7 @@ class TestNothingWithoutABackend:
         assert 'aria-label="Account navigation"' in result["content"]
 
         # No navigation entry and no card: both render the page's label, so
-        # one absence check covers both surfaces (there is no card template
-        # to render yet — that is US-3 — which is why this also holds today).
+        # one absence check covers both surfaces.
         for page in drf_stripe.pages:
             assert f"<span>{page.label}</span>" not in result["content"]
 
@@ -164,11 +159,8 @@ class TestNothingWithoutABackend:
         }
 
     def test_account_center_shows_no_card_from_the_absent_backend(self) -> None:
-        # US-3's carried-forward item: the check above predates the card
-        # template (mvp_payments/templates/mvp_payments/card.html), so it
-        # could only ever assert against navigation markup. Now that the
-        # template exists, re-prove the absence against its own markup — the
-        # link a card would carry into the backend's first page.
+        # The absence proved against the card's own markup: the link a card would
+        # carry into the backend's first page.
         result = self._open_the_account_center_without_the_backend()
 
         assert 'href="/account/billing/subscription/"' not in result["content"]

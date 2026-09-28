@@ -1,3 +1,5 @@
+"""The demo project's URL configuration."""
+
 from django.apps import apps
 from django.urls import include, path
 
@@ -12,50 +14,31 @@ from demo.views import (
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
-    # US-4 scenarios 1, 2 and 3: neither value configured, and the library
-    # never having arrived — both the demonstration project's own routes.
+    # The plans page's unavailable states, as the demonstration project's own routes (FS-003).
     path(
         "plans-unconfigured/",
         PlansUnconfiguredView.as_view(),
         name="plans-unconfigured",
     ),
     path("no-library/", NoLibraryView.as_view(), name="no-library"),
-    # The one line a project adds to mount this package's pages (FR-001).
-    # Mounted inside the Account Center's own prefix, under the label the
-    # navigation uses, so the address bar agrees with where a reader thinks
-    # they are. Declared before the Account Center's own include so that this
-    # prefix is matched here rather than depending on `mvp.urls` declining it.
+    # The one line a project adds. Declared before the Account Center's include, so
+    # this prefix matches here rather than relying on `mvp.urls` declining it.
     path("account/billing/", include("mvp_payments.urls")),
-    # The Account Center is django-mvp's, and this package contributes pages to
-    # it. A project mounts it once; so does this demo.
     path("account/", include("mvp.urls")),
 ]
 
 if apps.is_installed("drf_stripe"):
-    # The backend's own API, including its billing-portal endpoint. Its
-    # location is the demo's decision — MVP_PAYMENTS['DRF_STRIPE_BILLING_PORTAL']
-    # in settings.py is where this project told the page it mounted it (D3,
-    # FR-006). Conditional on the backend being installed, the way a real
-    # project's own URLconf naturally would be — tests/settings_without_backend.py
-    # removes it from INSTALLED_APPS, and importing its URLconf regardless
-    # raises before the module even loads (its models declare no app_label
-    # of their own to fall back on).
+    # Only when the backend is installed: importing its URLconf otherwise raises, because
+    # its models declare no app_label of their own (tests/settings_without_backend.py).
     urlpatterns.append(path("api/stripe/", include("drf_stripe.urls")))
-    # And this project's own way through to the provider's billing portal,
-    # which the subscription page is pointed at instead of the backend's —
-    # see demo/views.py for why the backend's own raises. Alongside rather
-    # than over the top of it, so the address a reader is sent to is this
-    # project's and the backend's URLconf is left exactly as it ships.
+    # The demo's own portal handoff, which the page uses instead of the backend's
+    # (demo/views.py says why), mounted beside the backend's rather than over it.
     urlpatterns.append(
         path("api/billing-portal/", BillingPortalView.as_view(), name="billing-portal")
     )
-    # The same, opened on the provider's plan-change screen, which the
-    # subscription page's "Switch plans" control is pointed at.
     urlpatterns.append(
         path("api/plan-switch/", PlanSwitchView.as_view(), name="plan-switch")
     )
-    # Where the provider sends a reader back to, so the demo can refresh the
-    # backend's records before showing them (demo/views.py says why).
     urlpatterns.append(
         path("billing/return/", BillingReturnView.as_view(), name="billing-return")
     )

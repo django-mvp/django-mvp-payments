@@ -1,4 +1,4 @@
-"""Reading the backend's records as presentation objects (D1)."""
+"""Reading the backend's records as presentation objects."""
 
 import inspect
 

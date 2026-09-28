@@ -17,15 +17,17 @@ register = template.Library()
 
 @register.simple_tag
 def payment_cards() -> SafeString:
-    """One card per contribution that is available and reachable (D3).
+    """Render one card per contribution that is available and reachable.
 
     Reachability is asked here, before rendering, because a card's
     ``{% url %}`` would raise ``NoReverseMatch`` for a contribution whose
     pages do not reverse, and take the whole overview down with it.
+
+    Returns:
+        The cards' markup, empty when no contribution is available.
     """
-    # Each piece is already-escaped output from render_to_string, not raw
-    # formatting of untrusted input — str.join just drops the SafeString
-    # marker, which this restores.
+    # Each piece is already-escaped render_to_string output. str.join drops the
+    # SafeString marker, which this restores.
     return mark_safe(  # noqa: S308
         "".join(
             render_to_string(contribution.card_template, _card_context(contribution))
@@ -36,6 +38,14 @@ def payment_cards() -> SafeString:
 
 
 def _card_context(contribution: Contribution) -> dict:
+    """Build a card's context from the contribution's first page.
+
+    Args:
+        contribution: The contribution the card stands for.
+
+    Returns:
+        The heading, icon and view name the card template reads.
+    """
     first_page = contribution.pages[0]
     return {
         "heading": first_page.label,

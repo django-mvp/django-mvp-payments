@@ -1,13 +1,5 @@
 {% load i18n %}
-{# ============================================================ #}
-{# <c-drf-stripe.plans-unavailable> — nothing to offer yet        #}
-{# (T020, T022, FR-007)                                           #}
-{#                                                                 #}
-{# Takes no props. plans.html renders this in place of the        #}
-{# provider's pricing table when either configured value is       #}
-{# absent, so a reader gets a plain sentence instead of empty      #}
-{# space (SC-005).                                                 #}
-{# ============================================================ #}
+{# @description Stands in for the provider's pricing table when either of its settings is missing, so the reader gets a sentence instead of empty space (FS-003). Takes no props. #}
 {% translate "Plans not available" as heading %}
 {% translate "This project has not configured its plans yet." as message %}
 <c-page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />

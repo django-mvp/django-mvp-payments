@@ -251,18 +251,9 @@ class TestSecondNamespaceFixture:
         ]
 
 
-#: Boots a fresh Django process with the second namespace's fixture app added
-#: to `CONTRIBUTIONS` for that process only (D1), signs a person in, opens
-#: the Account Center, and reports the rendered page plus every page
-#: address's resolved path. Run as a subprocess for the same reason D9 and
-#: D10 do: `mvp_payments/urls.py` builds `urlpatterns` once, at import time,
-#: and `MvpPaymentsConfig.ready()` registers navigation entries once, at
-#: startup — patching `CONTRIBUTIONS` after either has already run would
-#: leave both exactly as first built. Patching before the first `reverse()`
-#: call and re-running the same `ready()` Django already called once (exactly
-#: what an autoreloading dev server does, per D5) is enough, so no fresh
-#: settings module is needed for the fixture itself — only for whether its
-#: application is actually installed.
+#: Adds the second namespace to `CONTRIBUTIONS` in a fresh process and re-runs `ready()`,
+#: as an autoreloading server does, before the first `reverse()`: `urlpatterns` and the
+#: navigation entries are both built once, so patching later would change nothing.
 _NAMESPACE_INDEPENDENCE_PROBE = """
 import json
 

@@ -1,9 +1,8 @@
-"""The drf-stripe-subscription backend's records, as presentation objects (D1).
+"""The drf-stripe-subscription backend's records, as presentation objects.
 
 Reached through ``apps.get_model`` throughout, never imported (Article XII). What counts as
-*current* is never decided here: the backend already answers that question everywhere else it is
-asked, through :attr:`StripeUser.current_subscription_items`, and naming a status list of our own
-would silently go stale the day the backend's own list changes (D1).
+*current* is the backend's own answer, :attr:`StripeUser.current_subscription_items`, never a
+status list of ours (ADR 0003).
 """
 
 from __future__ import annotations
@@ -22,7 +21,12 @@ from mvp_payments.money import Money
 
 @dataclass(frozen=True)
 class PlanFeature:
-    """One feature recorded against a plan's product."""
+    """One feature recorded against a plan's product.
+
+    Attributes:
+        identifier: The feature's identifier in the backend.
+        description: The feature's description, or its identifier where it has none.
+    """
 
     identifier: str
     description: str
@@ -30,7 +34,17 @@ class PlanFeature:
 
 @dataclass(frozen=True)
 class Plan:
-    """One priced item on a current subscription."""
+    """One priced item on a current subscription.
+
+    Attributes:
+        name: The price's nickname, or its product's name.
+        amount: What the item costs per billing interval.
+        frequency: The backend's encoding of the billing interval, if it recorded one.
+        quantity: How many of the item the subscription holds.
+        features: What the item's product grants.
+        FREQUENCY_TRANSLATORS: How each interval the backend can report reads in words,
+            singular and plural.
+    """
 
     name: str
     amount: Money
@@ -38,7 +52,6 @@ class Plan:
     quantity: int
     features: tuple[PlanFeature, ...] = ()
 
-    #: How each interval the backend can report reads in words, singular and plural.
     FREQUENCY_TRANSLATORS: ClassVar[dict[str, Callable[[int], str]]] = {
         "day": lambda n: ngettext("every day", "every %(count)d days", n),
         "week": lambda n: ngettext("every week", "every %(count)d weeks", n),
@@ -50,15 +63,12 @@ class Plan:
     def frequency_display(self) -> str:
         """The billing frequency in words, or the raw value where it is not recognised.
 
-        drf-stripe-subscription composes ``frequency`` as ``f"{interval}_{interval_count}"``
-        (`research.md`) — a Stripe-specific encoding, so parsing it belongs beside the rest of
-        what this module already knows about the backend's vocabulary, and it is shown as itself
-        rather than dropped when it is not one this table holds (Article XV).
+        drf-stripe-subscription composes ``frequency`` as ``f"{interval}_{interval_count}"``.
+        An unrecognised value is shown as itself rather than dropped (Article XV).
 
         On Python 3.12 and later that f-string formats the backend's ``RecurringInterval`` enum
-        member by name, so the backend's own synchronisation stores ``RecurringInterval.MONTH_1``
-        where it means ``month_1``. Both spellings are read, because the second is what every
-        record synchronised from the provider carries on a current Python.
+        member by name, so a synchronised record holds ``RecurringInterval.MONTH_1`` where it
+        means ``month_1``. Both spellings are read.
         """
         if not self.frequency:
             return ""
@@ -76,7 +86,14 @@ class Plan:
 
 @dataclass(frozen=True)
 class CurrentSubscription:
-    """One subscription the backend currently grants access for."""
+    """One subscription the backend currently grants access for.
+
+    Attributes:
+        status: The subscription's status, as the backend recorded it.
+        period_start: When the current billing period began, if recorded.
+        period_end: When the current billing period ends, if recorded.
+        plans: The priced items on the subscription.
+    """
 
     status: str
     period_start: datetime | None
@@ -89,10 +106,14 @@ class SubscriptionReader:
 
     @staticmethod
     def for_user(user: AbstractBaseUser) -> tuple[CurrentSubscription, ...]:
-        """The subscriptions the backend currently grants ``user`` access for, newest first.
+        """Read the subscriptions the backend currently grants a person access for.
 
-        Returns an empty tuple, and raises nothing, for a person the backend holds no customer
-        record for at all.
+        Args:
+            user: The person whose subscriptions to read.
+
+        Returns:
+            The current subscriptions, newest first. Empty for a person the backend holds no
+            customer record for.
         """
         stripe_user_model = apps.get_model("drf_stripe", "StripeUser")
         try:
@@ -131,7 +152,14 @@ class SubscriptionReader:
 
     @staticmethod
     def build_plan(item) -> Plan:
-        """One subscription line item, as the ``Plan`` a template reads."""
+        """Build the ``Plan`` a template reads from one subscription line item.
+
+        Args:
+            item: The backend's ``SubscriptionItem``, with its price and product.
+
+        Returns:
+            The line item as a plan.
+        """
         price = item.price
         return Plan(
             name=price.nickname or price.product.name,

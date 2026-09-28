@@ -472,10 +472,8 @@ class TestSubscriptionPage:
         client_many = client_for(many_items_user)
         page_url = reverse("payments:drf-stripe-subscription")
 
-        # A first request against either client warms process-wide caches (the site,
-        # content types) that a later request benefits from regardless of how many
-        # items it holds — priming both first keeps the comparison about the page's
-        # own queries rather than which client happened to go first.
+        # A first request warms process-wide caches (the site, content types), so both
+        # clients are primed to keep the comparison about the page's own queries.
         client_one.get(page_url)
         client_many.get(page_url)
 

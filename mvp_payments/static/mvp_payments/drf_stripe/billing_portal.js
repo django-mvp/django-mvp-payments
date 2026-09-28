@@ -1,15 +1,6 @@
-/**
- * Binds <c-drf-stripe.portal-link>'s control, and the "Switch plans" control
- * <c-drf-stripe.plans-link> renders for a subscriber: posts to the endpoint
- * the control carries, with the CSRF token the component rendered as data,
- * and follows the address the answer carries. Reveals the control's own hidden
- * failure message on any failure rather than sending the reader nowhere
- * (D3, US-2 scenario 3).
- *
- * No build step and no bundler (Article XII) — this file is loaded exactly
- * as the host project loads its other static assets, and states what it
- * needs by looking for its own control rather than assuming one is present.
- */
+// Posts each portal-link control to its endpoint and follows the address returned,
+// revealing the control's hidden failure message on any failure (ADR 0005).
+// Loaded as a plain static file, with no build step (Article XII).
 document.querySelectorAll("[data-mvp-payments-portal-link]").forEach((link) => {
   const button = link.querySelector("button");
   const failure = link.querySelector("[data-mvp-payments-portal-link-failure]");

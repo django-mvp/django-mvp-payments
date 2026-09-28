@@ -1,11 +1,8 @@
-"""Rendering a minor-unit amount in its own currency (Article XV, Article XIV plumbing).
+"""Render a minor-unit amount in its own currency (Articles XIV and XV).
 
-A provider reports an amount as an integer in a currency's minor unit — Stripe's ``2000`` is
-£20.00 — and most currencies use two decimal places, but not all of them: a zero-decimal currency
-such as JPY would be shown one hundred times too large by that assumption, and a three-decimal one
-such as BHD one tenth too small. The exponent is held here, as a table, rather than pulled from
-``babel``: that is a runtime dependency with a data bundle of its own, added for twenty-three
-currency codes this module can state directly (Article VII, `research.md`).
+A provider reports an amount as an integer in a currency's minor unit, and not every currency
+has two decimal places. The exponent is held here as a table rather than pulled from ``babel``
+(ADR 0004).
 """
 
 from __future__ import annotations
@@ -19,24 +16,26 @@ from django.utils.formats import number_format
 
 @dataclass(frozen=True)
 class Money:
-    """A minor-unit amount, rendered in its own currency or not at all."""
+    """A minor-unit amount, rendered in its own currency or not at all.
+
+    Attributes:
+        minor_units: The amount in the currency's minor unit, as the provider reports it.
+        currency: The ISO currency code, in any case. Empty when none is known.
+        ZERO_DECIMAL: Currencies Stripe records with no fractional unit.
+        THREE_DECIMAL: Currencies Stripe records to a thousandth of the unit.
+    """
 
     minor_units: int
     currency: str = ""
 
     def __post_init__(self) -> None:
-        """Hold the currency as the upper-case ISO code, whatever case it arrived in.
+        """Hold the currency as the upper-case ISO code the exponent tables use.
 
-        Stripe reports a currency as a lower-case code and the backend stores that field
-        verbatim, so a real record holds ``"jpy"``. The tables below are written in the
-        case the standard defines, and a lower-case code read against them silently falls
-        through to two decimal places — which renders a zero-decimal amount a hundred
-        times too small, on the page, to the person paying it.
+        Stripe reports a lower-case code, which would otherwise fall through to two decimal
+        places and render a zero-decimal amount a hundred times too small.
         """
         object.__setattr__(self, "currency", self.currency.upper())
 
-    #: Currencies Stripe records with no fractional unit: the amount recorded is already a whole
-    #: number of the currency, not a multiple of one hundred.
     ZERO_DECIMAL: ClassVar[frozenset[str]] = frozenset(
         {
             "BIF",
@@ -58,14 +57,13 @@ class Money:
         }
     )
 
-    #: Currencies Stripe records to a thousandth of the unit rather than a hundredth.
     THREE_DECIMAL: ClassVar[frozenset[str]] = frozenset(
         {"BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND"}
     )
 
     @property
     def exponent(self) -> int:
-        """How many places past the decimal point this currency's minor unit sits at."""
+        """The number of places past the decimal point this currency's minor unit sits at."""
         if self.currency in self.ZERO_DECIMAL:
             return 0
         if self.currency in self.THREE_DECIMAL:
@@ -78,11 +76,11 @@ class Money:
         return Decimal(self.minor_units) / Decimal(10**self.exponent)
 
     def __str__(self) -> str:
-        """The amount under the active locale, followed by its currency code.
+        """Format the amount under the active locale, followed by its currency code.
 
-        Renders nothing without a currency (Article XV) — a component that received a bare
-        integer has nothing honest to show, and guessing a currency would be worse than showing
-        nothing.
+        Returns:
+            The formatted amount, or an empty string without a currency rather than a
+            guessed one (Article XV).
         """
         if not self.currency:
             return ""

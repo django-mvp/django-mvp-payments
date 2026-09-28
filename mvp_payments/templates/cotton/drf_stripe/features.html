@@ -1,15 +1,6 @@
 {% load i18n %}
-{# ============================================================ #}
-{# <c-drf-stripe.features> — what a plan's product grants inside #}
-{# the application (FR-009)                                      #}
-{#                                                                #}
-{# Props:                                                        #}
-{#   features – a tuple of                                       #}
-{#     mvp_payments.namespaces.drf_stripe_records.PlanFeature    #}
-{#                                                                #}
-{# Renders nothing at all when given none — no heading, no empty #}
-{# list (Article XV).                                           #}
-{# ============================================================ #}
+{# @description What a plan's product grants inside the application, as a list. Renders nothing when given no features (Article XV). #}
+{# @prop features:text | description:"A tuple of mvp_payments.namespaces.drf_stripe_records.PlanFeature." #}
 <c-vars features />
 {% if features %}
   <div class="mt-2">
