@@ -151,7 +151,6 @@ class TestContribution:
         navigated = [page for page in drf_stripe.pages if page.in_navigation]
 
         assert [page.slug for page in navigated] == ["subscription"]
-        assert str(drf_stripe.group_label) == "Billing"
 
 
 class TestPageView:

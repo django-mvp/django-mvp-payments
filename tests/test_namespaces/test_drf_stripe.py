@@ -51,8 +51,9 @@ class TestDrfStripeContribution:
         content = logged_in_client.get(reverse("account-center")).content.decode()
 
         for region in account_navigation_regions(content):
-            assert region.count(">Billing<") == 1
-            group_at = region.index(">Billing<")
+            group = f">{drf_stripe.group_label}<"
+            assert region.count(group) == 1
+            group_at = region.index(group)
             for page in drf_stripe.pages:
                 if page.in_navigation:
                     assert region.index(f">{page.label}</span>") > group_at

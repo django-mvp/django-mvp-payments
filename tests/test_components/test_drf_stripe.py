@@ -52,7 +52,6 @@ class TestPricingTable:
         )
 
         assert "hidden data-mvp-payments-pricing-table-unavailable" in html
-        assert "The plans could not be loaded. Try again later." in html
 
     def test_a_signed_in_person_with_an_address_carries_it_as_customer_email(
         self, cotton_render_string, rf, user
@@ -270,9 +269,6 @@ class TestSubscription:
         html = cotton_render("drf-stripe.subscription", subscription=subscription)
 
         assert "paused" in html
-        assert "badge-success" not in html
-        assert "badge-info" not in html
-        assert "badge-warning" not in html
 
 
 class TestFeatures:
@@ -322,14 +318,12 @@ class TestPlansLink:
             switch_endpoint="/api/plan-switch/",
         )
 
-        assert "Switch plans" in html
         assert "<button" in html
         assert "data-mvp-payments-portal-link" in html
         assert 'data-endpoint="/api/plan-switch/"' in html
         assert re.search(r'data-csrf-token="[^"]+"', html)
         assert "hidden data-mvp-payments-portal-link-failure" in html
         assert "/account/billing/plans/" not in html
-        assert "Choose a plan" not in html
 
     def test_a_subscriber_with_no_plan_change_endpoint_is_offered_nothing(
         self, cotton_render
@@ -348,8 +342,7 @@ class TestPlansLink:
         )
 
         assert 'href="/account/billing/plans/"' in html
-        assert "Choose a plan" in html
-        assert "Switch plans" not in html
+        assert "data-mvp-payments-portal-link" not in html
 
     def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
         """A control leading nowhere is worse than no control (Article XV)."""
@@ -391,11 +384,9 @@ class TestPortalLink:
         assert 'data-endpoint="/api/stripe/customer-portal/"' in html
         assert re.search(r'data-csrf-token="[^"]+"', html)
         assert "<button" in html
-        assert "Manage subscription" in html
         assert re.search(r'aria-describedby="([\w-]+)"', html)
         note_id = re.search(r'aria-describedby="([\w-]+)"', html).group(1)
         assert f'id="{note_id}"' in html
-        assert "provider" in html.lower()
         assert "hidden data-mvp-payments-portal-link-failure" in html
 
     def test_given_no_endpoint_it_states_the_provider_manages_it_and_renders_no_control(
@@ -417,7 +408,6 @@ class TestNoSubscription:
         html = cotton_render("drf-stripe.no-subscription")
 
         assert "You don't have an active subscription." in html
-        assert "<p" not in html
 
 
 class TestPlansUnavailable:

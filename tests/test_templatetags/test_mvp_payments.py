@@ -19,7 +19,7 @@ class TestPaymentCards:
 
         expected_url = reverse("payments:drf-stripe-subscription")
         assert html.count(f'href="{expected_url}"') == 1
-        assert "Subscription" in html
+        assert str(drf_stripe.pages[0].label) in html
 
     def test_renders_nothing_when_no_contribution_is_available(self, monkeypatch):
         monkeypatch.setattr(

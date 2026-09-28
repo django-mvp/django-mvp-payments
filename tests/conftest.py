@@ -1,13 +1,14 @@
 """Shared fixtures for the test suite."""
 
 import pytest
-from django.contrib.auth.models import User
+from django.test import Client
 from django.urls import reverse
 
 from tests.factories import (
     StripeUserFactory,
     SubscriptionFactory,
     SubscriptionItemFactory,
+    UserFactory,
 )
 
 
@@ -26,8 +27,17 @@ def sidebar_navigation(home_page):
 
 @pytest.fixture
 def user(db):
-    """A signed-in person, for the pages that require one."""
-    return User.objects.create_user(username="person", password="password")
+    return UserFactory()
+
+
+@pytest.fixture
+def client_for(db):
+    def sign_in(user):
+        client = Client()
+        client.force_login(user)
+        return client
+
+    return sign_in
 
 
 @pytest.fixture

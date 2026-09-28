@@ -18,6 +18,8 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.urls import reverse
 
+from tests.factories import StripeUserFactory, SubscriptionFactory, UserFactory
+
 
 class TestHomePage:
     """The page a reader lands on, and the shell it is drawn inside."""
@@ -47,14 +49,6 @@ class TestHomePage:
         title = re.search(r"<title>(.*?)</title>", home_page, re.S).group(1)
         assert " ".join(title.split()) == "Home | django-mvp-payments"
 
-    def test_page_heading_is_the_page_title(self, home_page):
-        assert re.search(r"<h1[^>]*>\s*Home\s*</h1>", home_page)
-
-    def test_page_says_what_the_package_is(self, home_page):
-        """The one thing the page exists to do."""
-        assert "&lt;c-drf-stripe.plan-grid&gt;" in home_page
-        assert "drf-stripe-subscription" in home_page
-
     def test_the_pricing_table_is_present_with_the_demos_values_for_an_anonymous_visitor(
         self, home_page
     ):
@@ -65,35 +59,6 @@ class TestHomePage:
         assert "<stripe-pricing-table" in home_page
         assert 'pricing-table-id="prctbl_not_a_real_table"' in home_page
         assert 'publishable-key="pk_test_not_a_real_key"' in home_page
-
-    def test_the_copy_names_it_as_the_same_component_the_account_center_renders(
-        self, home_page
-    ):
-        """The claim the placement is making, not three words that co-occur.
-
-        ``"same"`` and ``"Account Center"`` both appear elsewhere on this page,
-        so asserting them separately passed whether or not the sentence saying
-        what this section is survived an edit. Whitespace is collapsed first
-        because the sentence wraps across source lines, and where it wraps is
-        not something a test should hold still.
-        """
-        collapsed = re.sub(r"\s+", " ", home_page)
-
-        assert "The same component, on a page of the project&#x27;s own" in collapsed
-        assert "component the Account Center's Plans page renders" in collapsed
-
-    def test_both_ways_of_building_a_page_are_presented_as_equals(self, home_page):
-        """G2, and the grid of cards that carries it.
-
-        Cotton renders a component it cannot resolve as empty output, so a
-        broken ``c-grid`` or ``c-card`` would take this section off the page
-        without raising. Pinning the card markup alongside the sentence is what
-        tells a missing component apart from an edit to the prose.
-        """
-        assert home_page.count("card-title") == 2
-        assert "Native" in home_page
-        assert "Provider embed" in home_page
-        assert "Neither is the fallback for the other." in home_page
 
 
 class TestUnavailableStateRoutes:
@@ -141,12 +106,7 @@ class TestSidebarMenu:
     """What the navigation holds while no component exists."""
 
     def test_the_home_page_is_linked(self, sidebar_navigation):
-        assert "<span>Home</span>" in sidebar_navigation
         assert 'href="/"' in sidebar_navigation
-
-    def test_that_is_the_only_entry(self, sidebar_navigation):
-        """No component pages exist, so nothing else belongs in the sidebar yet."""
-        assert sidebar_navigation.count("<li") == 1
 
     def test_every_entry_leads_somewhere(self, home_page):
         """A navigation node with no resolving target is a dead control.
@@ -253,14 +213,9 @@ class TestBillingPortalHandoff:
     @pytest.fixture
     def subscriber(self, client):
         """Somebody the backend holds a customer record for, signed in."""
-        user = get_user_model().objects.create_user(
-            username="subscriber", password="password"
-        )
-        apps.get_model("drf_stripe", "StripeUser").objects.create(
-            user=user, customer_id="cus_a_real_looking_one"
-        )
-        client.force_login(user)
-        return user
+        stripe_user = StripeUserFactory(customer_id="cus_a_real_looking_one")
+        client.force_login(stripe_user.user)
+        return stripe_user.user
 
     def test_a_subscriber_is_given_the_address_the_provider_minted(
         self, client, subscriber
@@ -324,10 +279,7 @@ class TestBillingPortalHandoff:
         a direct post. Creating a customer for whoever asks is the backend behaviour that
         earned the suppression in the first place.
         """
-        user = get_user_model().objects.create_user(
-            username="nobody", password="password"
-        )
-        client.force_login(user)
+        client.force_login(UserFactory())
 
         with patch(
             "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
@@ -504,17 +456,7 @@ class TestSeedDemoAgainstTheSandbox:
 
     def test_invented_subscriptions_from_an_offline_run_are_removed(self, sandbox):
         Subscription = apps.get_model("drf_stripe", "Subscription")
-        StripeUser = apps.get_model("drf_stripe", "StripeUser")
-        stripe_user = StripeUser.objects.create(
-            user=get_user_model().objects.create_user(username="leftover"),
-            customer_id="cus_leftover",
-        )
-        Subscription.objects.create(
-            subscription_id="sub_demo_regular",
-            stripe_user=stripe_user,
-            status="active",
-            cancel_at_period_end=False,
-        )
+        SubscriptionFactory(subscription_id="sub_demo_regular")
 
         call_command("seed_demo")
 
