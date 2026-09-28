@@ -57,7 +57,7 @@ class BillingPortalView(LoginRequiredMixin, View):
     is the reason it is written here rather than worked around in the page.
 
     ``mvp_payments`` itself may not contain this. It reaches a provider only through a backend's
-    HTTP endpoints and imports no provider SDK at all, which Article XII makes absolute and
+    HTTP endpoints and imports no provider SDK at all, which Article XI makes absolute and
     ``tests/test_app.py`` enforces. A demo is a host project and is bound by neither.
 
     The provider's key, its API version and the address to come back to are all read from the

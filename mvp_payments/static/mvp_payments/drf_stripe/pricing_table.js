@@ -9,7 +9,7 @@
  * package leaves entirely to the provider to render, such as an archived
  * table or a mismatched key pair.
  *
- * No build step and no bundler (Article XIII) — this file is loaded exactly
+ * No build step and no bundler (Article XII) — this file is loaded exactly
  * as the host project loads its other static assets, and states what it
  * needs by looking for its own marker rather than assuming one is present.
  */

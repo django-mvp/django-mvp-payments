@@ -4,7 +4,7 @@ Development only. The demo project is never deployed, and these passwords are
 written here in plain sight precisely so nobody mistakes them for real ones.
 
 The backend's models are reached through ``apps.get_model`` rather than imported, matching the
-rule ``mvp_payments/`` itself follows (Article XIII) — the demo shows the package working the same
+rule ``mvp_payments/`` itself follows (Article XII) — the demo shows the package working the same
 way a host project would use it, not a shortcut available only here.
 """
 

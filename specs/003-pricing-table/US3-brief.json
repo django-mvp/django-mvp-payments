@@ -51,7 +51,7 @@
       "D4 — SC-002 is a guarantee about this package's output, not about the demonstration project's page. The demo loads the provider's library; that is expected and is not a violation to fix.",
       "D2 — the script-absence guarantee is held at the template source. tests/test_app.py already asserts no shipped template under mvp_payments/ carries a script element with a host src; that is a pre-existing test and is not yours to touch.",
       "WATCH — T016 may pass the moment it is written, because US-1 built the component to satisfy exactly this. Report which it was, honestly. A test that passes on first run here is evidence the design held.",
-      "WATCH — assert against rendered output, never against the presence of a class name (constitution Article XVI). For the query-count assertion use django_assert_num_queries(0) around a render carrying only the attributes.",
+      "WATCH — assert against rendered output, never against the presence of a class name (constitution Article XV). For the query-count assertion use django_assert_num_queries(0) around a render carrying only the attributes.",
       "WATCH — the demo landing page is a page a visitor reaches WITHOUT signing in. Do not place the component behind a login, and assert the anonymous case in tests/test_demo.py."
     ],
     "glossary_terms": [

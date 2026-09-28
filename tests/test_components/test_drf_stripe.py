@@ -352,7 +352,7 @@ class TestPlansLink:
         assert "Switch plans" not in html
 
     def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
-        """A control leading nowhere is worse than no control (Article XVI)."""
+        """A control leading nowhere is worse than no control (Article XV)."""
         html = cotton_render("drf-stripe.plans-link", url=None)
 
         assert html.strip() == ""

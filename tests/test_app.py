@@ -78,7 +78,7 @@ class TestPackagedApp:
         assert namespace.is_dir()
 
     def test_the_app_defines_no_models(self) -> None:
-        """This package owns no table and stores nothing (Article XII).
+        """This package owns no table and stores nothing (Article XI).
 
         Installing it must leave a project's schema untouched, which is also
         why there is no `migrations/` directory for `migrate` to find.
@@ -86,7 +86,7 @@ class TestPackagedApp:
         assert list(apps.get_app_config("mvp_payments").get_models()) == []
 
     def test_the_package_owns_no_data(self) -> None:
-        """No forms, no admin, no serializers, no migrations (Article XII).
+        """No forms, no admin, no serializers, no migrations (Article XI).
 
         Views, URLs and menu registrations are allowed here — a page has to be
         routed for the package to be worth installing. Accepting a submission,
@@ -103,7 +103,7 @@ class TestPackagedApp:
         assert found == []
 
     def test_no_module_reaches_a_database_or_a_provider(self) -> None:
-        """The boundary that matters, enforced at the import (Article XII).
+        """The boundary that matters, enforced at the import (Article XI).
 
         A view here hands a template to the renderer. The moment one imports
         `django.db` it is holding state, and the moment it imports a provider's
@@ -170,7 +170,7 @@ class TestDocumentationLinkedFromReadme:
 
 
 class TestNoProviderScript:
-    """No template this package ships fetches a script from any host (T004, Article XIII, FR-002).
+    """No template this package ships fetches a script from any host (T004, Article XII, FR-002).
 
     A component may mount a provider's custom element, but loading the library that brings it
     to life is always the host project's decision, never this package's. This is the

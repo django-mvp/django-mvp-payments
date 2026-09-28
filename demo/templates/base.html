@@ -12,7 +12,7 @@
       The provider's own pricing-table library. Self-hosting it is forbidden
       by the provider's own terms, so every project that needs it loads it
       from the provider's network, however that project already manages its
-      frontend — this package emits no script tag for it (Article XIII).
+      frontend — this package emits no script tag for it (Article XII).
       This is a demonstration convenience, not a recommendation. A template
       extending this one can empty this block to show the mount point with
       the library never having arrived.
@@ -21,7 +21,7 @@
   {% endblock provider_library %}
   {% comment %}
     Our own scripts, loaded the way this project already loads its other
-    static assets — the package emits no script tag of its own (Article XIII,
+    static assets — the package emits no script tag of its own (Article XII,
     D3). They sit outside provider_library deliberately: that block holds the
     provider's library alone, so a page emptying it to show the mount point
     with the library never having arrived still has pricing_table.js present.

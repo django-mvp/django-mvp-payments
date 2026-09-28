@@ -19,12 +19,12 @@ hosted pages:
 - choosing a plan, through Stripe's pricing table and checkout
 - switching plans, cancelling and updating a card, through Stripe's customer portal
 
-So the package renders state and hands off, which is all Article XII lets it do. It never holds a
+So the package renders state and hands off, which is all Article XI lets it do. It never holds a
 card, takes a payment or decides what anyone is charged, and none of that has to be rebuilt here.
 
 A backend that expects the application to build its own checkout, plan-change or cancellation
 screens would need all of that written and maintained in this package. It would also pull the
-package toward owning payment logic, which Article XII rules out.
+package toward owning payment logic, which Article XI rules out.
 
 ## What it costs
 
@@ -42,5 +42,5 @@ The backend also ships no endpoint for the provider's plan-change screen, so a p
 ## Revisit if
 
 The backend stops being maintained, or a project needs a backend this one cannot stand in for. A
-second backend arrives as a namespace of its own beside this one (Article XV), not as a
+second backend arrives as a namespace of its own beside this one (Article XIV), not as a
 replacement for it.

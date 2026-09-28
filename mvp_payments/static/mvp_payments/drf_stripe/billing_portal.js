@@ -6,7 +6,7 @@
  * failure message on any failure rather than sending the reader nowhere
  * (D3, US-2 scenario 3).
  *
- * No build step and no bundler (Article XIII) — this file is loaded exactly
+ * No build step and no bundler (Article XII) — this file is loaded exactly
  * as the host project loads its other static assets, and states what it
  * needs by looking for its own control rather than assuming one is present.
  */

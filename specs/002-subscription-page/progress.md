@@ -131,7 +131,7 @@ Watch: none.
 ## 2026-09-22 — S4 IMPLEMENT · US1 (verify: conformance failure on tests/test_conftest.py)
 
 `forge verify --repo .` failed conformance: `tests/test_conftest.py` (added at T002 to prove the
-fixtures) mirrors no source module — Article X's exception list covers `tests/factories.py` →
+fixtures) mirrors no source module — Article I's exception list covers `tests/factories.py` →
 `tests/test_factories.py` by name, not a `conftest.py` test file, and the conformance tool's own
 message says a cross-cutting test belongs as another `Test*` class in the module of its subject
 rather than a file of its own. `tests/test_views.py::TestSubscriptionPage`, written for T007,
@@ -163,7 +163,7 @@ guarantee as those stories land.
 
 Second correction: `_build_plan`, `_describe_frequency` and `_FREQUENCY_TRANSLATORS` carried
 leading underscores, against the standing rule that nothing in this organisation marks a name
-private that way. Both helpers also had a subject and belonged on it (Article XI). The frequency
+private that way. Both helpers also had a subject and belonged on it (Article X). The frequency
 table is now `Plan.FREQUENCY_TRANSLATORS` with the parsing inlined into `Plan.frequency_display`,
 which is its only caller, and `_build_plan` is `SubscriptionReader.build_plan`. Behaviour is
 unchanged.
@@ -219,12 +219,12 @@ Did: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js` — binds e
 control on the page, posts to its `data-endpoint` with its `data-csrf-token` as the `X-CSRFToken`
 header, follows `data.url` on success, reveals the control's own hidden failure message on any
 failure (non-2xx response, malformed JSON, or a missing `url`). No build step, no bundler, no
-external origin (Article XIII). Deliberately does not write the backend's own response into the
+external origin (Article XII). Deliberately does not write the backend's own response into the
 DOM — the failure message is static, translated text already in the template, and this file only
-toggles its `hidden` attribute, consistent with Article XII's "no trust in what comes back".
+toggles its `hidden` attribute, consistent with Article XI's "no trust in what comes back".
 
 No Python test: this file runs in the browser and this package cannot import it or call the
-endpoint from Python (Article XII), so nothing here is unit-testable the way the rest of the
+endpoint from Python (Article XI), so nothing here is unit-testable the way the rest of the
 story is — recorded in the completion report's `concerns` rather than left unsaid.
 
 Verified: `poetry run pre-commit run --files mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`
@@ -500,7 +500,7 @@ Watch: none.
 
 Did: checked the README's namespace section against its acceptance criterion — it already
 linked `docs/subscription-page.md` and already said the subscription page "shows what a person
-is currently subscribed to," so neither needed correcting. Added the one thing Article XVII
+is currently subscribed to," so neither needed correcting. Added the one thing Article XVI
 requires that was missing: which of the backend's endpoints this namespace calls,
 `customer-portal/`. CHANGELOG.md had not been touched since FS-001 merged (confirmed by `git log
 --oneline -- CHANGELOG.md`), so this is the first entry for the whole feature: the six

@@ -1,6 +1,6 @@
 """The drf-stripe-subscription backend's records, as presentation objects (D1).
 
-Reached through ``apps.get_model`` throughout, never imported (Article XIII). What counts as
+Reached through ``apps.get_model`` throughout, never imported (Article XII). What counts as
 *current* is never decided here: the backend already answers that question everywhere else it is
 asked, through :attr:`StripeUser.current_subscription_items`, and naming a status list of our own
 would silently go stale the day the backend's own list changes (D1).
@@ -53,7 +53,7 @@ class Plan:
         drf-stripe-subscription composes ``frequency`` as ``f"{interval}_{interval_count}"``
         (`research.md`) — a Stripe-specific encoding, so parsing it belongs beside the rest of
         what this module already knows about the backend's vocabulary, and it is shown as itself
-        rather than dropped when it is not one this table holds (Article XVI).
+        rather than dropped when it is not one this table holds (Article XV).
 
         On Python 3.12 and later that f-string formats the backend's ``RecurringInterval`` enum
         member by name, so the backend's own synchronisation stores ``RecurringInterval.MONTH_1``

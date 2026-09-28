@@ -185,7 +185,7 @@
     },
     {
       "what": "Removed tests/test_conftest.py (added at T002 to prove the new fixtures directly) after forge verify's conformance step failed it for mirroring no source module.",
-      "why": "Article X's mirror exception names tests/factories.py -> tests/test_factories.py specifically; it does not extend to a conftest.py test file, and the conformance tool's own message said the coverage belongs as another Test* class in the module of its subject. tests/test_views.py::TestSubscriptionPage (T007) already exercises subscriber_client and current_subscription through real use, so the standalone file was redundant rather than load-bearing.",
+      "why": "Article I's mirror exception names tests/factories.py -> tests/test_factories.py specifically; it does not extend to a conftest.py test file, and the conformance tool's own message said the coverage belongs as another Test* class in the module of its subject. tests/test_views.py::TestSubscriptionPage (T007) already exercises subscriber_client and current_subscription through real use, so the standalone file was redundant rather than load-bearing.",
       "decision_ref": "specs/002-subscription-page/progress.md#2026-09-22--s4-implement--us1-verify-conformance-failure-on-teststest_conftestpy"
     }
   ],

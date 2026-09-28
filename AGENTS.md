@@ -14,11 +14,11 @@ serializers, and no module here imports `django.db` or a provider SDK. A page ha
 needs, built on django-mvp's view classes, and it may read what an installed backend already knows
 — through the application registry, never by importing the backend. What it may not do is hold
 state of its own, compute what a person is charged, or reach a provider. `CONSTITUTION.md`
-Article XII is the rule and `tests/test_app.py` is the gate.
+Article XI is the rule and `tests/test_app.py` is the gate.
 
 Installing this package alone changes nothing a person can see. Installing it alongside a backend
 makes that backend's pages appear in django-mvp's Account Center on their own, gated on
-`apps.is_installed`, never on a settings flag (Article XIV). The one manual step is mounting this
+`apps.is_installed`, never on a settings flag (Article XIII). The one manual step is mounting this
 package's URLs once, because Django gives an installed app no way to add routes to a project's
 root URLconf.
 

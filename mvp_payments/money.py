@@ -1,4 +1,4 @@
-"""Rendering a minor-unit amount in its own currency (Article XVI, Article XV plumbing).
+"""Rendering a minor-unit amount in its own currency (Article XV, Article XIV plumbing).
 
 A provider reports an amount as an integer in a currency's minor unit — Stripe's ``2000`` is
 £20.00 — and most currencies use two decimal places, but not all of them: a zero-decimal currency
@@ -80,7 +80,7 @@ class Money:
     def __str__(self) -> str:
         """The amount under the active locale, followed by its currency code.
 
-        Renders nothing without a currency (Article XVI) — a component that received a bare
+        Renders nothing without a currency (Article XV) — a component that received a bare
         integer has nothing honest to show, and guessing a currency would be worse than showing
         nothing.
         """

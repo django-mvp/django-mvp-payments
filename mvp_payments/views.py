@@ -61,7 +61,7 @@ class SubscriptionPageView(PaymentPageView):
     """The drf-stripe namespace's subscription page: what the signed-in person is on.
 
     Adds ``subscriptions`` to the context — the reader's current subscriptions for this request's
-    person, computed at render time rather than the backend importing anything (Article XIII).
+    person, computed at render time rather than the backend importing anything (Article XII).
 
     Also adds ``billing_portal_endpoint``: where the backend's own billing-portal endpoint is
     mounted, read from ``settings.MVP_PAYMENTS`` at render time rather than assumed (D3, FR-006).
@@ -102,7 +102,7 @@ class PlansPageView(PaymentPageView):
     """The drf-stripe namespace's plans page: the provider's own pricing table, mounted.
 
     Adds ``pricing_table_id`` and ``publishable_key`` to the context, read from
-    ``settings.MVP_PAYMENTS`` at render time rather than assumed (Article XIV). Both default
+    ``settings.MVP_PAYMENTS`` at render time rather than assumed (Article XIII). Both default
     to ``None`` where the setting is not supplied — the surface a project overriding this
     page's template relies on.
 

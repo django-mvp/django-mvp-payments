@@ -1,4 +1,4 @@
-"""Rendering a minor-unit amount in its own currency (Article XVI)."""
+"""Rendering a minor-unit amount in its own currency (Article XV)."""
 
 from mvp_payments.money import Money
 

@@ -193,7 +193,7 @@ class TestPlanAmountCasing:
 
 class TestPlanFrequencyDisplay:
     """``frequency_display`` renders the backend's ``interval_count`` encoding through ngettext,
-    and shows an unrecognised one as itself (Article XVI).
+    and shows an unrecognised one as itself (Article XV).
     """
 
     def test_a_count_of_one_renders_the_singular_form(self):

@@ -46,7 +46,7 @@
       "Backend",
       "Theme"
     ],
-    "conventions": "CONSTITUTION.md Articles VIII (translatable strings), X (test structure), XI (a registered template tag module is an explicit exception to the cohesion rule), XVI (assert rendered output, never the presence of a class name). Cards on the overview are contributed by shipping a same-named template that extends mvp/account/overview.html and adds to its account.cards block through {{ block.super }} \u2014 django-mvp declares no attribute, no registry and no template tag for this.",
+    "conventions": "CONSTITUTION.md Articles VIII (translatable strings), I (test structure), X (a registered template tag module is an explicit exception to the cohesion rule), XV (assert rendered output, never the presence of a class name). Cards on the overview are contributed by shipping a same-named template that extends mvp/account/overview.html and adds to its account.cards block through {{ block.super }} \u2014 django-mvp declares no attribute, no registry and no template tag for this.",
     "acceptance": [
       {
         "task": "T022",

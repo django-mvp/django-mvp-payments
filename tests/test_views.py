@@ -205,7 +205,7 @@ class TestPlansPage:
     ``tests.test_app.TestNoProviderScript`` (T004) against every template this package ships,
     rather than a check here — the demo project's own base template legitimately loads the
     provider's library for every page it serves (T010), which this page inherits the way any
-    host project's shell choices reach every page it renders (Article XIII's host-project
+    host project's shell choices reach every page it renders (Article XII's host-project
     split; see ``decisions.md``).
     """
 
@@ -271,7 +271,7 @@ class TestPlansPage:
     def test_renders_with_mvp_payments_absent_from_settings_entirely(
         self, logged_in_client, settings
     ):
-        """Article XIV: the context names are read at render time, not at import (T003)."""
+        """Article XIII: the context names are read at render time, not at import (T003)."""
         del settings.MVP_PAYMENTS
 
         response = logged_in_client.get(reverse("payments:drf-stripe-plans"))

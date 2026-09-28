@@ -201,7 +201,7 @@ either side of the broken lookup — read the customer identifier the backend al
 the provider for a session. `demo/views.py` has a working one, at about twenty lines.
 
 This package cannot ship that endpoint for you. It reaches a provider only through a backend's
-HTTP endpoints and imports no provider SDK at all, which Article XII of the constitution makes
+HTTP endpoints and imports no provider SDK at all, which Article XI of the constitution makes
 absolute and `tests/test_app.py` enforces. A project of your own is bound by neither.
 
 `<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not

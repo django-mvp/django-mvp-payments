@@ -1,7 +1,7 @@
 """Renders each available contribution's card on the Account Center overview.
 
 A registered template tag module is an explicit exception to the class
-grouping Article XI otherwise requires — Django's tag registry is the
+grouping Article X otherwise requires — Django's tag registry is the
 extension point here, not a class.
 """
 

@@ -40,7 +40,7 @@
       "Namespace",
       "Host project"
     ],
-    "conventions": "CONSTITUTION.md Articles X (test structure) and XVI (assert rendered output, never the presence of a class name).",
+    "conventions": "CONSTITUTION.md Articles I (test structure) and XV (assert rendered output, never the presence of a class name).",
     "acceptance": [
       {
         "task": "T027",
