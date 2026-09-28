@@ -44,7 +44,7 @@
       "Contribution",
       "Backend"
     ],
-    "conventions": "CONSTITUTION.md Article X \u2014 a test fixture application inside tests/ has no source module to mirror, so if it needs declaring, declare it under [tool.forge.conformance] non-mirror-paths in pyproject.toml rather than leaving the structure check to guess. Article XVI \u2014 assert rendered output, never the presence of a class name.",
+    "conventions": "CONSTITUTION.md Article I \u2014 a test fixture application inside tests/ has no source module to mirror, so if it needs declaring, declare it under [tool.forge.conformance] non-mirror-paths in pyproject.toml rather than leaving the structure check to guess. Article XV \u2014 assert rendered output, never the presence of a class name.",
     "acceptance": [
       {
         "task": "T029",

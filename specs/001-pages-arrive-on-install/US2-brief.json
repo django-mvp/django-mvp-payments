@@ -43,7 +43,7 @@
       "Contribution",
       "Host project"
     ],
-    "conventions": "CONSTITUTION.md Articles X (test structure: mirror the source tree, group into Test<Subject> classes) and XVI (assert rendered output, never the presence of a class name).",
+    "conventions": "CONSTITUTION.md Articles I (test structure: mirror the source tree, group into Test<Subject> classes) and XV (assert rendered output, never the presence of a class name).",
     "acceptance": [
       {
         "task": "T018",

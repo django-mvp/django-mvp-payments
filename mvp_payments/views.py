@@ -24,18 +24,27 @@ if TYPE_CHECKING:
 class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
     """One page a namespace contributes, following ``AccountCenterView``'s shape.
 
-    ``page`` must be set through ``as_view(page=...)`` — mirroring how
-    ``BaseTemplateNameMixin`` requires ``base_template_name`` — because this
-    class is never used directly, only built once per declared ``Page``.
-    ``contribution`` arrives the same way, and is how a page addresses a
-    sibling: not every page is in the navigation any more, so the ones that
-    are have to be able to link to the ones that are not.
+    Never used directly, only built once per declared ``Page`` through ``as_view()``.
+
+    Attributes:
+        page: The page this view renders, set through ``as_view(page=...)``.
+        contribution: The contribution the page belongs to, set through
+            ``as_view(contribution=...)``. It is how a page addresses a sibling that
+            is not in the navigation.
     """
 
     page: Page | None = None
     contribution: Contribution | None = None
 
     def get_page(self) -> Page:
+        """Return the page this view was built for.
+
+        Returns:
+            The page passed to ``as_view()``.
+
+        Raises:
+            ImproperlyConfigured: The view was built without a page.
+        """
         if self.page is None:
             raise ImproperlyConfigured(
                 f"{type(self).__name__} requires `page` to be set, via as_view(page=...)."
@@ -43,6 +52,14 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
         return self.page
 
     def get_contribution(self) -> Contribution:
+        """Return the contribution this view's page belongs to.
+
+        Returns:
+            The contribution passed to ``as_view()``.
+
+        Raises:
+            ImproperlyConfigured: The view was built without a contribution.
+        """
         if self.contribution is None:
             raise ImproperlyConfigured(
                 f"{type(self).__name__} requires `contribution` to be set, "
@@ -51,35 +68,30 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
         return self.contribution
 
     def get_template_names(self) -> list[str]:
+        """Render the page's own template."""
         return [self.get_page().template_name]
 
     def get_page_title(self) -> str | Promise:
+        """Title the page with its label."""
         return self.get_page().label
 
 
 class SubscriptionPageView(PaymentPageView):
     """The drf-stripe namespace's subscription page: what the signed-in person is on.
 
-    Adds ``subscriptions`` to the context — the reader's current subscriptions for this request's
-    person, computed at render time rather than the backend importing anything (Article XIII).
+    Adds to the context:
 
-    Also adds ``billing_portal_endpoint``: where the backend's own billing-portal endpoint is
-    mounted, read from ``settings.MVP_PAYMENTS`` at render time rather than assumed (D3, FR-006).
-    Suppressed for anyone with nothing current, never merely disabled — the backend's endpoint
-    creates a customer at the provider for whoever posts to it, so offering the control to someone
-    who never subscribed would create one by their clicking it (D5).
-
-    And ``plans_url``: the plans page is no longer in the Account Center's navigation, so this
-    page carries the way to it, for somebody with no subscription to choose one.
-
-    And ``plan_switch_endpoint``: where the project mounted an endpoint that opens the provider's
-    own plan-change screen for this person's subscription, read from the same settings. A
-    subscriber switches there rather than on the plans page, because the provider's pricing table
-    knows nothing of a current plan and a purchase through it starts a second subscription beside
-    the first. Suppressed for anyone with nothing current, as the portal is.
+    - ``subscriptions``: this person's current subscriptions, read at render time (Article XII).
+    - ``billing_portal_endpoint``: where the backend's billing-portal endpoint is mounted, from
+      ``settings.MVP_PAYMENTS`` (ADR 0005). ``None`` for anyone with nothing current, because the
+      endpoint creates a provider customer for whoever posts to it (ADR 0007).
+    - ``plans_url``: the plans page, which is not in the navigation.
+    - ``plan_switch_endpoint``: the project's endpoint opening the provider's plan-change screen,
+      from the same settings (ADR 0008). ``None`` for anyone with nothing current.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Add the subscriptions and the ways onward from them."""
         context: dict[str, Any] = super().get_context_data(**kwargs)
         subscriptions = SubscriptionReader.for_user(self.request.user)
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
@@ -101,18 +113,17 @@ class SubscriptionPageView(PaymentPageView):
 class PlansPageView(PaymentPageView):
     """The drf-stripe namespace's plans page: the provider's own pricing table, mounted.
 
-    Adds ``pricing_table_id`` and ``publishable_key`` to the context, read from
-    ``settings.MVP_PAYMENTS`` at render time rather than assumed (Article XIV). Both default
-    to ``None`` where the setting is not supplied — the surface a project overriding this
-    page's template relies on.
+    Adds to the context:
 
-    Also adds ``subscriptions``, this person's current subscriptions, and ``subscription_url``.
-    Somebody already subscribed is sent back to the subscription page to switch rather than
-    shown the pricing table: it cannot tell them which plan they are on, and buying from it
-    starts a second subscription beside the one they have.
+    - ``pricing_table_id`` and ``publishable_key``: from ``settings.MVP_PAYMENTS`` at render
+      time, ``None`` where not supplied (Article XIII).
+    - ``subscriptions``: this person's current subscriptions. A subscriber is sent to the
+      subscription page to switch instead of shown the pricing table (ADR 0008).
+    - ``subscription_url``: the subscription page.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        """Add the pricing table's settings and this person's subscriptions."""
         context: dict[str, Any] = super().get_context_data(**kwargs)
         context["subscriptions"] = SubscriptionReader.for_user(self.request.user)
         context["subscription_url"] = self.get_contribution().page_url("subscription")

@@ -1,8 +1,8 @@
 """The demo's routes with this package's include removed.
 
 Mirrors ``demo/urls.py`` exactly, minus the one line a project adds to mount
-this package's pages (FR-001) — the state US-4 tests: a project that
-installed the backend and this package but never added that line.
+this package's pages: a project that installed the backend and this package
+but never added that line (FS-001).
 """
 
 from django.urls import include, path

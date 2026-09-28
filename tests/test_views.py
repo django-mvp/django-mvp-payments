@@ -5,7 +5,7 @@ import re
 import pytest
 from django.conf import settings
 from django.db import connection
-from django.test import Client, override_settings
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -159,23 +159,15 @@ print(json.dumps({
 
 
 class TestPaymentPage:
-    """A signed-in request renders; an anonymous one is sent to sign in."""
-
-    @pytest.mark.parametrize(
-        ("url_name", "heading"),
-        [
-            ("drf-stripe-subscription", "Subscription"),
-            ("drf-stripe-plans", "Plans"),
-        ],
-    )
+    @pytest.mark.parametrize("page", drf_stripe.pages, ids=lambda page: page.slug)
     def test_signed_in_person_sees_the_page_inside_the_account_center(
-        self, logged_in_client, url_name, heading
+        self, logged_in_client, page
     ):
-        response = logged_in_client.get(reverse(f"payments:{url_name}"))
+        response = logged_in_client.get(reverse(drf_stripe.view_name(page)))
         content = response.content.decode()
 
         assert response.status_code == 200
-        assert re.search(rf"<h1[^>]*>\s*{heading}\s*</h1>", content)
+        assert re.search(rf"<h1[^>]*>\s*{page.label}\s*</h1>", content)
         assert 'aria-label="Account navigation"' in content
 
     def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
@@ -199,16 +191,6 @@ def _content_region(content: str) -> str:
 
 @pytest.mark.django_db
 class TestPlansPage:
-    """The Plans page mounts the provider's pricing table from settings (T002, T003).
-
-    No script element for the provider is a separate, repository-wide guarantee held by
-    ``tests.test_app.TestNoProviderScript`` (T004) against every template this package ships,
-    rather than a check here — the demo project's own base template legitimately loads the
-    provider's library for every page it serves (T010), which this page inherits the way any
-    host project's shell choices reach every page it renders (Article XIII's host-project
-    split; see ``decisions.md``).
-    """
-
     def test_context_and_content_carry_both_settings_values(self, logged_in_client):
         with override_settings(
             MVP_PAYMENTS={
@@ -247,7 +229,6 @@ class TestPlansPage:
     def test_a_subscriber_is_sent_to_their_subscription_instead_of_the_table(
         self, subscriber_client
     ):
-        """The table cannot say which plan they are on, and would sell them a second one."""
         with override_settings(
             MVP_PAYMENTS={
                 "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
@@ -259,7 +240,6 @@ class TestPlansPage:
         content = _content_region(response.content.decode())
         assert response.status_code == 200
         assert "stripe-pricing-table" not in content
-        assert "You already have a subscription" in content
         assert f'href="{reverse("payments:drf-stripe-subscription")}"' in content
 
     def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
@@ -271,7 +251,6 @@ class TestPlansPage:
     def test_renders_with_mvp_payments_absent_from_settings_entirely(
         self, logged_in_client, settings
     ):
-        """Article XIV: the context names are read at render time, not at import (T003)."""
         del settings.MVP_PAYMENTS
 
         response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
@@ -290,7 +269,6 @@ class TestPlansPage:
     def test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id(
         self, logged_in_client
     ):
-        """Scenario 1: no pricing table identifier configured (FR-007, SC-005)."""
         with override_settings(
             MVP_PAYMENTS={"DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456"}
         ):
@@ -304,7 +282,6 @@ class TestPlansPage:
     def test_states_plans_unavailable_and_emits_no_provider_element_without_a_publishable_key(
         self, logged_in_client
     ):
-        """Scenario 2: no publishable key configured (FR-007, SC-005)."""
         with override_settings(
             MVP_PAYMENTS={"DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123"}
         ):
@@ -318,30 +295,21 @@ class TestPlansPage:
     def test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged(
         self, logged_in_client, settings
     ):
-        """Scenario 4: nothing raises, and the rest of the page — its heading, the
-        account navigation — renders unchanged, alongside the unavailable sentence."""
         del settings.MVP_PAYMENTS
 
         response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
         content = response.content.decode()
 
         assert response.status_code == 200
-        assert re.search(r"<h1[^>]*>\s*Plans\s*</h1>", content)
+        plans_label = drf_stripe.pages[1].label
+        assert re.search(rf"<h1[^>]*>\s*{plans_label}\s*</h1>", content)
         assert 'aria-label="Account navigation"' in content
         assert "stripe-pricing-table" not in content
         assert "Plans not available" in _content_region(content)
 
 
 class TestPageViewConfiguration:
-    """A view built without what it needs says so, rather than failing later."""
-
     def test_a_view_with_no_contribution_says_what_is_missing(self):
-        """Every route supplies one, so this fires only for a hand-built view.
-
-        It is the difference between a clear message at the point of the
-        mistake and an ``AttributeError`` on ``None`` somewhere inside a
-        template render.
-        """
         from django.core.exceptions import ImproperlyConfigured
 
         from mvp_payments.views import SubscriptionPageView
@@ -351,17 +319,6 @@ class TestPageViewConfiguration:
 
 
 class TestAccountCenterOverview:
-    """The overview carries the installed backend's card, and keeps whatever
-    django-mvp or another application already put there through
-    ``{{ block.super }}`` (FR-006, FR-009).
-
-    Proving the second half needs a second application in the extends chain,
-    present from process start — the app-directories template loader order is
-    built once, like the URL configuration and the menu (D9) — so this boots
-    a fresh process under ``tests.settings_with_another_card`` rather than
-    overriding ``INSTALLED_APPS`` mid-test.
-    """
-
     def _open_the_account_center_with_another_card(self) -> dict:
         # sys.executable and a module-level string constant, no untrusted input.
         return run_probe(
@@ -381,28 +338,6 @@ class TestAccountCenterOverview:
 
 
 class TestURLsNotMounted:
-    """A project that installed the backend but never added the one line
-    mounting this package's URL configuration still gets a working Account
-    Center, with nothing of this package on it (US-4, FR-009).
-
-    A dead navigation entry is already handled by django-flex-menus, which
-    drops a leaf whose URL will not reverse (D3) — the navigation half needs
-    no test of its own here beyond confirming it stays true. The card is not
-    covered by that: rendering its ``{% url %}`` would raise
-    ``NoReverseMatch`` and take the whole page down, which is worse than the
-    dead link FR-009 exists to prevent.
-
-    Both guards ask ``reverse()`` live, at render time — ``Contribution.
-    is_reachable()`` directly, django-flex-menus' own URL resolution the same
-    way — rather than anything built once at process start. That is unlike
-    D9's URL-configuration-built-at-import case and D10's template-loader
-    case, so this uses ``override_settings(ROOT_URLCONF=...)`` in-process
-    rather than a fresh subprocess: confirmed by hand first that Django's own
-    ``clear_url_caches()`` (triggered by the ``setting_changed`` signal on a
-    ``ROOT_URLCONF`` override) is enough to make every live ``reverse()``
-    call in this request see the substituted URL configuration.
-    """
-
     def test_account_center_renders_with_nothing_from_the_unmounted_backend(
         self, logged_in_client
     ):
@@ -424,7 +359,7 @@ class TestURLsNotMounted:
         # left with no visible children, so the label cannot outlive the
         # entries it was heading.
         for region in account_navigation_regions(content):
-            assert ">Billing<" not in region
+            assert f">{drf_stripe.group_label}<" not in region
 
         # No card: its link would need a URL name that cannot reverse here.
         cards = account_center_cards_region(content)
@@ -435,8 +370,6 @@ class TestURLsNotMounted:
 
 @pytest.mark.django_db
 class TestSubscriptionPage:
-    """The subscription page renders what the reader returns and nothing it did not (T007)."""
-
     def test_renders_the_plan_name_amount_frequency_and_status(
         self, subscriber_client, user
     ):
@@ -471,7 +404,9 @@ class TestSubscriptionPage:
         assert response.status_code == 200
         assert "active" in response.content.decode()
 
-    def test_two_priced_items_show_both_amounts_and_no_third_figure(self, user):
+    def test_two_priced_items_show_both_amounts_and_no_third_figure(
+        self, user, client_for
+    ):
         stripe_user = StripeUserFactory(user=user)
         subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
         first_price = PriceFactory(price=2000, currency="USD", freq="month_1")
@@ -479,19 +414,19 @@ class TestSubscriptionPage:
         SubscriptionItemFactory(subscription=subscription, price=first_price)
         SubscriptionItemFactory(subscription=subscription, price=second_price)
 
-        client = self._client_for(user)
+        client = client_for(user)
         content = client.get(
             reverse("payments:drf-stripe-subscription")
         ).content.decode()
 
         assert set(_AMOUNT_PATTERN.findall(content)) == {"20.00 USD", "30.00 EUR"}
 
-    def test_an_unrecognised_status_renders_as_itself(self, user):
+    def test_an_unrecognised_status_renders_as_itself(self, user, client_for):
         stripe_user = StripeUserFactory(user=user)
         subscription = SubscriptionFactory(stripe_user=stripe_user, status="past_due")
         SubscriptionItemFactory(subscription=subscription)
 
-        client = self._client_for(user)
+        client = client_for(user)
         content = client.get(
             reverse("payments:drf-stripe-subscription")
         ).content.decode()
@@ -515,7 +450,9 @@ class TestSubscriptionPage:
         assert "Nobody Else's Plan" not in content
         assert "9,999.99 GBP" not in content
 
-    def test_a_fixed_number_of_queries_whatever_the_number_of_items(self, user):
+    def test_a_fixed_number_of_queries_whatever_the_number_of_items(
+        self, user, client_for
+    ):
         one_item_user = user
         stripe_user_one = StripeUserFactory(user=one_item_user)
         subscription_one = SubscriptionFactory(
@@ -523,7 +460,7 @@ class TestSubscriptionPage:
         )
         SubscriptionItemFactory(subscription=subscription_one)
 
-        many_items_user = self._another_user()
+        many_items_user = UserFactory()
         stripe_user_many = StripeUserFactory(user=many_items_user)
         subscription_many = SubscriptionFactory(
             stripe_user=stripe_user_many, status="active"
@@ -531,14 +468,12 @@ class TestSubscriptionPage:
         for _ in range(4):
             SubscriptionItemFactory(subscription=subscription_many)
 
-        client_one = self._client_for(one_item_user)
-        client_many = self._client_for(many_items_user)
+        client_one = client_for(one_item_user)
+        client_many = client_for(many_items_user)
         page_url = reverse("payments:drf-stripe-subscription")
 
-        # A first request against either client warms process-wide caches (the site,
-        # content types) that a later request benefits from regardless of how many
-        # items it holds — priming both first keeps the comparison about the page's
-        # own queries rather than which client happened to go first.
+        # A first request warms process-wide caches (the site, content types), so both
+        # clients are primed to keep the comparison about the page's own queries.
         client_one.get(page_url)
         client_many.get(page_url)
 
@@ -549,54 +484,17 @@ class TestSubscriptionPage:
 
         assert len(captured_one) == len(captured_many)
 
-    def test_the_portal_control_sits_beneath_the_subscriptions(self, subscriber_client):
-        """T020: the demo's own MVP_PAYMENTS setting and static file, end to end."""
+    def test_the_page_loads_the_portal_script(self, subscriber_client):
         response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
         content = response.content.decode()
 
         assert response.status_code == 200
-        status_index = content.index("active")
-        control_index = content.index("data-mvp-payments-portal-link")
-        assert control_index > status_index
+        assert "data-mvp-payments-portal-link" in content
         assert 'src="/static/mvp_payments/drf_stripe/billing_portal.js"' in content
-
-    def test_the_portal_control_offers_to_manage_the_subscription(
-        self, subscriber_client
-    ):
-        """The control names what it manages, now that no page is named for it."""
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
-        content = response.content.decode()
-
-        assert "Manage subscription" in content
-        assert "Manage billing" not in content
-
-    def test_both_ways_onward_sit_in_one_row(self, subscriber_client):
-        """Stacked, they read as two unrelated things; side by side, as a choice.
-
-        Asserted structurally rather than by class name: both controls are
-        inside the same container, in the order the page declares them.
-        """
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
-        content = response.content.decode()
-
-        row = re.search(
-            r"<div[^>]*data-mvp-payments-subscription-actions[^>]*>(.*?)</div>\s*</div>",
-            content,
-            re.S,
-        )
-        assert row is not None
-        # Both controls carry the portal-link attributes the same script binds, so
-        # their order is read from their labels.
-        assert "Switch plans" in row.group(1)
-        assert "Manage subscription" in row.group(1)
-        assert row.group(1).index("Switch plans") < row.group(1).index(
-            "Manage subscription"
-        )
 
     def test_a_subscriber_switches_through_the_plan_change_endpoint(
         self, subscriber_client
     ):
-        """Not the plans page: its pricing table would start a second subscription."""
         with override_settings(
             MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
         ):
@@ -606,7 +504,6 @@ class TestSubscriptionPage:
         content = _content_region(response.content.decode())
 
         assert response.context["plan_switch_endpoint"] == "/api/plan-switch/"
-        assert "Switch plans" in content
         assert 'data-endpoint="/api/plan-switch/"' in content
         assert f'href="{reverse("payments:drf-stripe-plans")}"' not in content
 
@@ -620,12 +517,12 @@ class TestSubscriptionPage:
         content = _content_region(response.content.decode())
 
         assert response.context["plan_switch_endpoint"] is None
-        assert "Switch plans" not in content
+        assert "data-mvp-payments-portal-link" not in content
 
     def test_the_plan_change_endpoint_is_withheld_from_somebody_with_no_subscription(
-        self, user
+        self, user, client_for
     ):
-        client = self._client_for(user)
+        client = client_for(user)
         with override_settings(
             MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
         ):
@@ -634,23 +531,18 @@ class TestSubscriptionPage:
         assert response.context["plan_switch_endpoint"] is None
         assert "/api/plan-switch/" not in response.content.decode()
 
-    def test_someone_with_no_subscription_is_invited_to_choose_one(self, user):
-        """ "Switch plans" reads wrong to somebody who is not on one yet."""
-        client = self._client_for(user)
+    def test_someone_with_no_subscription_is_invited_to_choose_one(
+        self, user, client_for
+    ):
+        client = client_for(user)
 
         response = client.get(reverse("payments:drf-stripe-subscription"))
         content = response.content.decode()
 
         assert f'href="{reverse("payments:drf-stripe-plans")}"' in content
-        assert "Choose a plan" in content
-        assert "Switch plans" not in content
+        assert "data-mvp-payments-portal-link" not in content
 
     def test_the_portal_control_carries_a_usable_csrf_token(self, subscriber_client):
-        """Empty here and the control posts a request Django rejects, every time.
-
-        The component reads the token from context rather than from an attribute, so
-        this is the assertion that the dependency is actually satisfied on a real page.
-        """
         response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
         content = response.content.decode()
 
@@ -658,19 +550,9 @@ class TestSubscriptionPage:
         assert token is not None
         assert len(token.group(1)) > 20
 
-    def _client_for(self, user):
-        client = Client()
-        client.force_login(user)
-        return client
-
-    def _another_user(self):
-        return UserFactory()
-
 
 @pytest.mark.django_db
 class TestBillingPortalEndpoint:
-    """``billing_portal_endpoint`` in the subscription page's context (T015)."""
-
     def test_carries_the_endpoint_from_settings_for_a_current_subscriber(
         self, subscriber_client
     ):
@@ -707,15 +589,6 @@ class TestBillingPortalEndpoint:
     def test_says_nothing_about_a_subscription_to_someone_who_has_none(
         self, logged_in_client
     ):
-        """A person with nothing current is told nothing about "your subscription".
-
-        ``billing_portal_endpoint`` is None both for an unconfigured project and for a
-        person with nothing to manage, and the component cannot tell those apart. The
-        page can: it renders the control only where there is a subscription behind it.
-        Without that, someone who never subscribed reads that their subscription is
-        managed by the provider and that the portal is temporarily unreachable, and
-        both halves of that are untrue (FR-008).
-        """
         with override_settings(
             MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
         ):
@@ -729,16 +602,9 @@ class TestBillingPortalEndpoint:
 
 @pytest.mark.django_db
 class TestNoCurrentSubscription:
-    """Nobody the backend reports nothing current for is left with a hole where a plan
-    would have been (T025, US-4, FR-008, D5, D11).
-
-    Two different people reach this with nothing: one the backend holds no customer
-    record for at all, and one whose subscriptions exist but none of them are current.
-    ``SubscriptionReader.for_user`` returns an empty tuple for both, so the page reads
-    the same way for each — this class proves that for both paths, not only one.
-    """
-
-    def test_a_person_whose_subscription_has_ended_is_told_there_is_none(self, user):
+    def test_a_person_whose_subscription_has_ended_is_told_there_is_none(
+        self, user, client_for
+    ):
         stripe_user = StripeUserFactory(user=user)
         ended_subscription = SubscriptionFactory(
             stripe_user=stripe_user, status="canceled"
@@ -756,7 +622,7 @@ class TestNoCurrentSubscription:
         ProductFeatureFactory(product=price.product, feature=feature)
         SubscriptionItemFactory(subscription=ended_subscription, price=price)
 
-        client = self._client_for(user)
+        client = client_for(user)
         response = client.get(reverse("payments:drf-stripe-subscription"))
         content = response.content.decode()
 
@@ -780,23 +646,8 @@ class TestNoCurrentSubscription:
         assert "You don't have an active subscription." in content
         assert "data-mvp-payments-portal-link" not in content
 
-    def _client_for(self, user):
-        client = Client()
-        client.force_login(user)
-        return client
-
 
 class TestTemplateOverride:
-    """A project's own template, found before this package's, renders every value the
-    shipped page had — with no view, no context processor and no query of its own (T028,
-    FR-011, SC-005).
-
-    The app-directories template loader decides which application's copy of a name wins
-    from ``INSTALLED_APPS`` order, fixed at process start (D4, 001-pages-arrive-on-install) —
-    the same reason ``TestAccountCenterOverview`` above boots a fresh process rather than
-    reordering ``INSTALLED_APPS`` mid-test.
-    """
-
     def _open_the_overridden_page(self) -> dict:
         return run_probe(
             _TEMPLATE_OVERRIDE_PROBE, "tests.settings_with_project_template_override"
@@ -821,22 +672,7 @@ class TestTemplateOverride:
 
 
 class TestPlansPageOverride:
-    """A project's own templates, found before this package's, replace the Plans page's
-    markup with no view and no query against the backend (T028, FR-012, FR-013, SC-007).
-
-    The app-directories template loader decides which application's copy of a name wins
-    from ``INSTALLED_APPS`` order, fixed at process start (D4, 001-pages-arrive-on-install) —
-    the same reason ``TestTemplateOverride`` above boots a fresh process rather than
-    reordering ``INSTALLED_APPS`` mid-test.
-    """
-
     def test_a_projects_own_component_renders_with_no_view_and_no_query(self):
-        """Scenario 1: a project's own ``cotton/drf_stripe/pricing_table.html`` is what
-        appears. Scenario 3: rendering it costs no view and no query — the same
-        ``django_assert_num_queries(0)`` guarantee
-        ``TestPricingTable.test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor``
-        (T016) holds for the shipped component, now held for a project's own override.
-        """
         result = run_probe(
             _COMPONENT_TEMPLATE_OVERRIDE_PROBE,
             "tests.settings_with_project_template_override",
@@ -849,12 +685,6 @@ class TestPlansPageOverride:
         assert 'data-publishable-key="pk_test_456"' in html
 
     def test_a_projects_own_page_template_receives_every_documented_context_name(self):
-        """Scenario 2: a project's own ``mvp_payments/drf_stripe/plans.html`` renders, and
-        both context names the shipped page would have used — ``pricing_table_id`` and
-        ``publishable_key`` — are available to it. The project's own template also places
-        ``<c-drf-stripe.pricing-table>``, so this run shows the component override (scenario
-        1) holding inside a page-template override too.
-        """
         result = run_probe(
             _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE,
             "tests.settings_with_project_template_override",

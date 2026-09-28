@@ -46,7 +46,7 @@
       "Host project",
       "Payment component"
     ],
-    "conventions": "AGENTS.md -> 'Component layout'. CONSTITUTION.md Article XII, Article XVI. django-mvp ships <c-page.list.empty> for exactly this shape - supply its icon, heading and message rather than writing empty-state markup from scratch; read how the shell's other empty states use it before inventing anything. Existing components to follow for shape: cotton/drf_stripe/subscription.html, plan.html, features.html, portal_link.html.",
+    "conventions": "AGENTS.md -> 'Component layout'. CONSTITUTION.md Article XI, Article XV. django-mvp ships <c-page.list.empty> for exactly this shape - supply its icon, heading and message rather than writing empty-state markup from scratch; read how the shell's other empty states use it before inventing anything. Existing components to follow for shape: cotton/drf_stripe/subscription.html, plan.html, features.html, portal_link.html.",
     "verified_base": {
       "commit": "55819521864ce2163316acd00b4c9e8b5a0cb6e0",
       "verified_at": "2026-09-22T07:35:00Z",

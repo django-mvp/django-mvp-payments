@@ -1,11 +1,6 @@
 {% load i18n %}
-{# ============================================================ #}
-{# <c-drf-stripe.plan> — one priced item on a subscription, and  #}
-{# what it grants beneath it (FR-009)                            #}
-{#                                                                #}
-{# Props:                                                        #}
-{#   plan – a mvp_payments.namespaces.drf_stripe_records.Plan    #}
-{# ============================================================ #}
+{# @description One priced item on a subscription: its name, quantity, amount and billing frequency, with what it grants beneath it. #}
+{# @prop plan:text | description:"A mvp_payments.namespaces.drf_stripe_records.Plan." | required #}
 <c-vars plan />
 <div class="py-2 border-b border-base-200 last:border-b-0">
   <div class="flex flex-wrap items-baseline justify-between gap-2">

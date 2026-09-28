@@ -11,15 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _dev_env() -> dict[str, str]:
-    """Values from `demo/.env`, which is untracked and never committed.
+    """Read `demo/.env`, which is untracked and never committed.
 
     It holds the provider sandbox credentials that make the provider's own
-    hosted pages reachable from this demo, so the handoff to them can be
-    exercised rather than described. Without the file the demo still runs, on
-    values that are obviously not real, which is what a fresh clone and the
-    test suite get. `demo/.env.example` lists every value and where in the
-    provider's dashboard it comes from. Nothing here reaches a project that installs the package:
-    a demo project is a demonstration target and ships to nobody.
+    hosted pages reachable from this demo. Without the file the demo still runs,
+    on values that are obviously not real. `demo/.env.example` lists every value
+    and where in the provider's dashboard it comes from.
+
+    Returns:
+        The file's values, empty when the file does not exist.
     """
     values: dict[str, str] = {}
     env_file = BASE_DIR / "demo" / ".env"
@@ -60,19 +60,9 @@ ALLOWED_HOSTS = ["*"]
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
-# Django's app template loader takes the first copy of a template name it finds,
-# so this project's own apps come above `mvp` — that is what lets the demo
-# supply `base.html`, the name django-mvp's packaged page templates extend.
-# `mvp` in turn comes above `crispy_tailwind`, whose help-text template it
-# overrides.
-#
-# `mvp_payments` above `mvp` is load-bearing for the same reason: it ships its
-# own copy of `mvp/account/overview.html` and extends the name from inside it,
-# which only resolves when this application is found first.
-#
-# `drf_stripe` is here because this demo demonstrates a payment backend's pages
-# arriving, which needs the backend installed. It is a development dependency of
-# this repository and reaches no project that installs the package.
+# Order matters: the first copy of a template name wins. `demo` supplies `base.html`,
+# `mvp_payments` overrides and extends `mvp/account/overview.html`, and `mvp`
+# overrides `crispy_tailwind`'s help-text template.
 INSTALLED_APPS = [
     "demo",
     "mvp_payments",
@@ -93,17 +83,9 @@ INSTALLED_APPS = [
     "drf_stripe",
 ]
 
-# The backend reads every one of its settings through defaults, so nothing here
-# is required to make it start. The secret comes from `demo/.env` where that
-# file exists, which is what lets the subscription page's handoff actually
-# arrive at the provider's hosted portal instead of failing; without it the
-# value is obviously not a real key and the handoff reports that it could not
-# be reached, which is the same thing a misconfigured project would see.
-#
-# The return address is this site rather than the backend's default of a
-# frontend on port 3000, and it is overridable because the development server
-# is reached by hostname on some machines and by localhost on others. The
-# provider sends a reader back to it, so a wrong value strands them.
+# Without a secret in `demo/.env` the handoff reports the portal unreachable, as a
+# misconfigured project would. The return address replaces the backend's default of a
+# frontend on port 3000, and is overridable because the server's hostname varies.
 DRF_STRIPE = {
     "STRIPE_API_SECRET": DEV_ENV.get(
         "STRIPE_TEST_SECRET_KEY", "sk_test_not_a_real_key"
@@ -112,24 +94,11 @@ DRF_STRIPE = {
     "FRONT_END_BASE_URL": DEV_ENV.get("DEMO_BASE_URL", "http://localhost:8020"),
 }
 
-# Where this project mounted the endpoint the subscription page hands a reader
-# to (demo/urls.py). Neither candidate carries a route name, so the page has to
-# be told where it is rather than assuming (D3, FR-006).
-#
-# This project's own rather than the backend's, because the backend's raises
-# for anybody who has used it before — demo/views.py has the whole of it. Which
-# of the two a project points at is exactly the decision this setting exists to
-# let a project make.
-#
-# The pricing table id and publishable key come from `demo/.env` where that
-# file has them, so the Plans page can mount a real sandbox pricing table.
-# Without them they are obviously fake values — not a real table, not a real
-# account — and the provider's embed reports that it could not load (T009).
+# The portal endpoints are this project's own, not the backend's, which raises for anybody
+# who has used it before (demo/views.py). The pricing table values come from `demo/.env`,
+# or are obviously fake, and the provider's embed then reports that it could not load.
 MVP_PAYMENTS = {
     "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
-    # The same portal, opened on its plan-change screen for the reader's own
-    # subscription. The backend ships nothing for this, so it is this
-    # project's (demo/views.py).
     "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
     "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
         "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
@@ -186,17 +155,12 @@ DATABASES = {
 CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
 CRISPY_TEMPLATE_PACK = "tailwind"
 
-# Where a view that requires a signed-in person sends everyone else, and where
-# signing in returns to. The sign-in and sign-out pages are django-mvp's own
-# development pages, registered by the Account Center's URLconf under these
-# names. The shell's sign-out control is drawn only when `account_logout`
-# resolves, and it submits a form, which Django's logout view requires.
+# django-mvp's development sign-in pages, registered by the Account Center's URLconf.
+# The shell draws its sign-out control only when `account_logout` resolves.
 LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "account-center"
 
-# Which class draws the sidebar tree declared in demo/menus.py, and which draws
-# the dock shown below the sidebar breakpoint. Neither key is checked at
-# startup: a missing one fails when a page first renders a menu.
+# Neither key is checked at startup: a missing one fails when a page first renders a menu.
 FLEX_MENUS = {
     "renderers": {
         "sidebar": "mvp.renderers.SidebarRenderer",
@@ -204,9 +168,7 @@ FLEX_MENUS = {
     },
 }
 
-# Icons are referenced by name. django-mvp's pack covers the names the shell
-# uses for itself; anything this project names goes on top of it. Leave the
-# setting unset and the first icon on the page raises.
+# Left unset, the first icon on the page raises.
 EASY_ICONS = {
     "default": {
         "renderer": "easy_icons.renderers.ProviderRenderer",
@@ -231,9 +193,7 @@ MVP_CONFIG = {
         },
     },
     "theme": {
-        # A component renders semantic daisyUI classes rather than literal
-        # colours, so a pricing page follows the site when the theme changes.
-        # Offering several here is how that claim gets looked at.
+        # Several themes, so it can be seen that the components follow the site's theme.
         "choices": ["light", "dark", "corporate", "dracula"],
     },
 }

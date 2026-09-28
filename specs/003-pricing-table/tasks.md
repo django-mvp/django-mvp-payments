@@ -9,7 +9,7 @@ Per-task test scope is the module or template the task touches. The full suite r
 at the story's report.
 
 Assertions are made against rendered output, never against the presence of a class name
-(Article XVI). For this feature that means the element's tag and each of its attributes, read out
+(Article XV). For this feature that means the element's tag and each of its attributes, read out
 of the rendered markup.
 
 Stories are dispatched in order, each starting from the branch the previous one left. US-1 builds
@@ -36,11 +36,11 @@ story and no factory to write.
   "Plans" is also a navigation label. Red before T006 and T007.
 - **T003** [P] `tests/test_views.py::TestPlansPage` — the context names are read at render time, not
   at import: the page renders correctly when `MVP_PAYMENTS` is absent from settings entirely, and
-  importing `mvp_payments.views` with no settings configured raises nothing (Article XIV). Red
+  importing `mvp_payments.views` with no settings configured raises nothing (Article XIII). Red
   before T006.
 - **T004** [P] `tests/test_app.py` — extend the existing shipped-templates assertion so that no
   template under `mvp_payments/templates/` contains a `<script` element with a `src` pointing at any
-  host (Article XIII, FR-002). This is the repository-wide guarantee behind SC-002 and it must hold
+  host (Article XII, FR-002). This is the repository-wide guarantee behind SC-002 and it must hold
   for every template added by this feature and every one added after it. Red before T005 only in the
   sense that it must exist before the component does.
 
@@ -67,7 +67,7 @@ story and no factory to write.
 - **T010** [P] `demo/templates/base.html` — a `{% block provider_library %}` loading
   `https://js.stripe.com/v3/pricing-table.js` and `pricing_table.js`, with a comment saying the
   provider forbids self-hosting and that choosing to load it is the project's decision, not this
-  package's (Article XIII). A block, because US-4 needs a page that empties it.
+  package's (Article XII). A block, because US-4 needs a page that empties it.
 - **T011** `docs/plans-page.md` — new. The component, its three attributes, the two settings the
   page reads, and the project's responsibility for loading the provider's library. The context names
   and the override instructions arrive in US-5; this task writes everything a project needs to make
@@ -201,7 +201,7 @@ Full suite and the machine gates. Report against all four acceptance scenarios.
   subscription page's.
 - **T032** [P] `CONSTITUTION.md` — narrow the two sentences that forbid reading a publishable key
   from settings, so each applies to a component rather than to the whole package: the "No secret
-  keys" bullet in Article XII, and the embed paragraph in Article XIII. The page reading settings
+  keys" bullet in Article XI, and the embed paragraph in Article XII. The page reading settings
   and passing them down is named as the permitted shape. No reasoning in the constitution itself —
   it is in `decisions.md`, which is where the amendment's justification belongs.
 - **T033** [P] `CHANGELOG.md` — one `[Unreleased]` entry under Added: the component, the page's two

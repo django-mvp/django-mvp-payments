@@ -161,7 +161,7 @@
   "deviations": [
     {
       "what": "No runtime assertion was added proving the Plans page's full rendered response carries no script element referencing the provider. A test doing exactly that was written under T002, then removed after T010 landed.",
-      "why": "T010 adds `demo/templates/base.html`'s own `{% block provider_library %}`, which loads `https://js.stripe.com/v3/pricing-table.js` for every page the demo serves, including the Plans page — correct behaviour under Article XIII's host-project split. That made the removed test fail for a reason that is not a defect: the demo, standing in for a host project, is doing exactly what it is supposed to do. The guarantee SC-002 actually asks for — this package's own templates never emit such a script — is held permanently and exhaustively by T004's static scan instead.",
+      "why": "T010 adds `demo/templates/base.html`'s own `{% block provider_library %}`, which loads `https://js.stripe.com/v3/pricing-table.js` for every page the demo serves, including the Plans page — correct behaviour under Article XII's host-project split. That made the removed test fail for a reason that is not a defect: the demo, standing in for a host project, is doing exactly what it is supposed to do. The guarantee SC-002 actually asks for — this package's own templates never emit such a script — is held permanently and exhaustively by T004's static scan instead.",
       "decision_ref": "decisions.md D2"
     }
   ],

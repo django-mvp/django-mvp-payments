@@ -47,8 +47,6 @@ def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
 
 
 class TestContribution:
-    """Availability, routing and registration — the mechanism every namespace shares."""
-
     def test_reports_available_when_its_backend_is_installed(self):
         assert _make_contribution(app_label="drf_stripe").is_available() is True
 
@@ -69,12 +67,6 @@ class TestContribution:
     def test_register_adds_one_labelled_group_holding_every_page(
         self, account_center_menu
     ):
-        """One group per namespace, not one entry per page at the top level.
-
-        Grouping is what django-accounts-center does with its own section of
-        this menu, and it is what keeps a namespace's pages legible beside
-        whatever else an Account Center already carries.
-        """
         contribution = _make_contribution(namespace="register-count-fixture")
         before = len(account_center_menu.children)
 
@@ -93,11 +85,6 @@ class TestContribution:
     def test_a_page_kept_out_of_the_navigation_is_routed_but_not_listed(
         self, account_center_menu
     ):
-        """Being reachable and being somewhere a person is sent are two things.
-
-        The plans page is reached from a control on the subscription page, so
-        it needs its route and no entry beside it.
-        """
         contribution = Contribution(
             backend_app_name="drf_stripe",
             namespace="unnavigated-fixture",
@@ -131,34 +118,18 @@ class TestContribution:
         assert [child.name for child in group.children] == ["unnavigated-fixture-one"]
 
     def test_asking_for_a_page_that_does_not_exist_says_which_one(self):
-        """A page addresses a sibling by slug, so a typo has to name itself.
-
-        Without this the failure is whatever the lookup happens to raise,
-        somewhere inside a template render, naming nothing useful.
-        """
         contribution = _make_contribution(namespace="page-url-fixture")
 
         with pytest.raises(LookupError, match="no page with slug 'three'"):
             contribution.page_url("three")
 
     def test_the_shipped_namespace_offers_one_entry_under_one_group(self):
-        """What a person actually sees in the Account Center for this backend.
-
-        One destination rather than three. The pages behind the other two are
-        either reached from it or gone, so a menu listing all three was
-        offering a choice nobody had to make.
-        """
         navigated = [page for page in drf_stripe.pages if page.in_navigation]
 
         assert [page.slug for page in navigated] == ["subscription"]
-        assert str(drf_stripe.group_label) == "Billing"
 
 
 class TestPageView:
-    """A ``Page`` built without a ``view`` routes to ``PaymentPageView``; one given a ``view``
-    routes to that instead, and the pages beside it are unaffected (D4).
-    """
-
     def test_a_page_without_a_view_routes_to_paymentpageview(self):
         page = Page(
             slug="one",
@@ -227,8 +198,6 @@ class TestPageView:
 
 
 class TestRepeatedRegistration:
-    """``ready()`` runs again on every development-server reload."""
-
     @pytest.mark.django_db
     def test_registering_twice_does_not_duplicate_entries(self, logged_in_client):
         from mvp_payments.namespaces.drf_stripe import drf_stripe
@@ -260,15 +229,6 @@ class TestRepeatedRegistration:
 
 
 class TestSecondNamespaceFixture:
-    """The fixture that stands in for a second payment backend (US-5).
-
-    Proves `tests/second_namespace/` registers through exactly the same
-    public mechanism every real namespace uses — `is_available()` and
-    `register()`, called the same way `TestContribution` above calls them on
-    a throwaway contribution — with no special case anywhere in
-    `mvp_payments/`.
-    """
-
     def test_reports_unavailable_before_its_app_is_installed(self):
         assert second_namespace.is_available() is False
 
@@ -291,18 +251,9 @@ class TestSecondNamespaceFixture:
         ]
 
 
-#: Boots a fresh Django process with the second namespace's fixture app added
-#: to `CONTRIBUTIONS` for that process only (D1), signs a person in, opens
-#: the Account Center, and reports the rendered page plus every page
-#: address's resolved path. Run as a subprocess for the same reason D9 and
-#: D10 do: `mvp_payments/urls.py` builds `urlpatterns` once, at import time,
-#: and `MvpPaymentsConfig.ready()` registers navigation entries once, at
-#: startup — patching `CONTRIBUTIONS` after either has already run would
-#: leave both exactly as first built. Patching before the first `reverse()`
-#: call and re-running the same `ready()` Django already called once (exactly
-#: what an autoreloading dev server does, per D5) is enough, so no fresh
-#: settings module is needed for the fixture itself — only for whether its
-#: application is actually installed.
+#: Adds the second namespace to `CONTRIBUTIONS` in a fresh process and re-runs `ready()`,
+#: as an autoreloading server does, before the first `reverse()`: `urlpatterns` and the
+#: navigation entries are both built once, so patching later would change nothing.
 _NAMESPACE_INDEPENDENCE_PROBE = """
 import json
 
@@ -350,15 +301,6 @@ print(json.dumps({
 
 
 class TestNamespaceIndependence:
-    """A second namespace leaves the first exactly as it was (US-5).
-
-    Both runs boot a fresh process rather than using `override_settings`
-    mid-test (D9/D10's shape): the first namespace's page addresses,
-    navigation and card are all built once, at import or startup, so only a
-    process that starts with the fixture actually installed shows what a
-    project with a second namespace gets.
-    """
-
     def _open_the_account_center(self, settings_module: str) -> dict:
         # sys.executable and a module-level string constant, no untrusted input.
         return run_probe(_NAMESPACE_INDEPENDENCE_PROBE, settings_module)

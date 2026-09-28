@@ -10,7 +10,7 @@ The drf-stripe namespace's subscription page gets a view of its own. It asks the
 `StripeUser` for the subscription items the backend itself calls current, groups them by their
 subscription, and turns each into a small presentation object carrying a status, a period and its
 priced items. Every value on it is one the backend recorded; the only transformation is rendering
-an amount in its currency's own unit, which Article XVI requires and which is done against a table
+an amount in its currency's own unit, which Article XV requires and which is done against a table
 of currency exponents rather than by assuming two decimal places.
 
 The page is assembled from Cotton components in the `drf_stripe` namespace, each rendering from its
@@ -33,7 +33,7 @@ reads belongs to the installed backend and is reached through `apps.get_model`.
 **Testing**: pytest with pytest-django, settings inherited from `demo/settings.py` by
 `tests/settings.py`. Factories for the backend's models live in `tests/factories.py` — a factory for
 a model this package does not own, which is the only way to put a subscription in front of the
-page. Assertions are made against rendered output (Article XVI).
+page. Assertions are made against rendered output (Article XV).
 
 **Target Platform**: a Django project that has installed django-mvp and drf-stripe-subscription and
 mounted both their URL configurations.
@@ -41,9 +41,9 @@ mounted both their URL configurations.
 **Project Type**: installable Django application — templates, a small amount of routing and reading
 Python, one static file, no data.
 
-**Constraints**: no import of the backend anywhere in `mvp_payments/` (Article XIII); no figure
-computed from more than one recorded value (FR-007, Article XII); nothing at import time touches the
-application registry, reverses a URL or reads settings (Article XIV).
+**Constraints**: no import of the backend anywhere in `mvp_payments/` (Article XII); no figure
+computed from more than one recorded value (FR-007, Article XI); nothing at import time touches the
+application registry, reverses a URL or reads settings (Article XIII).
 
 **Scale/Scope**: one page, six components, one reader module, one formatting module, one static
 file, five user stories.
@@ -54,7 +54,7 @@ Read before planning, re-checked against the design below.
 
 | Article | Bearing on this feature | Verdict |
 |---|---|---|
-| I Test-First | Every behaviour is observable in a rendered page or a component's output, so each task has a failing test before it has code | Pass |
+| I Testing | Every behaviour is observable in a rendered page or a component's output, so each task has a failing test before it has code | Pass |
 | II Simplicity / III Anti-Abstraction | Two new modules, each with one concrete job and one caller. No base class, no registry, no second implementation anticipated | Pass |
 | IV Integration-First | The page is exercised through the test client as a reader reaches it, and each component is rendered standalone | Pass |
 | V Security | Every value reaches the page through the template layer. The portal endpoint's address is configuration, not a secret, and no key of any kind is read | Pass |
@@ -62,14 +62,14 @@ Read before planning, re-checked against the design below.
 | VII Dependency discipline | No dependency added, runtime or development. `babel` considered and rejected in `research.md` | Pass |
 | VIII Internationalization | Every label, status word, empty-state sentence and control caption is wrapped; the frequency's plural forms go through `ngettext` | Pass |
 | IX Data-model conventions | No model, no field, no migration | Not applicable |
-| X Test structure | Every new test module mirrors its source module; component tests go under the already-declared `non-mirror-paths` entry | Pass |
-| XI Cohesion | The reading of the backend's records is grouped on one class per presentation object, and the amount formatting on one frozen dataclass. No module of loose functions | Pass |
-| XII Interface layer | The page reads records and renders them. It computes no charge, reaches no provider, and adds no model, form, admin or serializer. The one sum it could have shown — a total across items — is refused by FR-007 and by this article for the same reason | Pass |
-| XIII No backend dependency | `apps.get_model` throughout; no `import drf_stripe` anywhere in the package. `tests/test_app.py`'s existing assertion covers it | Pass |
-| XIV Installation, not configuration | Unchanged: the page appears because the backend is installed. The portal endpoint's location is configuration the page *reads*, not a gate on whether the page exists — without it the page still renders and says the portal cannot be reached | Pass |
-| XV One namespace per backend | Everything that knows what a subscription is lives under `namespaces/drf_stripe*`. `money.py` is the plumbing Article XV names as shared — formatting an amount for display | Pass |
-| XVI Rendered output is a contract | The whole feature. An amount is converted against its currency and tested with a zero-decimal and a three-decimal currency; an unrecognised status and an unrecognised frequency render as themselves; the status is a badge with text, never colour alone; the portal control announces that it leads off-site | Pass |
-| XVII Compatibility | New components and a new context are additive; both are listed in the CHANGELOG, and the namespace's documented endpoint list gains `customer-portal/` | Pass |
+| I Test structure | Every new test module mirrors its source module; component tests go under the already-declared `non-mirror-paths` entry | Pass |
+| X Cohesion | The reading of the backend's records is grouped on one class per presentation object, and the amount formatting on one frozen dataclass. No module of loose functions | Pass |
+| XI Interface layer | The page reads records and renders them. It computes no charge, reaches no provider, and adds no model, form, admin or serializer. The one sum it could have shown — a total across items — is refused by FR-007 and by this article for the same reason | Pass |
+| XII No backend dependency | `apps.get_model` throughout; no `import drf_stripe` anywhere in the package. `tests/test_app.py`'s existing assertion covers it | Pass |
+| XIII Installation, not configuration | Unchanged: the page appears because the backend is installed. The portal endpoint's location is configuration the page *reads*, not a gate on whether the page exists — without it the page still renders and says the portal cannot be reached | Pass |
+| XIV One namespace per backend | Everything that knows what a subscription is lives under `namespaces/drf_stripe*`. `money.py` is the plumbing Article XIV names as shared — formatting an amount for display | Pass |
+| XV Rendered output is a contract | The whole feature. An amount is converted against its currency and tested with a zero-decimal and a three-decimal currency; an unrecognised status and an unrecognised frequency render as themselves; the status is a badge with text, never colour alone; the portal control announces that it leads off-site | Pass |
+| XVI Compatibility | New components and a new context are additive; both are listed in the CHANGELOG, and the namespace's documented endpoint list gains `customer-portal/` | Pass |
 
 ## Project Structure
 
@@ -87,7 +87,7 @@ specs/002-subscription-page/
 ```
 
 No `data-model.md`: the feature defines no data. No `contracts/`: the rendered page is the
-contract, and Article XVI already says how it is asserted.
+contract, and Article XV already says how it is asserted.
 
 ### Source code
 
@@ -133,7 +133,7 @@ docs/
 **Structure Decision**: the namespace stays a module rather than becoming a package. A second
 module beside it, `drf_stripe_records.py`, holds the reading; splitting it out keeps the
 contribution declaration a declaration and avoids the import cycle that putting a view's dependency
-inside the contribution module would create. `money.py` sits at the package root because Article XV
+inside the contribution module would create. `money.py` sits at the package root because Article XIV
 names amount formatting as plumbing every namespace would otherwise duplicate.
 
 ## Design
@@ -168,7 +168,7 @@ No status is named anywhere in this module, and no amount is added to another.
 - `amount` — the `Decimal` in the currency's own unit, scaled by that exponent.
 - `__str__` — `number_format` under the active locale, followed by the currency code.
 
-A `Money` with no currency renders nothing (Article XVI). The class holds one amount and never
+A `Money` with no currency renders nothing (Article XV). The class holds one amount and never
 combines two.
 
 ### The page and its context
@@ -207,7 +207,7 @@ takes a plan's features; `no_subscription.html` takes nothing. The page's own te
 loop over `subscriptions` with `no_subscription` as its `{% empty %}`.
 
 An unrecognised status renders as itself with a neutral badge; the recognised ones get a variant
-from django-mvp's palette, never colour alone (Article XVI). A frequency of `month_1` renders as a
+from django-mvp's palette, never colour alone (Article XV). A frequency of `month_1` renders as a
 translated interval through `ngettext`, and anything the table does not hold renders as itself.
 
 ## Phases
@@ -233,6 +233,6 @@ Then the stories in priority order, one at a time into a single worktree:
 
 | Violation | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| A currency-exponent table inside this package | Article XVI forbids assuming two decimal places, and the backend records only minor units and a code | `babel` is a runtime dependency with a data bundle, added for nineteen strings (Article VII) |
+| A currency-exponent table inside this package | Article XV forbids assuming two decimal places, and the backend records only minor units and a code | `babel` is a runtime dependency with a data bundle, added for nineteen strings (Article VII) |
 | A static JavaScript file | The backend's portal endpoint answers a POST and returns an address, so a plain link cannot reach it | A server-side redirect view would mean this package calling the backend's endpoint on a reader's behalf, which is a server-side call it does not get to make |
 | `Page` gains a `view` field | One page in one namespace now needs context the generic page view cannot supply | A separate URL configuration for the subscription page would put the same page's route in two places and break the rule that a contribution declares everything it contributes |

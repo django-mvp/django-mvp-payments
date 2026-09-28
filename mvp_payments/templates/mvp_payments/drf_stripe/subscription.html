@@ -7,7 +7,6 @@
     {% empty %}
       <c-drf-stripe.no-subscription />
     {% endfor %}
-    {# Both ways onward on one line, wrapping on a narrow screen. #}
     <div class="flex flex-wrap items-start gap-3"
          data-mvp-payments-subscription-actions>
       <c-drf-stripe.plans-link :url="plans_url"

@@ -13,7 +13,11 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (drf_stripe,)
 
 
 def available_contributions() -> tuple[Contribution, ...]:
-    """The declared contributions whose backend is installed."""
+    """Select the declared contributions whose backend is installed.
+
+    Returns:
+        The contributions whose backend application is installed.
+    """
     return tuple(
         contribution for contribution in CONTRIBUTIONS if contribution.is_available()
     )

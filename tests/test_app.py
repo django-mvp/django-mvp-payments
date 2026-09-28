@@ -13,13 +13,9 @@ _SCRIPT_WITH_HOST_SRC = re.compile(
     r"""<script[^>]*\bsrc\s*=\s*['"](?:https?:)?//""", re.IGNORECASE
 )
 
-#: Boots a fresh Django process, signs a person in, opens the Account Center,
-#: and reports whether each of the backend's page names reverses. Run as a
-#: subprocess because `mvp_payments/urls.py` builds `urlpatterns` once, at
-#: import time, and `MvpPaymentsConfig.ready()` registers navigation entries
-#: once too — overriding `INSTALLED_APPS` mid-process leaves both exactly as
-#: they were built with the backend present, so only a process that never had
-#: the backend installed shows what a project without it actually gets.
+#: Opens the Account Center in a fresh process that never had the backend installed:
+#: `urlpatterns` and the navigation entries are both built once, so overriding
+#: `INSTALLED_APPS` mid-process would leave them as built with the backend present.
 _ACCOUNT_CENTER_WITHOUT_THE_BACKEND_PROBE = """
 import json
 
@@ -57,42 +53,19 @@ print(json.dumps({
 
 
 class TestPackagedApp:
-    """What a host project gets after installing and adding it to INSTALLED_APPS."""
-
     def test_app_is_installed(self) -> None:
         assert apps.is_installed("mvp_payments")
 
     def test_drf_stripe_namespace_is_where_cotton_looks_for_it(self) -> None:
-        """Cotton resolves `<c-drf-stripe.plan-grid>` to `cotton/drf_stripe/plan_grid.html`.
-
-        It maps hyphens in a tag name onto underscores on disk, so the directory
-        name is not a free choice: renaming it breaks every component tag in the
-        namespace at once, and does so silently — a missing component renders as
-        empty output rather than raising. The namespace is the payment backend
-        rather than this package, so a second backend can be added alongside the
-        first without touching it.
-        """
         namespace = (
             Path(mvp_payments.__file__).parent / "templates" / "cotton" / "drf_stripe"
         )
         assert namespace.is_dir()
 
     def test_the_app_defines_no_models(self) -> None:
-        """This package owns no table and stores nothing (Article XII).
-
-        Installing it must leave a project's schema untouched, which is also
-        why there is no `migrations/` directory for `migrate` to find.
-        """
         assert list(apps.get_app_config("mvp_payments").get_models()) == []
 
     def test_the_package_owns_no_data(self) -> None:
-        """No forms, no admin, no serializers, no migrations (Article XII).
-
-        Views, URLs and menu registrations are allowed here — a page has to be
-        routed for the package to be worth installing. Accepting a submission,
-        exposing a record for editing or defining a wire format is not, because
-        each one implies owning data that this package does not have.
-        """
         package = Path(mvp_payments.__file__).parent
         forbidden = {"models", "forms", "admin", "serializers", "signals", "migrations"}
         found = sorted(
@@ -103,13 +76,6 @@ class TestPackagedApp:
         assert found == []
 
     def test_no_module_reaches_a_database_or_a_provider(self) -> None:
-        """The boundary that matters, enforced at the import (Article XII).
-
-        A view here hands a template to the renderer. The moment one imports
-        `django.db` it is holding state, and the moment it imports a provider's
-        SDK it is moving money — so the imports are what gets asserted, rather
-        than a list of filenames that only says what has not been added yet.
-        """
         package = Path(mvp_payments.__file__).parent
         banned = ("django.db", "stripe", "paypal", "braintree", "paddle")
         offenders = sorted(
@@ -122,12 +88,6 @@ class TestPackagedApp:
         assert offenders == []
 
     def test_no_payment_backend_is_a_dependency(self) -> None:
-        """Installing this package must never pull a payment backend in.
-
-        The components talk to a backend from the browser, over that backend's
-        own HTTP endpoints. Nothing here imports one, which is what lets a
-        project swap backends, or run two, without this package having a say.
-        """
         import importlib.metadata
 
         from packaging.requirements import Requirement
@@ -137,14 +97,6 @@ class TestPackagedApp:
         assert names == {"django", "django-mvp"}
 
     def test_the_import_scan_reaches_every_module_this_feature_added(self) -> None:
-        """`test_no_module_reaches_a_database_or_a_provider` walks the whole
-        package with `rglob`, but a `rglob` call that missed a subdirectory
-        would still exit clean — it would just never look there. This pins
-        the modules that scan actually visits against the modules this
-        feature added, `namespaces/` included, so a future change that
-        narrows the walk (a `glob` in place of `rglob`, an early filter) is
-        caught here rather than by an import that quietly went unchecked.
-        """
         package = Path(mvp_payments.__file__).parent
         scanned = {path.relative_to(package) for path in package.rglob("*.py")}
         added_by_this_feature = {
@@ -161,23 +113,12 @@ class TestPackagedApp:
 
 
 class TestDocumentationLinkedFromReadme:
-    """A page's documentation is reachable from the README, the way every other
-    documentation page this package ships already is (T029, FR-013)."""
-
     def test_the_plans_page_documentation_is_linked(self) -> None:
         readme = (Path(__file__).resolve().parent.parent / "README.md").read_text()
         assert "[docs/plans-page.md](docs/plans-page.md)" in readme
 
 
 class TestNoProviderScript:
-    """No template this package ships fetches a script from any host (T004, Article XIII, FR-002).
-
-    A component may mount a provider's custom element, but loading the library that brings it
-    to life is always the host project's decision, never this package's. This is the
-    repository-wide guarantee behind SC-002 and holds for every template this feature adds and
-    every one added to the package after it.
-    """
-
     def test_no_shipped_template_contains_a_script_element_with_a_host_src(
         self,
     ) -> None:
@@ -191,16 +132,6 @@ class TestNoProviderScript:
 
 
 class TestNothingWithoutABackend:
-    """A backend that is not installed costs a project nothing (US-2).
-
-    Every check here boots a fresh process under
-    `tests.settings_without_backend` rather than overriding `INSTALLED_APPS`
-    mid-test — a project that never installed the backend is a process that
-    never installed it, and `mvp_payments/urls.py` and
-    `MvpPaymentsConfig.ready()` both only build their state once, at that
-    process's start.
-    """
-
     def _open_the_account_center_without_the_backend(self) -> dict:
         # sys.executable and a module-level string constant, no untrusted input.
         return run_probe(
@@ -217,8 +148,7 @@ class TestNothingWithoutABackend:
         assert 'aria-label="Account navigation"' in result["content"]
 
         # No navigation entry and no card: both render the page's label, so
-        # one absence check covers both surfaces (there is no card template
-        # to render yet — that is US-3 — which is why this also holds today).
+        # one absence check covers both surfaces.
         for page in drf_stripe.pages:
             assert f"<span>{page.label}</span>" not in result["content"]
 
@@ -229,32 +159,14 @@ class TestNothingWithoutABackend:
         }
 
     def test_account_center_shows_no_card_from_the_absent_backend(self) -> None:
-        # US-3's carried-forward item: the check above predates the card
-        # template (mvp_payments/templates/mvp_payments/card.html), so it
-        # could only ever assert against navigation markup. Now that the
-        # template exists, re-prove the absence against its own markup — the
-        # link a card would carry into the backend's first page.
+        # The absence proved against the card's own markup: the link a card would
+        # carry into the backend's first page.
         result = self._open_the_account_center_without_the_backend()
 
         assert 'href="/account/billing/subscription/"' not in result["content"]
 
 
 class TestTemplateComments:
-    """Django's ``{# #}`` is a single-line tag, and the failure is silent.
-
-    A ``{# #}`` opened on one line and closed on another is not a comment.
-    Django's lexer only recognises the single-line form, so the first line
-    disappears and every line after it is served to the reader as page text.
-    Nothing raises, no test that asserts what *is* on a page notices, and the
-    words land in the middle of the layout. It happened in this package's own
-    subscription page: four lines about flexbox rendered above the buttons
-    they described.
-
-    The multi-line form is ``{% comment %}``. This is asserted over every
-    template the package ships rather than left to review, because review is
-    exactly what missed it.
-    """
-
     def test_no_template_opens_a_comment_it_does_not_close_on_the_same_line(
         self,
     ) -> None:

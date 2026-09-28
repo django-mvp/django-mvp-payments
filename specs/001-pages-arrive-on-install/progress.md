@@ -109,7 +109,7 @@ anonymous-redirect test needed the `db` fixture even though it never signs in.
 ## 2026-09-21T14:53:52Z · Implementer US1 · T017 (documentation)
 
 Did: README — `mvp_payments` before `mvp` in `INSTALLED_APPS` (D4), and the "pages are
-`TemplateView`s" claim corrected to match `CONSTITUTION.md`'s amended Article XII. `CONTEXT.md` —
+`TemplateView`s" claim corrected to match `CONSTITUTION.md`'s amended Article XI. `CONTEXT.md` —
 added *Contribution* to the glossary. `CHANGELOG.md` — recorded the URL configuration and the
 drf-stripe namespace's three pages. `demo/templates/demo/home.html` — the same TemplateView
 correction, and the "no components exist yet" notice updated to say the three pages are live in
@@ -117,7 +117,7 @@ the Account Center (flagged by the brief as about to stop being true).
 Verified: `poetry run pytest -q` — 34 passed.
 Next: story-level `forge verify`.
 Watch: `AGENTS.md` still describes every view here as a `TemplateView` and the package as
-Cotton-components-only, contradicting `CONSTITUTION.md`'s amended Article XII — out of this
+Cotton-components-only, contradicting `CONSTITUTION.md`'s amended Article XI — out of this
 story's named scope (T017 named README, CONTEXT.md and the changelog only), flagged in
 `concerns` for the completion report.
 

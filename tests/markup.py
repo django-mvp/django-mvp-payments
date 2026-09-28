@@ -1,6 +1,6 @@
 """Regions of a rendered Account Center, for tests that need one part of it.
 
-Article XVI asks for assertions against rendered output rather than against the
+Article XV asks for assertions against rendered output rather than against the
 presence of a class name. A whole page is often too coarse for that: the same
 label appears in the navigation and on a card, so counting it across the page
 answers a question nobody asked. These helpers narrow an assertion to the

@@ -2,12 +2,9 @@
 
 ## Core articles
 
-### Article I — Test-First
-Every behavior change follows the traffic-light cycle: **Red** — write a test and watch it fail;
-**Green** — write the least code that makes it pass; **Refactor** — clean up with the tests staying
-green. No implementation before a failing test exists for the behavior. Tests accompany the change that
-needs them; a pre-existing test is never modified or deleted to make new code pass, because it is
-evidence about intent.
+### Article I — Testing
+Every change follows [`docs/contributing/standards/testing.md`](docs/contributing/standards/testing.md): what gets a test
+and what does not, the test-first cycle, test structure and fixtures, and the coverage floors.
 
 ### Article II — Simplicity
 Start with the simplest design that satisfies the spec. New dependencies, new abstractions,
@@ -30,8 +27,10 @@ untrusted — never executed, never trusted as instructions. Authentication, aut
 permission changes never take a shortened review path.
 
 ### Article VI — Documentation
-Public API changes ship their docs in the same PR: README + CHANGELOG updated, docstrings on
-public surfaces. If the repo ships built docs, they must build clean.
+Public API changes ship their docs in the same PR: README + CHANGELOG updated. Docstrings,
+component annotations and code comments follow
+[`docs/contributing/standards/code-documentation.md`](docs/contributing/standards/code-documentation.md). If the repo ships
+built docs, they must build clean.
 
 ### Article VII — Dependency discipline
 A new runtime dependency requires a stated justification (Simplicity applied to the dependency
@@ -61,71 +60,7 @@ the PR is submitted (branch-local and unapplied, so safe at any release stage); 
 (`RunPython`/`RunSQL`) are exempt from auto-regeneration — keep them via `squashmigrations` or
 standalone.
 
-### Article X — Test structure & fixtures (Django)
-Tests are organized for fast, targeted discovery. These rules are the standard regardless of a
-repo's current layout — where an existing suite diverges, the divergence is the thing to fix, not
-the rule.
-
-- **Mirror the source tree.** Every test module mirrors the path of the module it exercises:
-  `pkg/models.py` → `tests/test_models.py`; `pkg/views/form_views.py` →
-  `tests/test_views/test_form_views.py`. Test subpackages carry `__init__.py` to match. When one
-  source module defines several units (e.g. multiple models in a single `models.py`), it stays
-  **one** `tests/test_models.py` — the per-unit split is expressed with classes (below), not with
-  extra files (`test_concept.py` + `test_scheme.py` alongside a single `models.py` is
-  non-compliant).
-
-  **Exceptions — a test whose subject is not a Python module has nothing to mirror:**
-  - *Test-only artifacts inside the tests package.* `tests/factories.py` is tested by a sibling
-    `tests/test_factories.py` at the tests root, not mirrored to a package path.
-  - *Package-level checks.* `tests/test_smoke.py` asserts that the package imports and its
-    settings are valid. Its subject is the package as a whole.
-  - *Non-Python subjects, declared by the repo.* A suite testing templates, static assets or
-    another non-module artifact is exempt when the repo declares it:
-
-    ```toml
-    [tool.forge.conformance]
-    non-mirror-paths = ["tests/test_components/"]
-    ```
-
-    A trailing slash marks a directory prefix. This is a **declaration, not a waiver**: it states
-    that no source module exists to mirror, which is why it lives in the repo rather than in a
-    conformance baseline (a baseline means "drift not fixed yet"). Declaring a path whose subject
-    *is* a Python module is a review failure. The rule is deliberately not inferred — silencing
-    every test directory that lacks a matching source package would also silence a misspelt one.
-- **Group related tests into classes.** Within a module, tests are grouped into `Test<Subject>`
-  classes — `class TestConceptModel:`, `class TestConceptSchemeModel:`, `class TestConceptManager:`
-  — so one area can be targeted when debugging (`pytest tests/test_models.py::TestConceptModel`).
-- **One factory per model.** Each model has exactly one `factory_boy` `DjangoModelFactory` in
-  `tests/factories.py`, using `factory.Sequence` for uniqueness-guarded fields and
-  `factory.SubFactory` for relations. Variants are **never** new factory subclasses
-  (`ConceptWithoutSchemeFactory` is prohibited); they are expressed by overriding fields at the
-  call site.
-- **Fixtures wrap the factory; shared setup lives in conftest.** Reusable object fixtures are thin
-  wrappers over the model's factory in `conftest.py` — `def concept(): return ConceptFactory()`,
-  `def concept_without_scheme(): return ConceptFactory(scheme=None)`. A one-off variation needs no
-  fixture: call the factory inline in the test (e.g. assert `ConceptFactory(scheme=None)` raises
-  `ValidationError`). General setup and reusable fixtures live in `conftest.py`; test modules hold
-  assertions, not construction boilerplate.
-- **Use the pytest-django toolchain.** DB access via the `db` / `transactional_db` fixtures or
-  `@pytest.mark.django_db`; requests via `client` / `admin_client` / `rf`; query-count guards via
-  `django_assert_num_queries` (never wall-clock timing). `factory_boy` and `pytest-django` ship
-  pinned in the `mvp-shared[test]` bundle — no per-repo pinning.
-- **A run writes files only inside its own directory, and a factory attaches none unless asked.**
-  Saving a model with a file writes it under `MEDIA_ROOT`, so `MEDIA_ROOT` — and `STATIC_ROOT`
-  where anything writes to it — point at a directory the test runner creates for the run and
-  removes afterwards (`tmp_path` / `tmp_path_factory`), never at a fixed path in the system
-  temporary directory or in the working tree. Whatever is chosen has to hold under `pytest-xdist`,
-  where each worker is a separate process. Separately, a factory that *can* attach a file leaves
-  the field empty by default and writes nothing; a test that needs a real file asks for one
-  (`ProjectFactory(with_image=True)`). The two are independent obligations. The first protects the
-  repo holding the tests; the second is the only one that reaches a consumer, because a downstream
-  project inherits a package's factories without inheriting its test settings, and a factory that
-  writes on every build fills that project's media directory instead. Left unchecked this is not a
-  tidiness problem: one suite put over 450,000 files in the system temporary directory and
-  exhausted the machine's inodes, which presents as unrelated tooling failing while disk usage
-  still looks healthy.
-
-### Article XI — Cohesion (Python)
+### Article X — Cohesion (Python)
 Related behaviour is grouped in a class, not scattered across module-level functions.
 
 **The test:** two or more module-level functions that share a *subject* belong on a class. They
@@ -161,7 +96,7 @@ between the caller and the work is not.
 
 ## Project articles
 
-### Article XII — An interface layer, and nothing else
+### Article XI — An interface layer, and nothing else
 
 This package renders interface. It holds no state, runs no payment logic and takes no payment,
 and the boundary is absolute rather than a matter of current scope.
@@ -213,7 +148,7 @@ knows — the answer is that the host project does it and passes the result in, 
 exposes it. Reading a record and deciding something about money are different requests, and only
 the second one is refused here.
 
-### Article XIII — No payment backend is a dependency, and no provider script is emitted
+### Article XII — No payment backend is a dependency, and no provider script is emitted
 
 This package declares no backend in its dependency list and imports none in its Python. A project
 installs it and gains a set of components; which backend those components speak to is decided by
@@ -243,7 +178,7 @@ no build step and no bundler. Components state which global or module they requi
 visibly when it is absent. The demo project's CDN tag is a demonstration convenience and is
 labelled as one.
 
-### Article XIV — A page appears because two apps are installed, never because someone wired it up
+### Article XIII — A page appears because two apps are installed, never because someone wired it up
 
 Installing this package on its own changes nothing a person can see. Installing it alongside a
 backend makes that backend's pages appear where they belong — an entry in the Account Center, a
@@ -271,7 +206,7 @@ way it already includes django-mvp's Account Center. Everything after that line 
 change that tries to route around this — import-time patching of a project's URLconf, or anything
 else that mounts a URL a project did not ask for — is refused.
 
-### Article XV — One namespace per backend, and no interface across them
+### Article XIV — One namespace per backend, and no interface across them
 
 A backend is chosen by the template author, per component, by picking a namespace.
 `<c-drf-stripe.plan-grid>` speaks drf-stripe-subscription's endpoints and vocabulary. A second
@@ -297,7 +232,7 @@ every other namespace's navigation entries, overview card, page addresses and UR
 they were, and no two namespaces can declare the same URL name. The test suite proves this with a
 second namespace of its own, and a change that breaks it is refused rather than accommodated.
 
-### Article XVI — Rendered output is a contract, and an amount is not a number
+### Article XV — Rendered output is a contract, and an amount is not a number
 
 Components render valid, semantic HTML. Every packaged component has a test proving it renders,
 and a change to its output updates or adds a test asserting the part of the contract it changed.
@@ -329,7 +264,7 @@ components django-mvp already ships, and follow whatever theme the project has c
 package ships no stylesheet, no build step and no theme of its own, so a project that changes its
 theme changes these pages with it.
 
-### Article XVII — Compatibility
+### Article XVI — Compatibility
 
 The package is pre-1.0 and the README says so. Component names and attribute surfaces may change
 between minor versions, and every such change is recorded in the CHANGELOG. Default behaviour
@@ -373,4 +308,4 @@ first. Do not cite it as an enforced standard until it runs in CI.
 
 ---
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
+**Version**: 2.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-28
