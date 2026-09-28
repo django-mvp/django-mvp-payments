@@ -8,8 +8,6 @@ from tests.markup import account_navigation_regions
 
 
 class TestDrfStripeContribution:
-    """What the namespace declares, and what a signed-in person sees for it."""
-
     def test_names_the_backends_application_label(self):
         assert drf_stripe.backend_app_name == "drf_stripe"
 
@@ -17,7 +15,6 @@ class TestDrfStripeContribution:
         assert [page.slug for page in drf_stripe.pages] == ["subscription", "plans"]
 
     def test_only_the_subscription_page_is_in_the_navigation(self):
-        """The plans page is reached from the subscription page, not from the menu."""
         assert [page.slug for page in drf_stripe.pages if page.in_navigation] == [
             "subscription"
         ]
@@ -42,12 +39,6 @@ class TestDrfStripeContribution:
                 assert region.count(f">{page.label}</span>") == expected
 
     def test_the_pages_sit_under_one_labelled_group(self, logged_in_client):
-        """A reader sees a named section, not three loose entries.
-
-        The Account Center is shared with whatever else a project installed,
-        so a namespace's pages are grouped under a label of their own the way
-        django-accounts-center groups its section of the same menu.
-        """
         content = logged_in_client.get(reverse("account-center")).content.decode()
 
         for region in account_navigation_regions(content):

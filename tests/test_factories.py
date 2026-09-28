@@ -15,8 +15,6 @@ from tests.factories import (
 
 @pytest.mark.django_db
 class TestFactories:
-    """One factory per backend model this page reads (Article I)."""
-
     def test_stripe_user_factory_builds_a_saved_row(self):
         stripe_user = StripeUserFactory()
         assert stripe_user.pk is not None

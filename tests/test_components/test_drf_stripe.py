@@ -19,12 +19,6 @@ from mvp_payments.namespaces.drf_stripe_records import (
 
 
 class TestPricingTable:
-    """``<c-drf-stripe.pricing-table>`` mounts the provider's own embed (T001, FR-011, SC-007).
-
-    No amount, currency, billing frequency or plan name is produced by this component or
-    anywhere else in this package — the provider renders every price inside its own frame.
-    """
-
     def test_renders_the_providers_element_with_its_table_id_and_publishable_key(
         self, cotton_render
     ):
@@ -43,8 +37,6 @@ class TestPricingTable:
     def test_carries_a_hidden_could_not_be_loaded_message_and_its_marker(
         self, cotton_render
     ):
-        """The message is present in the markup and hidden, never absent, so
-        revealing it needs no string from JavaScript (scenario 3, FR-010)."""
         html = cotton_render(
             "drf-stripe.pricing-table",
             table_id="prctbl_test123",
@@ -117,9 +109,6 @@ class TestPricingTable:
     def test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor(
         self, cotton_render_string, rf, django_assert_num_queries, db
     ):
-        """No view, no context processor, no query — a page of the host project's own
-        can place this component and give it nothing but its two attributes (T016,
-        FR-001, FR-009, FR-011)."""
         request = rf.get("/")
         request.user = AnonymousUser()
 
@@ -139,8 +128,6 @@ class TestPricingTable:
 
 
 class TestAmount:
-    """``<c-drf-stripe.amount>`` renders the ``Money`` it was given."""
-
     def test_renders_the_amount_it_was_given(self, cotton_render):
         html = cotton_render(
             "drf-stripe.amount", amount=Money(minor_units=2000, currency="USD")
@@ -158,8 +145,6 @@ class TestAmount:
 
 
 class TestPlan:
-    """``<c-drf-stripe.plan>`` renders one priced item's name, amount, frequency and quantity."""
-
     def test_renders_the_name_amount_and_frequency_it_was_given(self, cotton_render):
         plan = Plan(
             name="Premium monthly",
@@ -228,8 +213,6 @@ class TestPlan:
 
 
 class TestSubscription:
-    """``<c-drf-stripe.subscription>`` renders one ``CurrentSubscription`` as a card."""
-
     def test_renders_the_status_and_its_plans(self, cotton_render):
         plan = Plan(
             name="Premium monthly",
@@ -272,9 +255,6 @@ class TestSubscription:
 
 
 class TestFeatures:
-    """``<c-drf-stripe.features>`` lists what a plan's product grants inside the
-    application (FR-009)."""
-
     def test_lists_the_features_it_is_given(self, cotton_render):
         features = (
             PlanFeature(identifier="reports", description="Advanced reports"),
@@ -294,23 +274,15 @@ class TestFeatures:
         assert "priority_support" in html
 
     def test_renders_nothing_at_all_when_given_none(self, cotton_render):
-        """Nothing at all, heading included — an empty section is worse than no section."""
         html = cotton_render("drf-stripe.features", features=())
 
         assert html.strip() == ""
 
 
 class TestPlansLink:
-    """``<c-drf-stripe.plans-link>`` — the way to the plans page.
-
-    That page left the Account Center's navigation, so this control is how a
-    person reaches it.
-    """
-
     def test_a_subscriber_is_offered_a_switch_through_the_plan_change_endpoint(
         self, cotton_render
     ):
-        """Never the plans page: its pricing table would sell them a second subscription."""
         html = cotton_render(
             "drf-stripe.plans-link",
             url="/account/billing/plans/",
@@ -328,7 +300,6 @@ class TestPlansLink:
     def test_a_subscriber_with_no_plan_change_endpoint_is_offered_nothing(
         self, cotton_render
     ):
-        """Suppressed rather than pointed at the plans page, which does the wrong thing."""
         html = cotton_render(
             "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=True
         )
@@ -336,7 +307,6 @@ class TestPlansLink:
         assert html.strip() == ""
 
     def test_somebody_on_no_plan_is_offered_a_choice(self, cotton_render):
-        """ "Switch plans" reads as a mistake to a person who is not on one."""
         html = cotton_render(
             "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=False
         )
@@ -345,15 +315,12 @@ class TestPlansLink:
         assert "data-mvp-payments-portal-link" not in html
 
     def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
-        """A control leading nowhere is worse than no control (Article XV)."""
         html = cotton_render("drf-stripe.plans-link", url=None)
 
         assert html.strip() == ""
 
 
 class TestAlreadySubscribed:
-    """``<c-drf-stripe.already-subscribed>`` — the plans page, for somebody on a plan."""
-
     def test_it_says_so_and_leads_to_the_subscription_page(self, cotton_render):
         html = cotton_render(
             "drf-stripe.already-subscribed", url="/account/billing/subscription/"
@@ -371,9 +338,6 @@ class TestAlreadySubscribed:
 
 
 class TestPortalLink:
-    """``<c-drf-stripe.portal-link>`` — the way through to the provider's billing
-    portal (T016, D3, D5)."""
-
     def test_given_an_endpoint_it_renders_a_control_carrying_it_and_a_csrf_token(
         self, cotton_render
     ):
@@ -400,20 +364,13 @@ class TestPortalLink:
 
 
 class TestNoSubscription:
-    """``<c-drf-stripe.no-subscription>`` — nothing current to show, on its own,
-    given no attributes at all (T026, D11)."""
-
     def test_renders_one_line_given_nothing(self, cotton_render):
-        """A single sentence. A second one only restated the first."""
         html = cotton_render("drf-stripe.no-subscription")
 
         assert "You don't have an active subscription." in html
 
 
 class TestPlansUnavailable:
-    """``<c-drf-stripe.plans-unavailable>`` — plans cannot be shown yet, said
-    plainly, on its own, given no attributes at all (T020, T022, FR-007)."""
-
     def test_renders_its_sentence_given_nothing(self, cotton_render):
         html = cotton_render("drf-stripe.plans-unavailable")
 
@@ -422,15 +379,6 @@ class TestPlansUnavailable:
 
 
 class TestStandalone:
-    """Every component this feature added, placed inside a template that has nothing to do
-    with the shipped page, given only its attributes (T029, FR-012, SC-006).
-
-    ``cotton_render`` above proves each component renders in isolation; this gathers the
-    single guarantee SC-006 names by placing the same tags inside markup of a template's own
-    that no view of this package's ever produces, confirming nothing here depends on being
-    reached through ``SubscriptionPageView``.
-    """
-
     def test_amount_renders_inside_an_unrelated_template(self, cotton_render_string):
         html = cotton_render_string(
             '<article><h2>Order summary</h2><c-drf-stripe.amount :amount="amount" /></article>',
@@ -488,17 +436,6 @@ class TestStandalone:
     def test_portal_link_renders_inside_an_unrelated_template(
         self, cotton_render_string
     ):
-        """Its markup comes from its attribute; its CSRF token does not.
-
-        Every other component here renders completely from what it is given. This one
-        also reads ``{{ csrf_token }}``, which Django's own context processor supplies,
-        so a render with no request behind it produces the control with an empty token.
-        That is the same dependency every CSRF-protected form in Django has, and making
-        a caller pass the token instead would invite them to pass a stale one — so it is
-        declared rather than removed, here and in the component and the documentation.
-        ``TestSubscriptionPage.test_the_portal_control_carries_a_usable_csrf_token``
-        proves it is populated when a request renders the page.
-        """
         html = cotton_render_string(
             '<nav><span>Account</span><c-drf-stripe.portal-link :endpoint="endpoint" /></nav>',
             context={"endpoint": "/api/stripe/customer-portal/"},

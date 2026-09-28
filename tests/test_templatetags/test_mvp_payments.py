@@ -7,8 +7,6 @@ from mvp_payments.templatetags.mvp_payments import payment_cards
 
 
 class TestPaymentCards:
-    """One card per available, reachable contribution — nothing otherwise (FR-006, FR-009)."""
-
     def test_renders_one_card_for_an_available_contribution(self, monkeypatch):
         monkeypatch.setattr(
             "mvp_payments.templatetags.mvp_payments.available_contributions",
