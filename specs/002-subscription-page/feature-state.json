@@ -3,7 +3,7 @@
   "feature": "002-subscription-page",
   "branch": "002-subscription-page",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "PR_READY",
+  "state": "MERGED",
   "state_history": [
     {
       "state": "PLAN",
@@ -34,6 +34,11 @@
       "state": "PR_READY",
       "at": "2026-09-22T08:32:42Z",
       "note": "walkthrough approved by Sam; PR #23 out of draft"
+    },
+    {
+      "state": "MERGED",
+      "at": "2026-09-22T08:46:18Z",
+      "note": "PR #23 merged; approved by SamuelJennings"
     }
   ],
   "gates": {
@@ -49,8 +54,8 @@
       "at": "2026-09-22T00:52:00Z"
     },
     "merge": {
-      "approved_by": null,
-      "at": null
+      "approved_by": "SamuelJennings",
+      "at": "2026-09-22T08:46:09Z"
     },
     "design_review": {
       "approved_by": "design-panel",
