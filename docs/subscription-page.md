@@ -269,8 +269,8 @@ precede `mvp` (see the README's Install step).
 ```html
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
-  <c-page>
-    <c-page.title :title="page.title" />
+  <c-mvp.page>
+    <c-mvp.page.title :title="page.title" />
     {% for subscription in subscriptions %}
       <c-drf-stripe.subscription :subscription="subscription" />
     {% empty %}
@@ -286,7 +286,7 @@ precede `mvp` (see the README's Install step).
         <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
       {% endif %}
     </div>
-  </c-page>
+  </c-mvp.page>
 {% endblock account.content %}
 ```
 

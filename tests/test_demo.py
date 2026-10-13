@@ -29,7 +29,7 @@ class TestHomePage:
         assert "<aside" in home_page
         assert 'aria-label="Main navigation"' in home_page
         assert 'aria-label="Breadcrumbs"' in home_page
-        assert '<span class="mvp-breadcrumb-text">Home</span>' in home_page
+        assert '<span aria-current="page">Home</span>' in home_page
 
     def test_title_names_the_page_and_the_site(self, home_page):
         title = re.search(r"<title>(.*?)</title>", home_page, re.S).group(1)

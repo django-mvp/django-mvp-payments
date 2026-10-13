@@ -26,10 +26,9 @@ class TestDrfStripeContribution:
         self, logged_in_client
     ):
         content = logged_in_client.get(reverse("account-center")).content.decode()
-        # django-mvp draws the Account Center's navigation twice, so one entry renders
-        # once per region. Counting inside the navigation keeps the overview card out.
+        # Counting inside the navigation keeps the overview card out.
         regions = account_navigation_regions(content)
-        assert len(regions) == 2
+        assert len(regions) == 1
         for region in regions:
             for page in drf_stripe.pages:
                 expected = 1 if page.in_navigation else 0
@@ -38,7 +37,9 @@ class TestDrfStripeContribution:
     def test_the_pages_sit_under_one_labelled_group(self, logged_in_client):
         content = logged_in_client.get(reverse("account-center")).content.decode()
 
-        for region in account_navigation_regions(content):
+        regions = account_navigation_regions(content)
+        assert len(regions) == 1
+        for region in regions:
             group = f">{drf_stripe.group_label}<"
             assert region.count(group) == 1
             group_at = region.index(group)

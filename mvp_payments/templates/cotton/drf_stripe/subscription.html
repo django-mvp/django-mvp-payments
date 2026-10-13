@@ -3,7 +3,7 @@
 {# @prop subscription:text | description:"A mvp_payments.namespaces.drf_stripe_records.CurrentSubscription." | required #}
 {# A status this component does not recognise still renders, as itself, with a neutral badge (Article XV). #}
 <c-vars subscription />
-<c-card>
+<c-mvp.card>
   <c-slot name="badges">
     {% if subscription.status == "active" %}
       <c-badge variant="success" text="{{ subscription.status }}" />
@@ -16,11 +16,11 @@
     {% endif %}
   </c-slot>
   {% if subscription.period_start or subscription.period_end %}
-    <c-data_field label="{% translate 'Current period' %}">
+    <c-mvp.data-field label="{% translate 'Current period' %}">
       {{ subscription.period_start|date }} – {{ subscription.period_end|date }}
-    </c-data_field>
+    </c-mvp.data-field>
   {% endif %}
   {% for plan in subscription.plans %}
     <c-drf-stripe.plan :plan="plan" />
   {% endfor %}
-</c-card>
+</c-mvp.card>

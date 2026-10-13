@@ -5,7 +5,7 @@
 <c-vars url />
 {% translate "You already have a subscription" as heading %}
 {% translate "Plans are changed from your subscription page, where your current plan is shown." as message %}
-<c-page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
+<c-mvp.page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
 {% if url %}
   <div class="text-center">
     <a href="{{ url }}" class="btn btn-primary">{% translate "Go to your subscription" %}</a>

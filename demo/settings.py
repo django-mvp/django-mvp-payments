@@ -61,8 +61,8 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
 # Order matters: the first copy of a template name wins. `demo` supplies `base.html`,
-# `mvp_payments` overrides and extends `mvp/account/overview.html`, and `mvp`
-# overrides `crispy_tailwind`'s help-text template.
+# `mvp_payments` overrides and extends `mvp/account/overview.html`, and `mvp` sits
+# directly above `daisy_cotton` so that its icon replaces daisy-cotton's.
 INSTALLED_APPS = [
     "demo",
     "mvp_payments",
@@ -74,9 +74,10 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.staticfiles",
     "mvp",
+    "daisy_cotton",
     "easy_icons",
     "crispy_forms",
-    "crispy_tailwind",
+    "mvp_forms",
     "flex_menu",
     "django_cotton",
     "rest_framework",
@@ -152,8 +153,8 @@ DATABASES = {
     }
 }
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
-CRISPY_TEMPLATE_PACK = "tailwind"
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["daisyui"]
+CRISPY_TEMPLATE_PACK = "daisyui"
 
 # django-mvp's development sign-in pages, registered by the Account Center's URLconf.
 # The shell draws its sign-out control only when `account_logout` resolves.

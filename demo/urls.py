@@ -24,7 +24,7 @@ urlpatterns = [
     # The one line a project adds. Declared before the Account Center's include, so
     # this prefix matches here rather than relying on `mvp.urls` declining it.
     path("account/billing/", include("mvp_payments.urls")),
-    path("account/", include("mvp.urls")),
+    path("", include("mvp.urls")),
 ]
 
 if apps.is_installed("drf_stripe"):

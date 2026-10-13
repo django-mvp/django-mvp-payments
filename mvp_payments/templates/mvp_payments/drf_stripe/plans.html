@@ -1,7 +1,7 @@
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
-  <c-page>
-    <c-page.title :title="page.title" />
+  <c-mvp.page>
+    <c-mvp.page.title :title="page.title" />
     {% if subscriptions %}
       <c-drf-stripe.already-subscribed :url="subscription_url" />
     {% elif pricing_table_id and publishable_key %}
@@ -10,5 +10,5 @@
     {% else %}
       <c-drf-stripe.plans-unavailable />
     {% endif %}
-  </c-page>
+  </c-mvp.page>
 {% endblock account.content %}
