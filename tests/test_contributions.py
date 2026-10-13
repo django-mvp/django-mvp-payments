@@ -206,14 +206,11 @@ class TestRepeatedRegistration:
         drf_stripe.register()
 
         content = logged_in_client.get(reverse("account-center")).content.decode()
-        # django-mvp draws the Account Center's navigation twice — a collapsed
-        # copy above the content and a persistent one beside it — so one
-        # registered entry renders once in each region and nowhere else in
-        # them. Counting inside the navigation rather than across the page
-        # keeps this about registration: the same label also appears on the
+        # Counting inside the navigation rather than across the page keeps
+        # this about registration: the same label also appears on the
         # overview card, which is a different surface with its own tests.
         regions = account_navigation_regions(content)
-        assert len(regions) == 2
+        assert len(regions) == 1
         for region in regions:
             for page in drf_stripe.pages:
                 # A navigated page renders once per region; one kept out of

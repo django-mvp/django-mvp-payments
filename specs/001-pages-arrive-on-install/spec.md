@@ -49,7 +49,7 @@ project's standards document and its README. Longer rationale is in `decisions.m
 - **Q: How many cards does an installed backend put on the Account Center overview?**
   A: Exactly one, whatever number of pages it contributes. The overview is a summary and a way in,
   so one card per backend leads to that backend's pages. A card per page would reproduce the
-  navigation that is already drawn beside it. Recorded as FR-006.
+  navigation that is already drawn in the sidebar. Recorded as FR-006.
 
 - **Q: Only one payment backend exists to test against. How is "a second backend changes nothing
   about the first" established?**

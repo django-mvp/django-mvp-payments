@@ -3,7 +3,9 @@
 The `drf-stripe` namespace contributes a page offering a signed-in person the plans they can choose
 from. It arrives with the package: install this alongside
 [drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), mount this
-package's URLs once, and the page is in the Account Center's navigation. There is no view to write.
+package's URLs once, and the page is routed and reached from the subscription page. There is no
+view to write. It has no entry in the Account Center's navigation, so it is drawn with the
+project's own sidebar.
 
 Unlike the subscription page, this page shows nothing of the backend's own records. It mounts the
 provider's own embeddable pricing table — [Stripe's pricing
@@ -85,8 +87,8 @@ to sign in rather than shown the page.
 ```html
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
-  <c-page>
-    <c-page.title :title="page.title" />
+  <c-mvp.page>
+    <c-mvp.page.title :title="page.title" />
     {% if subscriptions %}
       <c-drf-stripe.already-subscribed :url="subscription_url" />
     {% elif pricing_table_id and publishable_key %}
@@ -95,7 +97,7 @@ to sign in rather than shown the page.
     {% else %}
       <c-drf-stripe.plans-unavailable />
     {% endif %}
-  </c-page>
+  </c-mvp.page>
 {% endblock account.content %}
 ```
 

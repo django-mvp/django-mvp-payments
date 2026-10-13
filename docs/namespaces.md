@@ -50,7 +50,9 @@ acme_payments = Contribution(
   `True`. Set it `False` for a page that is reached from somewhere else — the shipped namespace's
   plans page is reached from a control on its subscription page — and the page is still routed,
   still reverses and still renders. Reachable and navigable are different questions, and a menu
-  only answers the second.
+  only answers the second. django-mvp shows the Account Center's navigation in the sidebar only on
+  a page that navigation has an entry for, so a page kept out of it is drawn with the project's own
+  sidebar.
 - **`card_template`** renders this namespace's card on the Account Center's overview.
 - **`group_label`** heads the section this namespace's pages sit under in the Account Center's
   navigation, and must be translatable. Label it for what a reader will find there, not for the
@@ -94,7 +96,8 @@ that: who among the signed-in people may see what is the host project's to enfor
 package holds no entitlement information.
 
 A page template extends `mvp/account/base.html` and fills its content block, so the page renders
-inside the Account Center with the navigation beside it.
+inside the Account Center's layout. On a page with a navigation entry, django-mvp swaps the sidebar
+to the Account Center's navigation.
 
 A view is handed its contribution as well as its own page, so a page can address a sibling without
 a copy of the URL-name format anywhere: `self.get_contribution().page_url("plans")` returns that

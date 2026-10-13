@@ -168,7 +168,9 @@ class TestPaymentPage:
 
         assert response.status_code == 200
         assert re.search(rf"<h1[^>]*>\s*{page.label}\s*</h1>", content)
-        assert 'aria-label="Account navigation"' in content
+        # django-mvp swaps the sidebar to the Account Center's navigation on a page
+        # that navigation has an entry for, and on no other.
+        assert ('aria-label="Account navigation"' in content) == page.in_navigation
 
     def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
         response = client.get(reverse("payments:drf-stripe-subscription"))
@@ -180,9 +182,9 @@ class TestPaymentPage:
 def _content_region(content: str) -> str:
     """The page's content, with the Account Center's navigation cut out.
 
-    "Plans" is also the navigation's label for this page, and django-mvp draws that
-    navigation twice (``tests.markup``). Cutting both copies out narrows an assertion
-    about the page's own content to markup nothing else could have produced.
+    A page's label can also be a navigation entry's (``tests.markup``). Cutting the
+    navigation out narrows an assertion about the page's own content to markup nothing
+    else could have produced.
     """
     for region in account_navigation_regions(content):
         content = content.replace(region, "")
@@ -292,7 +294,7 @@ class TestPlansPage:
         assert "stripe-pricing-table" not in content
         assert "Plans not available" in content
 
-    def test_with_mvp_payments_absent_the_heading_and_navigation_render_unchanged(
+    def test_with_mvp_payments_absent_the_heading_renders_unchanged(
         self, logged_in_client, settings
     ):
         del settings.MVP_PAYMENTS
@@ -303,7 +305,6 @@ class TestPlansPage:
         assert response.status_code == 200
         plans_label = drf_stripe.pages[1].label
         assert re.search(rf"<h1[^>]*>\s*{plans_label}\s*</h1>", content)
-        assert 'aria-label="Account navigation"' in content
         assert "stripe-pricing-table" not in content
         assert "Plans not available" in _content_region(content)
 
