@@ -1,7 +1,20 @@
 # django-mvp-payments
 
-Pricing, checkout and subscription UI for [django-mvp](https://github.com/django-mvp/django-mvp)
-projects, as Cotton components — one namespace per payment backend.
+[![Tests](https://github.com/django-mvp/django-mvp-payments/actions/workflows/tests.yml/badge.svg)](https://github.com/django-mvp/django-mvp-payments/actions/workflows/tests.yml)
+[![Build](https://github.com/django-mvp/django-mvp-payments/actions/workflows/build.yml/badge.svg)](https://github.com/django-mvp/django-mvp-payments/actions/workflows/build.yml)
+[![Publish](https://github.com/django-mvp/django-mvp-payments/actions/workflows/publish.yml/badge.svg)](https://github.com/django-mvp/django-mvp-payments/actions/workflows/publish.yml)
+[![Coverage](https://codecov.io/gh/django-mvp/django-mvp-payments/branch/main/graph/badge.svg)](https://codecov.io/gh/django-mvp/django-mvp-payments)
+[![PyPI](https://img.shields.io/pypi/v/django-mvp-payments)](https://pypi.org/project/django-mvp-payments/)
+[![Development status](https://img.shields.io/pypi/status/django-mvp-payments)](https://pypi.org/project/django-mvp-payments/)
+[![Python](https://img.shields.io/pypi/pyversions/django-mvp-payments)](https://pypi.org/project/django-mvp-payments/)
+[![Django](https://img.shields.io/pypi/djversions/django-mvp-payments)](https://pypi.org/project/django-mvp-payments/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Licence](https://img.shields.io/github/license/django-mvp/django-mvp-payments)](https://github.com/django-mvp/django-mvp-payments/blob/main/LICENSE)
+
+Payment and subscription UI as Cotton components for django-mvp projects, one namespace per payment backend.
+
+It covers pricing, checkout and subscriptions for
+[django-mvp](https://github.com/django-mvp/django-mvp) projects.
 
 Django has no shortage of packages that talk to a payment provider. What none of them give you
 is the part your users look at. A package hands you a subscription record, a list of prices and
@@ -96,13 +109,13 @@ are welcome and do not need this one's agreement about anything: adding one is a
 the ones already installed, and changes nothing about their navigation entries, their card or
 their pages.
 
-[docs/subscription-page.md](docs/subscription-page.md) covers the subscription page: what it puts
+[docs/subscription-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/subscription-page.md) covers the subscription page: what it puts
 in the template context, the components it is built from, and how to replace it with your own.
 
-[docs/plans-page.md](docs/plans-page.md) covers the plans page: the component it mounts, the
+[docs/plans-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/plans-page.md) covers the plans page: the component it mounts, the
 settings it reads, and how to replace the component or the page with your own.
 
-[docs/namespaces.md](docs/namespaces.md) is how you add a namespace: what one declares, the two
+[docs/namespaces.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/namespaces.md) is how you add a namespace: what one declares, the two
 questions it answers about itself, and what it may not do.
 
 ## JavaScript
@@ -131,7 +144,7 @@ table, a page mounts it rather than rebuilding it.
 
 One backend is supported today: drf-stripe-subscription.
 
-The standing directions this package works toward are in [GOALS.md](GOALS.md).
+The standing directions this package works toward are in [GOALS.md](https://github.com/django-mvp/django-mvp-payments/blob/main/GOALS.md).
 
 **What this deliberately is not.**
 
@@ -172,6 +185,17 @@ reached. To see them working, copy `demo/.env.example` to `demo/.env` and fill i
 Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo accounts get real
 sandbox customers and subscriptions. The file lists the one portal setting "Switch plans" needs
 from your sandbox.
+
+## Contributing
+
+Changes follow [CONSTITUTION.md](https://github.com/django-mvp/django-mvp-payments/blob/main/CONSTITUTION.md), the
+[testing standards](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/contributing/standards/testing.md), the
+[code documentation standards](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/contributing/standards/code-documentation.md) and the
+[Django standards](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/contributing/standards/django.md).
+
+## Changelog
+
+See [CHANGELOG.md](https://github.com/django-mvp/django-mvp-payments/blob/main/CHANGELOG.md).
 
 ## Licence
 
