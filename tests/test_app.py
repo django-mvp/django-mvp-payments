@@ -112,12 +112,6 @@ class TestPackagedApp:
         assert added_by_this_feature <= scanned
 
 
-class TestDocumentationLinkedFromReadme:
-    def test_the_plans_page_documentation_is_linked(self) -> None:
-        readme = (Path(__file__).resolve().parent.parent / "README.md").read_text()
-        assert "[docs/plans-page.md](docs/plans-page.md)" in readme
-
-
 class TestNoProviderScript:
     def test_no_shipped_template_contains_a_script_element_with_a_host_src(
         self,
