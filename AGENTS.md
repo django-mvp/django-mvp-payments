@@ -3,29 +3,38 @@
 <!-- Thin index only — bloat here = ignored instructions. Details live in the pointed-to files. -->
 
 django-mvp-payments renders pricing, checkout and subscription interfaces for projects built on
-django-mvp. Each payment backend gets its own namespace and speaks that backend's own vocabulary:
-`drf-stripe` is drf-stripe-subscription and nothing else. There is no neutral component or view
-that renders through a swappable backend, and adding one is a constitutional change rather than a
-feature. `CONTEXT.md` defines the terms; use them.
+django-mvp, and keeps the records behind them for the providers it supports. Each payment backend
+gets its own namespace and speaks that backend's own vocabulary. There is no neutral component or
+view that renders through a swappable backend, and adding one is a constitutional change rather
+than a feature. `CONTEXT.md` defines the terms; use them.
 
-Presentation only, but not view-less. The package routes and renders the pages it ships; it holds
-no state and decides nothing about money. No models, no migrations, no forms, no admin, no
-serializers, and no module here imports `django.db` or a provider SDK. A page has whatever view it
-needs, built on django-mvp's view classes, and it may read what an installed backend already knows
-— through the application registry, never by importing the backend. What it may not do is hold
-state of its own, compute what a person is charged, or reach a provider. `CONSTITUTION.md`
-Article XI is the rule and `tests/test_app.py` is the gate.
+The package has two kinds of part, and `CONSTITUTION.md` Article XI sets the rules for each.
 
-Installing this package alone changes nothing a person can see. Installing it alongside a backend
-makes that backend's pages appear in django-mvp's Account Center on their own, gated on
+- **The interface**, `mvp_payments`: components, and the pages, views, URLs and menu entries that
+  place them. No models, no migrations, no forms, no admin, no serializers, and no import of
+  `django.db` or a provider SDK. A view may read what a provider app keeps. It may not hold state,
+  compute what a person is charged or reach a provider. `tests/test_app.py` is the gate.
+- **A provider app**, such as `mvp_payments.stripe`: the local copy of one provider's customers
+  and subscriptions, its webhook endpoint, and the views that hand a reader to the provider's
+  hosted pages and bring them back. The provider is the source of truth. Records change only
+  from what the provider reports, a webhook is verified and then answered by fetching from the
+  provider, and nothing here takes a payment, holds a card or decides what anyone is charged or
+  may access.
+
+Installing this package alone changes nothing a person can see. Adding a provider app to
+`INSTALLED_APPS` makes its pages appear in django-mvp's Account Center, gated on
 `apps.is_installed`, never on a settings flag (Article XIII). The one manual step is mounting this
 package's URLs once, because Django gives an installed app no way to add routes to a project's
 root URLconf.
 
-No payment backend is a dependency of this package and none may become one. Nothing here imports
-one, nothing here holds an API key, and no card details pass through it. `tests/test_app.py`
-asserts the dependency list, because this is the property that keeps a project free to change
-backends.
+No third-party payment backend is a dependency of this package and none may become one. A
+provider's SDK is declared only in its provider app's extra, `stripe-lite` for the Stripe app,
+and imported nowhere else (Article XII). Secret keys come from the host project's settings and
+never reach a template, a context, a log or a fixture. No card details pass through any of it.
+
+The Stripe app replaces drf-stripe-subscription ([ADR 0010](docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
+Until its pages move across, the `drf-stripe` namespace still reads drf-stripe-subscription's
+records through the application registry.
 
 ## Stack & commands
 

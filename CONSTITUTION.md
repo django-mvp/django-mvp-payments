@@ -99,98 +99,107 @@ between the caller and the work is not.
 
 ## Project articles
 
-### Article XI — An interface layer, and nothing else
+### Article XI — An interface, and a provider app that mirrors the provider
 
-This package renders interface. It holds no state, runs no payment logic and takes no payment,
-and the boundary is absolute rather than a matter of current scope.
+The package has two kinds of part, and the rules differ between them.
 
-- **No models, and no migrations.** The package defines no Django model and ships no migration.
-  It owns no table, stores nothing and is not a place data lives. Installing it changes nothing
-  about a project's schema, and `manage.py migrate` has nothing here to apply.
-- **A page has whatever view it needs.** A page the package ships is allowed to have a view, a
-  URLconf and a menu registration, because a project should be able to install this alongside a
-  backend and get a working page rather than assemble one. Views are built on django-mvp's view
-  classes, which is where the page layout, the heading and the list behaviour already live; a view
-  written from Django's generic classes instead is reinventing something the project already
-  depends on. A view may read the records an installed backend keeps and put them in a template's
-  context. What it may not do is any of the things the rest of this article forbids — hold state of
-  its own, compute what a person is charged, or reach a provider.
-- **No forms, no admin, no serializers.** Nothing in this package accepts a submission, exposes a
-  record for editing or defines a wire format. Those all imply owning data, and this package owns
-  none. `tests/test_app.py` asserts their absence, along with the absence of any import of
-  `django.db` or a provider SDK, because the rule is worth more as a failing test than as a
+- **The interface**: `mvp_payments` itself. Components, the pages that place them, their views,
+  URLs and menu registrations. It holds no state and talks to no provider.
+- **A provider app**: an app inside this package that talks to one payment provider and keeps the
+  local records the interface reads. `mvp_payments.stripe` is the first. A project turns it on by
+  adding it to `INSTALLED_APPS`, and installs its dependencies through the package's
+  `stripe-lite` extra.
+
+**The interface holds nothing and reaches nothing.**
+
+- **No models, and no migrations.** `mvp_payments` defines no Django model and ships no
+  migration. Installing it alone changes nothing about a project's schema.
+- **A page has whatever view it needs.** A page the package ships may have a view, a URLconf and
+  a menu registration, built on django-mvp's view classes, which is where the page layout, the
+  heading and the list behaviour already live. A view may read the records an installed provider
+  app keeps and put them in a template's context. It may not hold state of its own, compute what a
+  person is charged, or reach a provider.
+- **No forms, no admin, no serializers, no provider SDK.** Nothing in the interface accepts a
+  submission, exposes a record for editing, defines a wire format or imports a provider's library.
+  `tests/test_app.py` asserts this, because the rule is worth more as a failing test than as a
   sentence someone has to remember.
-- **No payment logic anywhere.** What a subscription costs, who is entitled to what, when a trial
-  ends, whether a card is about to expire — every one of those is decided by the backend or by the
-  host project, and this package only shows the answer. A calculation that would change what a
-  customer is charged or what they may access does not belong here in any language, JavaScript
-  included.
-- **No card details, ever.** A card number is typed into the provider's own iframe, or on the
-  provider's own page, and never into markup written here. Mounting a provider's embed is
-  allowed and expected: the card still lands in the provider's environment, which is the entire
-  point of an embed, and a wrapper around one is a supported way to build a page. What is
-  forbidden is a field of this package's own that a card number could be typed into.
-- **No secret keys.** An API key, a webhook signing secret and a restricted key are all equally
-  forbidden. A publishable key is the host project's to supply, as an attribute or its own
-  configuration, and a component never reads it from Django settings. A page this package ships
-  may read it from settings and pass it to a component as that attribute.
-- **No server-side calls to a provider.** Nothing here imports an SDK or opens a connection.
-  Creating a checkout session, reading a subscription and cancelling one are the backend's, and a
-  component reaches them through the backend's own HTTP endpoints.
-- **No trust in what comes back.** Values returned by a backend are rendered as data through the
-  template layer, never interpolated into markup by hand and never used to decide access.
-  Entitlement is the host project's to enforce server-side; a component that hides something is
+
+**A provider app mirrors the provider, and decides nothing.**
+
+- **The provider is the source of truth.** A provider app keeps the smallest local copy that lets
+  a page show a person where they stand and lets the host project ask whether someone is
+  subscribed: who the provider's customer is, and that customer's subscription with its status,
+  price and period. It adds nothing the provider did not say. Where the copy and the provider
+  disagree, the provider is right and the copy is refreshed.
+- **Local records change only from the provider.** A record is written when the provider reports
+  something, never by hand and never as a guess about what the provider will do. Any admin a
+  provider app ships is read-only.
+- **A webhook is a prompt, not a payload to trust.** The signature is verified before anything
+  in the request is read, with the provider's own SDK. A verified event is then a reason to fetch
+  the current state from the provider, rather than the state itself, so events that arrive late,
+  twice or out of order leave the same record behind. An unverified request changes nothing.
+- **Everything that changes what a person pays happens on the provider's hosted pages.** Choosing
+  a plan, switching, cancelling and updating payment details are done in the provider's checkout,
+  pricing table and portal. A provider app creates the sessions that send a reader there and
+  records what comes back. It never builds a checkout, plan-change or cancellation screen of its
+  own.
+- **No payment logic.** What a subscription costs, when a trial ends, what a proration comes to
+  and whether a card is about to expire are the provider's to decide, and the package only shows
+  the answer. Whether a subscribed person may see a page is the host project's decision, made in
+  its own views. A provider app can answer "is this person subscribed?". It never decides what
+  that grants.
+- **No card details, ever.** A card number is typed into the provider's own iframe or on the
+  provider's own page, never into markup written here.
+- **Secret keys stay in settings.** A provider app reads its API key and webhook signing secret
+  from the host project's settings, which take them from runtime configuration. A secret never
+  reaches a template, a template context, a log line or a fixture. A component never reads a
+  publishable key from settings: it receives one as an attribute, and a page this package ships
+  may read it from settings and pass it down.
+- **No trust in what is rendered.** Values from the provider are rendered as data through the
+  template layer, never interpolated into markup by hand. A component that hides something is
   hiding it from a reader, not from an attacker.
 
-The consequence worth stating plainly: a defect here can make a page wrong. It cannot lose money,
-leak a key, expose a card or corrupt a record, because there is no record and no money to reach.
-Any change that would alter that sentence is a change to this constitution.
+The consequence worth stating plainly: a defect in the interface can make a page wrong. A defect
+in a provider app can leave a local record out of step with the provider, which the next event
+or a sync puts right. Neither can take a payment, move money, expose a card or leak a key. Any
+change that would alter that is a change to this constitution.
 
-Where a component seems to need server-side *work* — as opposed to reading what a backend already
-knows — the answer is that the host project does it and passes the result in, or the backend
-exposes it. Reading a record and deciding something about money are different requests, and only
-the second one is refused here.
+### Article XII — No third-party backend is a dependency, and no provider script is emitted
 
-### Article XII — No payment backend is a dependency, and no provider script is emitted
+The package depends on no third-party payment backend, such as drf-stripe-subscription or
+dj-stripe, and imports none. A provider's own SDK is a dependency of its provider app only: it is
+declared in that app's extra, `stripe-lite` for `mvp_payments.stripe`, and imported nowhere
+outside that app. A project that installs the package without the extra gets the interface and
+no provider library. `tests/test_app.py` asserts the dependency list for this reason.
 
-This package declares no backend in its dependency list and imports none in its Python. A project
-installs it and gains a set of components; which backend those components speak to is decided by
-which ones the project uses. `tests/test_app.py` asserts the dependency list for this reason.
-
-That is not tidiness. The first backend chosen carries constraints of its own — pinned transitive
-dependencies, a release cadence, a single maintainer — and a UI layer that depended on it would
-inherit every one of them and would have to be replaced along with it. Independence is what lets
-the interface outlive the plumbing.
+A third-party package that wants pages that look like the rest of a django-mvp site ships its own
+templates built from this package's components. It does not become a dependency, and this package
+does not reach into it.
 
 The same holds for JavaScript. No provider's library is committed to this repository, placed in
 its static files or served from it, and no component injects a `<script>` tag pointing at a
 third-party origin on a reader's behalf. Stripe forbids self-hosting `stripe.js`, so that library
-must come from their CDN — but choosing to load it, and how, belongs to the host project, which
-already has a way of managing its frontend. A project installing this package gains no external
-origin it did not already have.
+must come from their CDN, but choosing to load it, and how, belongs to the host project. A project
+installing this package gains no external origin it did not already have.
 
-A component that wraps a provider's embed follows the same split: it emits the provider's mount
-point — a `<stripe-pricing-table>` element and the attributes it needs — and the host project
-loads the script that brings the element to life. A publishable key reaches the component as an
-attribute, the way the provider's own documentation passes it, and a component never reads it
-from Django settings. A page this package ships may read it from settings and pass it down as
-that attribute.
+A component that wraps a provider's embed emits the provider's mount point, such as a
+`<stripe-pricing-table>` element and the attributes it needs, and the host project loads the
+script that brings the element to life.
 
 Where a component needs logic of its own, it ships as a small static file in this repository, with
 no build step and no bundler. Components state which global or module they require and fail
 visibly when it is absent. The demo project's CDN tag is a demonstration convenience and is
 labelled as one.
 
-### Article XIII — A page appears because two apps are installed, never because someone wired it up
+### Article XIII — A page appears because an app is installed, never because someone wired it up
 
-Installing this package on its own changes nothing a person can see. Installing it alongside a
-backend makes that backend's pages appear where they belong — an entry in the Account Center, a
-card on its overview — with no further code in the project.
+Installing this package on its own changes nothing a person can see. Adding a provider app to
+`INSTALLED_APPS` makes its pages appear where they belong, an entry in the Account Center and a
+card on its overview, with no further code in the project.
 
-- **Gate on installation, never on configuration.** A contribution is made when
-  `apps.is_installed("<backend>")` is true and never otherwise. There is no settings flag to set
-  and no registry to populate, so a project carries only the dependencies of the backends it
-  actually installed, and turning one on is one line in `INSTALLED_APPS`.
+- **Gate on installation, never on configuration.** A contribution is made when its app is
+  installed, checked with `apps.is_installed()`, and never otherwise. There is no settings flag to
+  set and no registry to populate, so turning a provider on is one line in `INSTALLED_APPS`.
 - **Register in `ready()`, and do nothing else at import time.** A module in this package that is
   imported must not touch the app registry, reverse a URL or read settings while Django is still
   starting.
@@ -205,22 +214,22 @@ card on its overview — with no further code in the project.
 
 One step is not automatic and cannot be made so: Django has no mechanism for an installed app to
 add routes to a project's root URLconf, so a project includes this package's URLs once, the same
-way it already includes django-mvp's Account Center. Everything after that line is automatic. A
-change that tries to route around this — import-time patching of a project's URLconf, or anything
-else that mounts a URL a project did not ask for — is refused.
+way it already includes django-mvp's Account Center. That include also carries a provider app's
+own endpoints, its webhook among them. A change that tries to route around this, by import-time
+patching of a project's URLconf or anything else that mounts a URL a project did not ask for, is
+refused.
 
 ### Article XIV — One namespace per backend, and no interface across them
 
-A backend is chosen by the template author, per component, by picking a namespace.
-`<c-drf-stripe.plan-grid>` speaks drf-stripe-subscription's endpoints and vocabulary. A second
-backend gets its own namespace next to the first rather than underneath it.
+A backend is chosen by the template author, per component, by picking a namespace. The namespace
+names the backend: `<c-stripe.plan-grid>` belongs to `mvp_payments.stripe`. A second backend gets
+its own namespace next to the first rather than underneath it.
 
 There is no neutral component that renders through a configurable backend, and adding one is a
-change to this constitution rather than a feature. Payment libraries model subscriptions
-genuinely differently — what a price is, whether features or entitlements are modelled at all, how
+change to this constitution rather than a feature. Payment providers model subscriptions
+genuinely differently: what a price is, whether features or entitlements are modelled at all, how
 a trial, a proration and a cancellation are represented. A common interface can only expose what
-they share, which is little, and then needs an escape hatch for anything real. At that point the
-portability is gone and a translation layer remains to be worked around.
+they share, which is little, and then needs an escape hatch for anything real.
 
 Shared behaviour across namespaces is plumbing, not semantics: container markup, loading and error
 states, formatting an amount for display, and the mechanics of sending a reader to a hosted page.
@@ -249,13 +258,14 @@ converted explicitly, against the currency it arrived with, and formatted throug
 localisation rather than string concatenation or a template filter that assumes two decimal
 places. A component that receives an amount without a currency renders nothing rather than
 guessing. A wrong price on a pricing page is the one defect in this package that costs a reader
-real money, so it is tested with the awkward currencies, not only with dollars.
+real money, so it is tested with the awkward currencies, not only with dollars. A provider app
+stores an amount exactly as the provider reported it, in the minor unit and with its currency.
 
-**Every state a backend can report is representable.** Subscriptions are not merely active or
+**Every state a provider can report is representable.** Subscriptions are not merely active or
 absent: trialing, past due, incomplete, paused, cancelled-at-period-end and cancelled are distinct
 things a reader needs told apart, and a component that renders only the happy path is incomplete
 rather than minimal. A state the component does not recognise is shown as itself, never silently
-dropped.
+dropped, and a provider app stores it rather than mapping it onto one it knows.
 
 Components carry accessible names and states that assistive technology can read, and a control
 that starts a checkout announces that it leads off-site. Colour comes from the daisyUI semantic
@@ -269,20 +279,21 @@ theme changes these pages with it.
 
 ### Article XVI — Compatibility
 
-The package is pre-1.0 and the README says so. Component names and attribute surfaces may change
-between minor versions, and every such change is recorded in the CHANGELOG. Default behaviour
-stays stable across patch releases. There are no compatibility aliases: an API is changed cleanly,
-and the CHANGELOG is how a consumer finds out.
+The package is pre-1.0 and the README says so. Component names, attribute surfaces and settings
+may change between minor versions, and every such change is recorded in the CHANGELOG. Default
+behaviour stays stable across patch releases. There are no compatibility aliases: an API is
+changed cleanly, and the CHANGELOG is how a consumer finds out.
 
 Supported versions are Python 3.12 or later and the currently-supported Django releases, with the
 CI matrix as the authoritative statement of both. Dropping either is a minor-version change with a
 CHANGELOG entry. The django-mvp floor moves forward when a component needs something an older
 release does not ship, and moving it is a CHANGELOG entry rather than a silent bump.
 
-A backend's own version is not pinned by this package, because this package does not ship it. What
-is stated, per namespace, is the range of the backend it is known to render against, and which of
-that backend's endpoints it calls. A namespace whose backend has changed its endpoints is broken
-and is fixed or withdrawn, never quietly left to render nothing.
+A provider app states the range of its provider's SDK in its extra, and the provider API version
+it is written against in its own code rather than leaving it to the account's default. Moving
+either is a deliberate change with a CHANGELOG entry, tested against the new version before it
+lands. A migration a provider app ships is part of its public surface: one released is never
+edited, only followed by another.
 
 ## Quality bar
 
@@ -311,4 +322,4 @@ first. Do not cite it as an enforced standard until it runs in CI.
 
 ---
 
-**Version**: 2.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-10-12
+**Version**: 3.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-10-20
