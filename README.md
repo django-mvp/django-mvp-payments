@@ -22,10 +22,11 @@ an endpoint that starts a checkout, and leaves the plan grid, the subscribe butt
 panel and the "your card expires next month" notice to be built from raw utility classes — in
 every project, every time.
 
-This package is that layer and nothing else. It owns no data and runs no payment logic, and it
-depends on no payment backend. What it does do is bring its own pages with it: install it
-alongside a backend and the pages for that backend turn up in django-mvp's Account Center, rather
-than leaving you to build and route them.
+This package is that layer, plus the least it takes to keep it fed. It runs no payment logic and
+depends on no third-party payment backend. For Stripe it is moving to an app of its own,
+`mvp_payments.stripe`, which keeps a small copy of each user's subscription in step with Stripe
+through webhooks. Either way it brings its own pages with it: they turn up in django-mvp's Account
+Center, rather than leaving you to build and route them.
 
 ## Status
 
@@ -131,44 +132,52 @@ one to copy into production without thinking about it.
 
 ## Scope & philosophy
 
-**What this is.** A presentation layer for payment and subscription state. Templates, the small
-amount of JavaScript some components need, and just enough Python to put a page at a URL and an
-entry in a menu.
+**What this is.** A presentation layer for payment and subscription state, and, for each
+supported provider, a small app that keeps that state. Templates, the small amount of JavaScript
+some components need, the Python that puts a page at a URL and an entry in a menu, and for
+Stripe, `mvp_payments.stripe`.
 
-Think of it as a skin for a payment backend. Each supported backend gets pages that look like the
-rest of your django-mvp site, because they are drawn with the same daisyUI classes and follow the
-same theme. The pages show a person where they stand. Anything that changes what they pay, such as
-choosing a plan, switching, cancelling or updating a card, is handed to the provider's own hosted
-pages, which already do it well. Where the provider publishes a drop-in, such as Stripe's pricing
-table, a page mounts it rather than rebuilding it.
+The pages look like the rest of your django-mvp site, because they are drawn with the same daisyUI
+classes and follow the same theme. They show a person where they stand. Anything that changes
+what they pay, such as choosing a plan, switching, cancelling or updating a card, is handed to the
+provider's own hosted pages, which already do it well. Where the provider publishes a drop-in,
+such as Stripe's pricing table, a page mounts it rather than rebuilding it.
 
-One backend is supported today: drf-stripe-subscription.
+The Stripe app keeps the least it can: who each user's Stripe customer is, and that customer's
+subscription with its status, price and period. Stripe is the source of truth. The app learns of
+changes from Stripe's webhooks, checks each one's signature and then asks Stripe for the current
+state, rather than trusting what the webhook says. It is installed with
+`django-mvp-payments[stripe-lite]`. Today's pages still read drf-stripe-subscription's records
+until they move to it ([ADR 0010](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
 
 The standing directions this package works toward are in [GOALS.md](https://github.com/django-mvp/django-mvp-payments/blob/main/GOALS.md).
 
 **What this deliberately is not.**
 
-- **Not a payment integration.** No API calls from Python, no webhook handling, no card data,
-  no secrets, no money moving anywhere. Those are the backend's job and they are genuinely hard
-  to get right; a UI package has no business having an opinion about them.
-- **Not a way to run two backends at once.** Swapping one for another is a supported move and
-  the reason namespaces do not share anything. Running two side by side is not: whose
-  subscription a person is looking at stops being answerable, and nothing here is built to
-  arbitrate it.
-- **Not a backend abstraction.** There is no common interface that every payment library gets
-  adapted onto. That abstraction is the classic trap in this domain: it fits the first library,
+- **Not a full Stripe integration.** No copy of Stripe's products, prices, invoices or payment
+  methods, no taxes, no metered billing, no one-off payments. If you need those,
+  [dj-stripe](https://github.com/dj-stripe/dj-stripe) is built for it.
+- **Not a decider.** Nothing here computes a price, a proration or a trial, and nothing decides
+  what a subscription grants. The Stripe app can tell your views whether someone is subscribed.
+  What that lets them see is your project's call, enforced in your views.
+- **Not a place card details pass through.** Cards are typed into the provider's own pages and
+  iframes, never into markup written here.
+- **Not a way to run two backends at once.** Whose subscription a person is looking at stops
+  being answerable, and nothing here is built to arbitrate it.
+- **Not a backend abstraction.** There is no common interface that every payment provider gets
+  adapted onto. That abstraction is the classic trap in this domain: it fits the first provider,
   bends for the second and is a liability by the third, because subscription models genuinely
   differ. A namespace per backend costs some duplication and buys the freedom to match each one
   exactly.
-- **Not an owner of data.** No models, no migrations, no forms, no admin, no serializers. A page
-  here has whatever view it needs, built on django-mvp's own view classes; every value on it was
-  decided by the backend or by your project.
 - **Not a CSS framework.** Components render the daisyUI classes django-mvp already ships. No
   stylesheet, no build step, no theme of its own.
 
-**Tie-breaks.** When two of these pull against each other: match the backend rather than
-generalise; route and render rather than compute; render less rather than assume how a page is
-laid out.
+**Tie-breaks.** When two of these pull against each other:
+
+- match the provider rather than generalise
+- keep less rather than more, and ask the provider rather than guess
+- route and render rather than compute
+- render less rather than assume how a page is laid out
 
 ## Running the demo
 
