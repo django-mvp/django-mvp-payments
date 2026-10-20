@@ -9,7 +9,7 @@ Per-task test scope is the class or module the task touches. The full suite runs
 the story's report.
 
 Assertions are made against rendered output, never against the presence of a class name
-(Article XVI).
+(Article XV).
 
 Stories are dispatched in order, each into a worktree of its own off the branch the previous one
 left. US-1 builds the reading, the view and the page; every story after it adds to what US-1 left
@@ -25,7 +25,7 @@ in front of the page without records to read, and every story needs the same one
   `SubscriptionItemFactory`, `FeatureFactory`, `ProductFeatureFactory`. Models are resolved with
   `apps.get_model`, never imported, so the test suite obeys the same rule the package does.
   `factory.Sequence` for the identifier primary keys, `factory.SubFactory` for the relations. No
-  factory subclass expresses a variant — Article X — and a factory writes no file. Add
+  factory subclass expresses a variant — Article I — and a factory writes no file. Add
   `tests/test_factories.py` asserting each builds a saved row.
 - **T002** `tests/conftest.py` — fixtures wrapping those factories: `stripe_user` for the existing
   `user` fixture, `current_subscription` (status `active`, one item, one priced product) and
@@ -123,7 +123,7 @@ in front of the page without records to read, and every story needs the same one
 - **T019** `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js` — bind the control, post
   with the CSRF token, follow the `url` in a successful answer, reveal the failure message
   otherwise. No build step, no bundler, no external origin. It states what it needs and fails
-  visibly, per Article XIII.
+  visibly, per Article XII.
 - **T020** `mvp_payments/templates/mvp_payments/drf_stripe/subscription.html`, `demo/` — place the
   control on the page beneath the subscriptions; have the demo load the static file and set the
   endpoint in `MVP_PAYMENTS`.
@@ -187,7 +187,7 @@ in front of the page without records to read, and every story needs the same one
   portal control needs. Written for someone who has never read this repository.
 - **T031** `README.md`, `CHANGELOG.md` — link the new page from the README's namespace section, and
   record the new components, the new context and the new setting in the CHANGELOG. The drf-stripe
-  namespace's documented endpoint list gains `customer-portal/` (Article XVII).
+  namespace's documented endpoint list gains `customer-portal/` (Article XVI).
 
 ## Convergence (S5, not a story)
 

@@ -33,7 +33,7 @@ feature adds nothing to it.
 settings and one attribute of the request's user.
 
 **Testing**: pytest with pytest-django, settings inherited from `demo/settings.py` by
-`tests/settings.py`. Assertions are made against rendered output (Article XVI): the element, its
+`tests/settings.py`. Assertions are made against rendered output (Article XV): the element, its
 attributes, the absence of a script element, and the unavailable state's sentence.
 
 **Target Platform**: a Django project that has installed django-mvp and drf-stripe-subscription,
@@ -44,8 +44,8 @@ loaded the provider's library however it manages its frontend.
 settings and documentation.
 
 **Constraints**: no `<script>` element pointing at the provider anywhere in this package's output
-(Article XIII, FR-002, SC-002); no figure about price (Article XII, FR-011, SC-007); the component
-reads no settings (FR-003); nothing at import time reads settings (Article XIV).
+(Article XII, FR-002, SC-002); no figure about price (Article XI, FR-011, SC-007); the component
+reads no settings (FR-003); nothing at import time reads settings (Article XIII).
 
 **Scale/Scope**: one component, one view, one static file, one documentation page, five user
 stories, one constitution amendment.
@@ -56,22 +56,22 @@ Read before planning, re-checked against the design below.
 
 | Article | Bearing on this feature | Verdict |
 |---|---|---|
-| I Test-First | Every behaviour is an assertion about rendered markup, so each task has a failing test before it has code | Pass |
-| II Simplicity / III Anti-Abstraction | One component, one view subclass, one four-line static file. No abstraction over "embeds" — a second provider gets its own namespace (Article XV) | Pass |
+| I Testing | Every behaviour is an assertion about rendered markup, so each task has a failing test before it has code | Pass |
+| II Simplicity / III Anti-Abstraction | One component, one view subclass, one four-line static file. No abstraction over "embeds" — a second provider gets its own namespace (Article XIV) | Pass |
 | IV Integration-First | The page is exercised through the test client as a reader reaches it; the component is rendered standalone in a template of its own | Pass |
 | V Security | Both values reach the markup through the template layer. Neither is a secret: a publishable key identifies an account and the provider prints it in its own examples. No key that could move money is read, held or emitted | Pass |
 | VI Documentation | `docs/plans-page.md` is new and linked from the README; CHANGELOG entry; docstrings on the new view | Pass |
 | VII Dependency discipline | No dependency added, runtime or development | Pass |
 | VIII Internationalization | The unavailable sentence, the could-not-be-loaded sentence and the page's heading are wrapped | Pass |
 | IX Data-model conventions | No model, no field, no migration | Not applicable |
-| X Test structure | The view's tests extend `tests/test_views.py`; the component's go in `tests/test_components/test_drf_stripe.py`, already declared as a non-mirror path | Pass |
-| XI Cohesion | The view is one class with one method, beside the sibling it mirrors. No new module of loose functions | Pass |
-| XII Interface layer | The page renders a mount point and reads two settings. It computes no charge, reaches no provider from the server, and adds no model, form, admin or serializer. Mounting a provider's embed is named in this article as allowed and expected | Pass |
-| XIII No backend dependency | No import of the backend; no script element emitted; the publishable key reaches the component as an attribute. **The article's sentence forbidding a settings read is narrowed to the component by this feature** — see Complexity Tracking and `decisions.md` | Pass, with the amendment |
-| XIV Installation, not configuration | Unchanged. The page exists because the backend is installed; the identifier and key are configuration the page *reads*, and without them the page still renders and says so | Pass |
-| XV One namespace per backend | Everything that knows what a pricing table is lives under `cotton/drf_stripe/` and the namespace's own view. Nothing is shared with a hypothetical second provider | Pass |
-| XVI Rendered output is a contract | The whole feature. The element and each attribute are asserted in rendered markup; the absent-value state is asserted as a sentence a reader sees; no amount is produced by this package at all | Pass |
-| XVII Compatibility | A new component, a new view and two new optional settings are additive. Absent settings are the documented first-run state, not a break | Pass |
+| I Test structure | The view's tests extend `tests/test_views.py`; the component's go in `tests/test_components/test_drf_stripe.py`, already declared as a non-mirror path | Pass |
+| X Cohesion | The view is one class with one method, beside the sibling it mirrors. No new module of loose functions | Pass |
+| XI Interface layer | The page renders a mount point and reads two settings. It computes no charge, reaches no provider from the server, and adds no model, form, admin or serializer. Mounting a provider's embed is named in this article as allowed and expected | Pass |
+| XII No backend dependency | No import of the backend; no script element emitted; the publishable key reaches the component as an attribute. **The article's sentence forbidding a settings read is narrowed to the component by this feature** — see Complexity Tracking and `decisions.md` | Pass, with the amendment |
+| XIII Installation, not configuration | Unchanged. The page exists because the backend is installed; the identifier and key are configuration the page *reads*, and without them the page still renders and says so | Pass |
+| XIV One namespace per backend | Everything that knows what a pricing table is lives under `cotton/drf_stripe/` and the namespace's own view. Nothing is shared with a hypothetical second provider | Pass |
+| XV Rendered output is a contract | The whole feature. The element and each attribute are asserted in rendered markup; the absent-value state is asserted as a sentence a reader sees; no amount is produced by this package at all | Pass |
+| XVI Compatibility | A new component, a new view and two new optional settings are additive. Absent settings are the documented first-run state, not a break | Pass |
 
 ## Project Structure
 
@@ -89,7 +89,7 @@ specs/003-pricing-table/
 ```
 
 No `data-model.md` and no `contracts/`: the feature defines no data, and the rendered page is the
-contract Article XVI already says how to assert.
+contract Article XV already says how to assert.
 
 ### Source code
 
@@ -122,7 +122,7 @@ demo/
 docs/
 └── plans-page.md                             # new — the component, its attributes, the settings
 
-CONSTITUTION.md                               # Articles XII and XIII narrowed to the component
+CONSTITUTION.md                               # Articles XI and XII narrowed to the component
 CHANGELOG.md                                  # the entry
 README.md                                     # the link to docs/plans-page.md
 ```
@@ -167,7 +167,7 @@ names to the context — the documented surface FR-012 and US-5 scenario 2 promi
 | `publishable_key` | `settings.MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]`, or `None` |
 
 Both are read at render time through `getattr(settings, "MVP_PAYMENTS", {})`, never at import
-(Article XIV). The drf-stripe contribution names the view on its Plans page; nothing else about how
+(Article XIII). The drf-stripe contribution names the view on its Plans page; nothing else about how
 that page arrives changes.
 
 `plans.html` renders the component when both values are present, and `<c-drf-stripe.plans-unavailable />`
@@ -189,7 +189,7 @@ The component's hidden message is then revealed. Defined means the element is th
 render, including when it renders an error of its own, which this package does not interpret.
 
 The file is loaded the way the project already loads static assets, with no build step
-(Article XIII). The demo loads it beside the provider's library.
+(Article XII). The demo loads it beside the provider's library.
 
 ### What the demonstration project shows
 
@@ -215,8 +215,8 @@ Applied literally the shipped page cannot work, because nobody is passing it att
 the point of a page a project does not build. Both are narrowed to the component, whose freedom
 from hidden configuration is the property those sentences exist to protect:
 
-- Article XII, the "No secret keys" bullet.
-- Article XIII, the paragraph on wrapping a provider's embed.
+- Article XI, the "No secret keys" bullet.
+- Article XII, the paragraph on wrapping a provider's embed.
 
 The reasoning is already recorded in `decisions.md` and is not repeated in the constitution. This
 amendment lands in this feature's pull request, as the specification's Assumptions require.

@@ -8,7 +8,7 @@ backend's future.
 
 `drf_stripe.models` holds six models. None of them is this package's, and this package imports
 none of them — they are reached through `django.apps.apps.get_model`, which is the only route
-Article XIII leaves open.
+Article XII leaves open.
 
 | Model | The fields this page reads |
 |---|---|
@@ -32,7 +32,7 @@ the backend changed it.
 
 **An amount arrives without a rendering.** `Price.price` is a `PositiveIntegerField` holding
 Stripe's `unit_amount`, which is in the currency's minor unit, and `Price.currency` is the
-three-letter code beside it. Nothing in the backend converts or formats. Article XVI requires the
+three-letter code beside it. Nothing in the backend converts or formats. Article XV requires the
 conversion to be made explicitly against the currency, which is what `mvp_payments/money.py` is
 for.
 
@@ -59,7 +59,7 @@ Two consequences for the design:
 
 - The way through to the portal cannot be a plain link. It is a control that posts to the endpoint
   and follows the address that comes back, which is a few lines of JavaScript shipped as a static
-  file (Article XIII), with the endpoint and the CSRF token rendered into the markup as data.
+  file (Article XII), with the endpoint and the CSRF token rendered into the markup as data.
 - The endpoint does **not** fail for a person the backend holds no customer record for. It calls
   `get_or_create_stripe_user`, which creates the row and, when it has no customer id, creates a
   brand-new customer at Stripe before minting a portal session for it

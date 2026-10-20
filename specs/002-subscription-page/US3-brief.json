@@ -45,7 +45,7 @@
       "Host project",
       "Payment component"
     ],
-    "conventions": "AGENTS.md -> 'Component layout' (cotton/<backend>/<component>.html, hyphens map to underscores, a name Cotton cannot resolve renders empty rather than raising). CONSTITUTION.md Article XII (interface layer only), Article XIII (no backend dependency), Article XVI (render what the backend recorded, never assume). Existing components to follow for shape: cotton/drf_stripe/plan.html, subscription.html, amount.html, portal_link.html.",
+    "conventions": "AGENTS.md -> 'Component layout' (cotton/<backend>/<component>.html, hyphens map to underscores, a name Cotton cannot resolve renders empty rather than raising). CONSTITUTION.md Article XI (interface layer only), Article XII (no backend dependency), Article XV (render what the backend recorded, never assume). Existing components to follow for shape: cotton/drf_stripe/plan.html, subscription.html, amount.html, portal_link.html.",
     "verified_base": {
       "commit": "690bb5a7f595837599533e2c1d61340b976514a7",
       "verified_at": "2026-09-22T07:20:00Z",
@@ -100,7 +100,7 @@
     "Do not read features from the person rather than from the plan's product. The backend offers both and the per-person answer is the wrong one here.",
     "Do not add a model, migration, form, admin or serializer to mvp_payments/.",
     "Do not name a subscription status in any module under mvp_payments/.",
-    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template. Name it for what it is, and where two module-level functions share a subject, put them on that subject (Article XI).",
+    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template. Name it for what it is, and where two module-level functions share a subject, put them on that subject (Article X).",
     "Do not manufacture a production change for T023 if the tests pass against the reading as it already stands, and do not weaken a test to manufacture a failure. A task with no production change, reported as such, is a correct outcome."
   ]
 }

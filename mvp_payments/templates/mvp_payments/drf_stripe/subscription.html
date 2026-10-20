@@ -1,7 +1,7 @@
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
-  <c-page>
-    <c-page.title :title="page.title" />
+  <c-mvp.page>
+    <c-mvp.page.title :title="page.title" />
     {# Polls for itself while a payment is on its way; see provider_return. #}
     <div id="mvp-payments-subscription"
          class="flex flex-col gap-6"
@@ -14,7 +14,6 @@
           <c-drf-stripe.no-subscription />
         {% endif %}
       {% endfor %}
-      {# Both ways onward on one line, wrapping on a narrow screen. #}
       <div class="flex flex-wrap items-start gap-3"
            data-mvp-payments-subscription-actions>
         <c-drf-stripe.plans-link :url="plans_url"
@@ -25,5 +24,5 @@
         {% endif %}
       </div>
     </div>
-  </c-page>
+  </c-mvp.page>
 {% endblock account.content %}

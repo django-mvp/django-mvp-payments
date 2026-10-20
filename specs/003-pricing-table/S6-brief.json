@@ -24,7 +24,7 @@
   ],
   "read_first": [
     "specs/003-pricing-table/spec.md — the acceptance criteria you judge against, in full",
-    "CONSTITUTION.md — in full, and note that this feature AMENDS Articles XII and XIII",
+    "CONSTITUTION.md — in full, and note that this feature AMENDS Articles XI and XII",
     "CONTEXT.md — the glossary terms, for vocabulary drift",
     "docs/plans-page.md — OPEN THE PAGE, run every example against the branch line by line"
   ],
@@ -35,7 +35,7 @@
     "All five user stories' acceptance scenarios: is each covered by a test that would FAIL if the behaviour regressed?"
   ],
   "specific_questions": [
-    "The constitution amendment is the highest-consequence text in this diff. Articles XII and XIII previously said a publishable key is never read from Django settings by this package; they now say a COMPONENT never reads it and a page this package ships may. Does the amended text actually hold that line, or does it leave room for a component to read settings?",
+    "The constitution amendment is the highest-consequence text in this diff. Articles XI and XII previously said a publishable key is never read from Django settings by this package; they now say a COMPONENT never reads it and a page this package ships may. Does the amended text actually hold that line, or does it leave room for a component to read settings?",
     "The hidden could-not-be-loaded message must be present in the markup and hidden, never absent, so that revealing it needs no string from JavaScript (FR-010). Is that actually what the template does, and is the message translatable?",
     "The unavailable state must emit NO provider element at all, not an element plus a message. Check the assertion, not just the template.",
     "pricing_table.js: does it do anything beyond checking whether the custom element registered and revealing the hidden message? It must not interpret an error the provider's own element renders.",

@@ -50,7 +50,7 @@
       "Plan",
       "Subscription"
     ],
-    "conventions": "AGENTS.md -> 'Component layout' and 'Releasing' (CHANGELOG entries stay under ## [Unreleased] - never write a versioned heading by hand, it makes the next push tag and release it). CONSTITUTION.md Article XII, Article XIII, Article XVI. The suite already drives a settings module with its own template directories for override cases - follow how it does that rather than inventing a mechanism.",
+    "conventions": "AGENTS.md -> 'Component layout' and 'Releasing' (CHANGELOG entries stay under ## [Unreleased] - never write a versioned heading by hand, it makes the next push tag and release it). CONSTITUTION.md Article XI, Article XII, Article XV. The suite already drives a settings module with its own template directories for override cases - follow how it does that rather than inventing a mechanism.",
     "verified_base": {
       "commit": "f7ec0d8c48af9b6973d365c560353b9048354473",
       "verified_at": "2026-09-22T07:45:00Z",

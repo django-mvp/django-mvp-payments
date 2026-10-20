@@ -29,14 +29,14 @@ list of amounts is their sum. It would be wrong. The backend records a unit amou
 per item and holds nothing about tax, discounts, coupons or proration, so any sum computed here
 is a number that looks authoritative and is not what the person will be charged.
 
-`CONSTITUTION.md` Article XII forbids it independently, and the two reasons are the same reason:
+`CONSTITUTION.md` Article XI forbids it independently, and the two reasons are the same reason:
 a figure this package worked out is a figure the backend did not stand behind. Showing each item
 as the backend recorded it says less and is true.
 
 ## Why the portal is reached through the backend
 
 The maintainer's floor for this page is that it tells a person their subscription is managed by
-the provider and takes them there. Article XII forbids this package from calling a provider, so
+the provider and takes them there. Article XI forbids this package from calling a provider, so
 the question is where the address comes from.
 
 The backend already answers it. It exposes an endpoint that mints a portal session for the
@@ -114,7 +114,7 @@ state the provider produces.
 
 ## D2 — An amount's minor-unit exponent is a table in this package
 
-Article XVI forbids assuming two decimal places, and the backend records only an integer of minor
+Article XV forbids assuming two decimal places, and the backend records only an integer of minor
 units and a three-letter code. Something has to hold the exponent.
 
 `babel` holds it, along with a localised currency pattern, and was rejected. It is a runtime
@@ -136,14 +136,14 @@ The backend's portal endpoint answers a POST, returns the address in JSON, and c
 name, so it can be neither linked to directly nor reversed. Three routes were available.
 
 A server-side view of ours that called the endpoint and redirected was rejected: it would make this
-package call a backend endpoint on a reader's behalf, and Article XII reserves that for the
+package call a backend endpoint on a reader's behalf, and Article XI reserves that for the
 backend.
 
 A form posting straight at the endpoint was rejected because the endpoint answers with JSON rather
 than a redirect, so the reader would land on a page of JSON.
 
 What ships is a control carrying the endpoint and a CSRF token as data, and a small static file
-that posts, follows the address that comes back, and reveals a message when it cannot. Article XIII
+that posts, follows the address that comes back, and reveals a message when it cannot. Article XII
 already provides for exactly this: logic a component needs of its own arrives as a small static
 file with no build step, and the project includes it the way it includes everything else.
 
@@ -273,7 +273,7 @@ same guard generalises per backend.
 script only toggles that attribute.
 
 The alternative — a bare `<p hidden>` filled with response-derived text at failure time — was
-rejected on two grounds. Article XII's "no trust in what comes back" already reads on values a
+rejected on two grounds. Article XI's "no trust in what comes back" already reads on values a
 component renders through the template layer; extending that principle to a script that would
 otherwise interpolate a fetch response into markup by hand is the same rule applied to the one
 piece of this feature that runs after the template has already rendered. It would also need its

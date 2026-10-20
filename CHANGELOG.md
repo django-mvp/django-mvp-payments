@@ -67,7 +67,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Poetry. The wheel contains the same files as before. The source distribution does too, plus the
   repository's `.gitignore`, which hatchling includes so that a build from it leaves out the same
   files.
-- Requires django-mvp 0.24.0 or later. The demo now signs in and out through django-mvp's own
+- Requires django-mvp 0.27.0 or later, where it required 0.24.0. The package's templates use
+  django-mvp's page, card, data-field and empty-state components, which 0.27.0 moved under the
+  `mvp.` prefix (`<c-mvp.page>`, `<c-mvp.card>`), and the old names no longer resolve. A template
+  of yours that replaces one of the shipped pages needs the same rename. See django-mvp's own
+  changelog for the settings its upgrade asks of a project: `daisy_cotton` directly below `mvp` in
+  `INSTALLED_APPS`, the `mvp_forms` form pack in place of `crispy_tailwind`, and `mvp.urls`
+  included at the site root.
+- From django-mvp 0.25.0 the Account Center's navigation is drawn once, in the sidebar, and only
+  on a page that navigation has an entry for. The subscription page has an entry and shows it. The
+  plans page has none, so it is drawn inside the Account Center's layout with the project's own
+  sidebar.
+- The demo now signs in and out through django-mvp's own
   development pages (`LOGIN_URL = "account_login"`) in place of Django's, which fixes its sign-out
   control. That control is drawn only when `account_logout` resolves, and Django's logout view
   refuses the plain link a project without it would need.

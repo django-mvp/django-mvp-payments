@@ -37,7 +37,7 @@
       "Design -> Components"
     ],
     "prior_decisions": [
-      "D3 - The portal is reached by posting to the backend, from a static file. A server-side view of ours that called the endpoint was rejected (Article XII reserves provider calls for the backend), and a plain form posting at the endpoint was rejected because the endpoint answers with JSON, so the reader would land on a page of JSON. What ships is a control carrying the endpoint and a CSRF token as data, plus a small static file that posts, follows the address that comes back, and reveals a message when it cannot. Do not relitigate this.",
+      "D3 - The portal is reached by posting to the backend, from a static file. A server-side view of ours that called the endpoint was rejected (Article XI reserves provider calls for the backend), and a plain form posting at the endpoint was rejected because the endpoint answers with JSON, so the reader would land on a page of JSON. What ships is a control carrying the endpoint and a CSRF token as data, plus a small static file that posts, follows the address that comes back, and reveals a message when it cannot. Do not relitigate this.",
       "D5 - Withholding the portal control from a person with no current subscription is a safety property, not a courtesy. The backend's portal endpoint calls get_or_create_stripe_user, which creates the missing row and then creates a NEW CUSTOMER AT THE PROVIDER before minting a session. A person who had never subscribed would acquire a Stripe customer record by clicking. The control is therefore absent for them, never disabled and never present-but-erroring."
     ],
     "environment": "Poetry project. Run everything with 'poetry run ...' from the worktree root, which is the repository root - this story runs in the main checkout, not a separate worktree. Tests: 'poetry run pytest'. Full verify: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main' - run it once, at your report. The demo project serves this branch on port 8020 with autoreload; the subscription page is at http://127.0.0.1:8020/payments/drf-stripe/subscription/ and the demo signs in as regular.user@example.com with password 'password'.",
@@ -49,7 +49,7 @@
       "Delivery",
       "Payment component"
     ],
-    "conventions": "AGENTS.md -> 'Component layout' (cotton/<backend>/<component>.html, hyphens map to underscores, a name Cotton cannot resolve renders empty rather than raising) and 'Stack & commands'. CONSTITUTION.md Article XII (interface layer only), Article XIII (no backend dependency, no provider script emitted, a component's own logic ships as a small static file with no build step and states what it needs), Article XIV (a page appears because two apps are installed).",
+    "conventions": "AGENTS.md -> 'Component layout' (cotton/<backend>/<component>.html, hyphens map to underscores, a name Cotton cannot resolve renders empty rather than raising) and 'Stack & commands'. CONSTITUTION.md Article XI (interface layer only), Article XII (no backend dependency, no provider script emitted, a component's own logic ships as a small static file with no build step and states what it needs), Article XIII (a page appears because two apps are installed).",
     "verified_base": {
       "commit": "2fa817cc8f7b672a4e54feb9b95a2f51b9a80756",
       "verified_at": "2026-09-22T05:05:00Z",
@@ -109,12 +109,12 @@
     "Do not run any git push, gh command, or forge bot-push. You have no tokens and obtaining one is a breach.",
     "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
     "Do not import drf_stripe anywhere - not in mvp_payments/, not in tests/, not in demo/ outside its settings.",
-    "Do not call the provider or the backend from Python in this package. The control posts from the browser; that is Article XII's line and D3's design.",
+    "Do not call the provider or the backend from Python in this package. The control posts from the browser; that is Article XI's line and D3's design.",
     "Do not emit a script tag for a provider's library and do not add an external origin. The static file you write is served from this package and loaded by the host project.",
     "Do not add a build step, a bundler or an npm dependency for the static file.",
     "Do not read a provider address, publishable key or secret from Django settings. The only setting this story adds is where the backend's own endpoint is mounted.",
     "Do not offer the portal control to a person with no current subscription, and do not render it disabled instead. Read D5 before you are tempted.",
     "Do not name a subscription status in any module under mvp_payments/.",
-    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template. Name it for what it is, and where two module-level functions share a subject, put them on that subject (Article XI)."
+    "Do not mark a name private with a leading underscore - not a helper, not a constant, not a template. Name it for what it is, and where two module-level functions share a subject, put them on that subject (Article X)."
   ]
 }

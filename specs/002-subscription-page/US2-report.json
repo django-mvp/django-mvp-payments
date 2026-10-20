@@ -120,12 +120,12 @@
     },
     {
       "what": "billing_portal.js never writes the backend's response text into the DOM. The failure message is static, translated text rendered by portal_link.html at page-render time; the script only toggles its hidden attribute.",
-      "why": "Article XII's 'no trust in what comes back' extended to the one piece of this feature that runs after the template has rendered, and it keeps the failure message translatable through {% translate %} rather than embedded as an English string in JavaScript.",
+      "why": "Article XI's 'no trust in what comes back' extended to the one piece of this feature that runs after the template has rendered, and it keeps the failure message translatable through {% translate %} rather than embedded as an English string in JavaScript.",
       "decision_ref": "D10"
     }
   ],
   "concerns": [
-    "T019 (mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js) has no Python test. It runs in the browser and this package cannot import it or call the backend's endpoint from Python (Article XII forbids a server-side call to it), so there is no seam in this repo's test suite to drive it from. Its coverage is the acceptance scenario it implements (US-2 scenario 2 and 3) and the demo's manual reachability, not an automated test.",
+    "T019 (mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js) has no Python test. It runs in the browser and this package cannot import it or call the backend's endpoint from Python (Article XI forbids a server-side call to it), so there is no seam in this repo's test suite to drive it from. Its coverage is the acceptance scenario it implements (US-2 scenario 2 and 3) and the demo's manual reachability, not an automated test.",
     "The portal-link component's 'no endpoint' branch ('the provider manages the subscription and the portal cannot be reached') renders today for a person with no current subscription too, since billing_portal_endpoint is None for that case exactly as it is for a genuinely unconfigured setting — the component has no way to tell the two apart from the endpoint value alone. That wording overstates 'has a subscription' for someone who never subscribed. Not this story's to fix: the subscription page has no {% empty %} branch yet (US-4's, explicitly out of this story's scope per the brief's prohibitions), and that story's own empty-state template will replace this page's rendering for that case entirely. Left as a watch item in progress.md for US-4 to account for."
   ],
   "blocked": []

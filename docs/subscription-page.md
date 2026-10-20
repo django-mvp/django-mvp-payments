@@ -214,7 +214,7 @@ either side of the broken lookup — read the customer identifier the backend al
 the provider for a session. `demo/views.py` has a working one, at about twenty lines.
 
 This package cannot ship that endpoint for you. It reaches a provider only through a backend's
-HTTP endpoints and imports no provider SDK at all, which Article XII of the constitution makes
+HTTP endpoints and imports no provider SDK at all, which Article XI of the constitution makes
 absolute and `tests/test_app.py` enforces. A project of your own is bound by neither.
 
 `<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
@@ -320,8 +320,8 @@ precede `mvp` (see the README's Install step).
 ```html
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
-  <c-page>
-    <c-page.title :title="page.title" />
+  <c-mvp.page>
+    <c-mvp.page.title :title="page.title" />
     {# Polls for itself while a payment is on its way; see provider_return. #}
     <div id="mvp-payments-subscription"
          class="flex flex-col gap-6"
@@ -334,7 +334,6 @@ precede `mvp` (see the README's Install step).
           <c-drf-stripe.no-subscription />
         {% endif %}
       {% endfor %}
-      {# Both ways onward on one line, wrapping on a narrow screen. #}
       <div class="flex flex-wrap items-start gap-3"
            data-mvp-payments-subscription-actions>
         <c-drf-stripe.plans-link :url="plans_url"
@@ -345,7 +344,7 @@ precede `mvp` (see the README's Install step).
         {% endif %}
       </div>
     </div>
-  </c-page>
+  </c-mvp.page>
 {% endblock account.content %}
 ```
 

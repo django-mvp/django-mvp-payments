@@ -58,7 +58,7 @@
       "Host project",
       "Theme"
     ],
-    "conventions": "AGENTS.md \u2014 Development workflow. CONSTITUTION.md Articles VIII (translatable strings), X (test structure), XI (cohesion), XII (what this package may not do), XIV (gate on installation, register in ready()), XVI (assert rendered output, never a class name).",
+    "conventions": "AGENTS.md \u2014 Development workflow. CONSTITUTION.md Articles VIII (translatable strings), I (test structure), X (cohesion), XI (what this package may not do), XIII (gate on installation, register in ready()), XV (assert rendered output, never a class name).",
     "acceptance": [
       {
         "task": "T005",

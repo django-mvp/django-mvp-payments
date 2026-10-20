@@ -133,7 +133,7 @@
     "Do not add any dependency, runtime or development. The package must keep declaring exactly django and django-mvp.",
     "Do not import drf_stripe anywhere — not in mvp_payments/, not in tests/, not in demo/ outside its settings. Use apps.get_model.",
     "Do not add a model, migration, form, admin or serializer to mvp_payments/.",
-    "Do not compute a total, a proration, a next charge or any figure that combines two recorded values. If a sum looks obviously useful, that is FR-007 and Article XII telling you not to.",
+    "Do not compute a total, a proration, a next charge or any figure that combines two recorded values. If a sum looks obviously useful, that is FR-007 and Article XI telling you not to.",
     "Do not name a subscription status in any module under mvp_payments/. The backend decides which are current, and the page renders whatever string it holds."
   ]
 }

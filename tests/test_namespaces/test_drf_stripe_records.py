@@ -1,4 +1,4 @@
-"""Reading the backend's records as presentation objects (D1)."""
+"""Reading the backend's records as presentation objects."""
 
 import inspect
 
@@ -28,8 +28,6 @@ def _plan(frequency):
 
 @pytest.mark.django_db
 class TestSubscriptionReader:
-    """``for_user`` reads only what the backend itself calls current."""
-
     def test_returns_one_entry_per_subscription_the_backend_calls_current(self, user):
         stripe_user = StripeUserFactory(user=user)
         subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
@@ -98,10 +96,6 @@ class TestSubscriptionReader:
 
 @pytest.mark.django_db
 class TestPlanFeatures:
-    """A plan carries the features recorded against its own product (FR-009), never a
-    different product's and never the person's (Decisions.md "Why features come from
-    the plan rather than from the person")."""
-
     def _subscribe(self, user, product):
         stripe_user = StripeUserFactory(user=user)
         subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
@@ -155,12 +149,6 @@ class TestPlanFeatures:
         assert plan.features == ()
 
     def test_a_feature_recorded_against_a_different_product_never_appears(self, user):
-        """Asserted as "exactly its own", not "none".
-
-        A plan whose product has no features of its own would read empty whether the
-        other product's feature leaked or the reading returned nothing at all, so the
-        plan's product carries one here and the assertion names it.
-        """
         product = ProductFactory()
         ProductFeatureFactory(
             product=product, feature=FeatureFactory(feature_id="mine")
@@ -177,9 +165,6 @@ class TestPlanFeatures:
 
 @pytest.mark.django_db
 class TestPlanAmountCasing:
-    """A price row carries the case the provider sent, which is not the case the
-    exponent tables are written in."""
-
     def test_a_zero_decimal_price_recorded_in_lower_case_still_converts(self, user):
         stripe_user = StripeUserFactory(user=user)
         subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
@@ -192,10 +177,6 @@ class TestPlanAmountCasing:
 
 
 class TestPlanFrequencyDisplay:
-    """``frequency_display`` renders the backend's ``interval_count`` encoding through ngettext,
-    and shows an unrecognised one as itself (Article XVI).
-    """
-
     def test_a_count_of_one_renders_the_singular_form(self):
         assert _plan("month_1").frequency_display == "every month"
 
@@ -209,18 +190,11 @@ class TestPlanFrequencyDisplay:
         assert _plan(None).frequency_display == ""
 
     def test_the_spelling_the_backends_own_sync_stores_renders_the_same(self):
-        """What the backend writes for a price synchronised from the provider on Python 3.12+.
-
-        Every real record carries this, so reading only ``month_1`` would show a subscriber
-        ``RecurringInterval.MONTH_1`` on their own subscription page.
-        """
         assert _plan("RecurringInterval.MONTH_1").frequency_display == "every month"
         assert _plan("RecurringInterval.YEAR_2").frequency_display == "every 2 years"
 
 
 class TestNoStatusIsNamed:
-    """No status string appears anywhere in this module (D1)."""
-
     def test_no_access_granting_status_is_named_in_the_source(self):
         source = inspect.getsource(drf_stripe_records)
         for status in (

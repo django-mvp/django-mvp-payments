@@ -412,7 +412,7 @@ Next: T032.
 
 ## 2026-09-22 · Implementer US5 · T032
 
-Did: `CONSTITUTION.md` Article XII's "No secret keys" bullet and Article XIII's embed paragraph
+Did: `CONSTITUTION.md` Article XI's "No secret keys" bullet and Article XII's embed paragraph
 each narrowed from "never read from Django settings by this package" to "a component never reads
 it from Django settings" plus one sentence naming a page this package ships as the permitted
 reader that passes it down as the attribute. No reasoning added to the constitution; the why is
@@ -420,7 +420,7 @@ reader that passes it down as the attribute. No reasoning added to the constitut
 Verified: read both amended sentences against `mvp_payments/views.py::PlansPageView` — it is the
 only settings read the amendment has to cover, and no component gained one.
 `poetry run pytest tests/test_app.py tests/test_views.py -q` — 43 passed, confirming the
-Article XII/XIII guarantees `TestPackagedApp` already holds are unaffected.
+Article XI/XIII guarantees `TestPackagedApp` already holds are unaffected.
 Next: T033.
 
 ## 2026-09-22 · Implementer US5 · T033

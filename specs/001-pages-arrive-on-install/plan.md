@@ -33,7 +33,7 @@ no consumer.
 
 **Testing**: pytest with pytest-django, settings inherited from `demo/settings.py` by
 `tests/settings.py`. Assertions are made against rendered output, never against class names
-(Article XVI).
+(Article XV).
 
 **Target Platform**: a Django project that has installed django-mvp.
 
@@ -41,7 +41,7 @@ no consumer.
 data.
 
 **Constraints**: nothing at import time may touch the application registry, reverse a URL or read
-settings (Article XIV). `mvp_payments` must precede `mvp` in `INSTALLED_APPS` for its template
+settings (Article XIII). `mvp_payments` must precede `mvp` in `INSTALLED_APPS` for its template
 override to resolve.
 
 **Scale/Scope**: one namespace, three pages, one card, five user stories.
@@ -52,19 +52,19 @@ Read before planning and re-checked after the design below.
 
 | Article | Bearing on this feature | Verdict |
 |---|---|---|
-| I Test-First | Every behaviour here is observable through a rendered page or a menu, so every task is testable before it is written | Pass |
+| I Testing | Every behaviour here is observable through a rendered page or a menu, so every task is testable before it is written | Pass |
 | II Simplicity / III Anti-Abstraction | One class, `Contribution`, and one instance of it. It is not a base class and nothing subclasses it. It exists because the specification names the concept and because three surfaces must agree on one condition | Pass |
 | VI Documentation | README install order corrected, what appears documented, CHANGELOG entry, the superseded working notes removed | Pass |
 | VII Dependency discipline | No runtime dependency added. Two development dependencies, justified in `research.md` | Pass |
 | VIII Internationalization | Every label, page title and card string is wrapped for translation | Pass |
 | IX Data-model conventions | No model, no field, no migration | Not applicable |
-| X Test structure | Test modules mirror the source tree; a suite whose subject is not a Python module is declared under `[tool.forge.conformance] non-mirror-paths` | Pass |
-| XI Cohesion | The namespace's behaviour is grouped on `Contribution`. The template tag module is a framework-dictated shape and an explicit exception | Pass |
-| XII Interface layer | **Amended by this feature.** The restriction of every view to a template-rendering one is lifted; views are built on django-mvp's view classes. Everything else the article forbids is unchanged and still asserted by `tests/test_app.py` | Amended, see Complexity Tracking |
-| XIII No backend dependency | No backend declared, none imported. A contribution names its backend by application label, a string | Pass |
-| XIV A page appears because two apps are installed | The whole feature. Gate on installation, register in `ready()`, use django-mvp's published extension points, and an unreachable entry is already hidden by django-flex-menus | Pass |
-| XV One namespace per backend | `Contribution` carries no cross-backend behaviour. Two namespaces share the registration mechanism and nothing about what a page means | Pass |
-| XVI Rendered output is a contract | Every page, entry and card has a test asserting rendered output. No amount is rendered anywhere in this feature | Pass |
+| I Test structure | Test modules mirror the source tree; a suite whose subject is not a Python module is declared under `[tool.forge.conformance] non-mirror-paths` | Pass |
+| X Cohesion | The namespace's behaviour is grouped on `Contribution`. The template tag module is a framework-dictated shape and an explicit exception | Pass |
+| XI Interface layer | **Amended by this feature.** The restriction of every view to a template-rendering one is lifted; views are built on django-mvp's view classes. Everything else the article forbids is unchanged and still asserted by `tests/test_app.py` | Amended, see Complexity Tracking |
+| XII No backend dependency | No backend declared, none imported. A contribution names its backend by application label, a string | Pass |
+| XIII A page appears because two apps are installed | The whole feature. Gate on installation, register in `ready()`, use django-mvp's published extension points, and an unreachable entry is already hidden by django-flex-menus | Pass |
+| XIV One namespace per backend | `Contribution` carries no cross-backend behaviour. Two namespaces share the registration mechanism and nothing about what a page means | Pass |
+| XV Rendered output is a contract | Every page, entry and card has a test asserting rendered output. No amount is rendered anywhere in this feature | Pass |
 
 ## Project Structure
 
@@ -82,7 +82,7 @@ specs/001-pages-arrive-on-install/
 ```
 
 No `data-model.md`: the feature has no data. No `contracts/`: the rendered page is the contract and
-Article XVI already says how it is asserted.
+Article XV already says how it is asserted.
 
 ### Source code
 
@@ -125,7 +125,7 @@ demo/
 
 **Structure Decision**: the layout follows the package's existing shape — a flat application with
 templates under `mvp_payments/templates/` — and adds one subpackage, `namespaces/`, so that a second
-backend is a new file beside the first rather than an edit to a shared one. That is Article XV
+backend is a new file beside the first rather than an edit to a shared one. That is Article XIV
 expressed as a directory.
 
 ## Design
@@ -135,7 +135,7 @@ expressed as a directory.
 `Contribution` is a frozen dataclass holding the backend's application label, the namespace slug,
 its pages and its card. `Page` holds a slug, a URL name, a label, an icon and a template. Neither
 constructs a `MenuItem`: building one attaches it to the global menu tree immediately, which
-Article XIV forbids at import time. Entries are built inside `register()`.
+Article XIII forbids at import time. Entries are built inside `register()`.
 
 Four methods, one condition for the three surfaces and a second one the card alone needs:
 
@@ -174,7 +174,7 @@ registering twice renders the navigation once.
 ## Phases
 
 **Foundational** (sequential, before any story): development dependencies; the backend installed and
-its URLs mounted in the demo; the standards document's Article XII amended; the superseded working
+its URLs mounted in the demo; the standards document's Article XI amended; the superseded working
 notes and the reference to them removed.
 
 Then the stories, in priority order: US-1, US-2, US-3, US-4, US-5, dispatched one at a time into a
@@ -186,5 +186,5 @@ whatever code each one turns out to need.
 
 | Violation | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| Article XII amended to allow views beyond template rendering | The repository owner lifted the restriction at intake. A page that will show a person their own subscription cannot be a template with no view behind it | Keeping the restriction would have made R2, R3 and R5 impossible to build in this package at all, which was the reason it was lifted |
+| Article XI amended to allow views beyond template rendering | The repository owner lifted the restriction at intake. A page that will show a person their own subscription cannot be a template with no view behind it | Keeping the restriction would have made R2, R3 and R5 impossible to build in this package at all, which was the reason it was lifted |
 | A `Contribution` class with one instance | Three surfaces must agree on one condition, and the specification names the concept in its own glossary | Three independent `is_installed` checks — rejected because they drift, and a drift of that kind renders an entry whose page does not exist |

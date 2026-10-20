@@ -32,7 +32,7 @@ conditions US-4's third scenario and the specification's last edge case name, an
 both.
 
 Self-hosting the library is forbidden by the provider's own terms, so it must come from their
-network. That is the provider's constraint and the reason Article XIII's split exists rather than
+network. That is the provider's constraint and the reason Article XII's split exists rather than
 a recommendation this package could make differently.
 
 ## The backend: how a purchase finds its person
@@ -73,7 +73,7 @@ passed as an attribute rather than left to the person at checkout.
 
 - **Reading the provider's catalogue to render our own plan grid.** Settled at the spec gate and
   recorded in `decisions.md`; not reopened here.
-- **A build step or bundler for the failure check.** Article XIII forbids it and the check is four
+- **A build step or bundler for the failure check.** Article XII forbids it and the check is four
   lines.
 - **Feature-detecting the element by waiting for it to paint.** Timing-based, flaky, and it would
   claim to detect states — an archived table, a mismatched key pair — that the specification

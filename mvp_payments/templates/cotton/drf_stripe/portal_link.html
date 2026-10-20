@@ -1,22 +1,8 @@
 {% load i18n %}
-{# ============================================================ #}
-{# <c-drf-stripe.portal-link> — the way through to the provider's #}
-{# billing portal (D3)                                            #}
-{#                                                                #}
-{# Props:                                                        #}
-{#   endpoint – the backend's portal endpoint, or None            #}
-{#                                                                #}
-{# Also reads {{ csrf_token }} from context, which Django's own   #}
-{# context processor supplies. Rendered with no request behind    #}
-{# it, the control comes out with an empty token and every post   #}
-{# it makes is rejected. Taking the token as an attribute instead #}
-{# would invite a caller to pass a stale one.                     #}
-{#                                                                #}
-{# Absent for anyone with nothing current (D5): the backend's     #}
-{# endpoint creates a customer at the provider for whoever posts  #}
-{# to it, so no control is offered where there is nothing to      #}
-{# manage. billing_portal.js binds the control and posts it.      #}
-{# ============================================================ #}
+{# @description The way through to the provider's billing portal: a control that posts to the backend's portal endpoint, or a note when there is none. #}
+{# @prop endpoint:text | description:"The backend's portal endpoint. Without it, a note replaces the control." #}
+{# The CSRF token comes from context, never an attribute a caller could fill with a stale one. billing_portal.js posts the control (ADR 0005). #}
+{# Offered only to somebody with a current subscription, because the endpoint creates a provider customer for whoever posts to it (ADR 0007). #}
 <c-vars endpoint />
 {% if endpoint %}
   <div data-mvp-payments-portal-link

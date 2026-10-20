@@ -1,12 +1,8 @@
 """``tests.settings``, plus the second namespace's own installed application.
 
-`Contribution.is_available()` only reports a namespace available once its
-backend's application is installed (D1), and `mvp_payments/urls.py` builds
-`urlpatterns` once, at import, while `MvpPaymentsConfig.ready()` registers
-navigation entries once, at startup — both from `INSTALLED_APPS` as it stands
-at that point (see `settings_without_backend`). So this is a distinct
-settings module a fresh process starts from, not a setting overridden
-mid-test.
+A namespace is available only once its backend's application is installed, and
+the URLs and navigation entries are built once at startup (see
+`settings_without_backend`), so a fresh process starts from this module.
 """
 
 from tests.settings import *  # noqa: F403

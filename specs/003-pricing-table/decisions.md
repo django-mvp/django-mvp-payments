@@ -32,7 +32,7 @@ the component.
 The provider's dashboard issues a script element and a custom element together, and every example
 in its documentation pastes both. This package emits only the second.
 
-Article XIII is the rule, and it is not tidiness. A package that injected a script element would
+Article XII is the rule, and it is not tidiness. A package that injected a script element would
 add a third-party origin to every project that installed it, whether or not that project had
 agreed to one. Delivery of a provider's library is a decision projects already make, in whatever
 way they already manage their frontend, and it differs between a project using a bundler, one using
@@ -45,7 +45,7 @@ recommendation.
 
 ## Why the page may read a publishable key from settings and the component may not
 
-Article XIII currently says a publishable key "is never read from Django settings here" and reaches
+Article XII currently says a publishable key "is never read from Django settings here" and reaches
 a component as an attribute. Applied literally to this feature, the shipped Plans page cannot work:
 nobody is passing it attributes, because the whole point of that page is that a project writes no
 template for it.
@@ -128,7 +128,7 @@ drf-stripe-subscription 1.2.2 carries the email-only lookup verbatim, and a sear
 provider built for this exact reconciliation really is read nowhere, which is why FR-005 passes the
 address instead.
 
-The constitution narrowing was checked for collateral damage and has none. Article XII's "No secret
+The constitution narrowing was checked for collateral damage and has none. Article XI's "No secret
 keys" bullet contains two separate prohibitions: one on an API key, webhook signing secret or
 restricted key, and one on a publishable key. Only the second is narrowed. Whoever writes the
 replacement text keeps the first package-wide and untouched, because a careless edit to the
@@ -147,7 +147,7 @@ Plans page's full rendered HTTP response.
 
 **Why:** T004 was written and green before T010 existed. Once T010 adds the demo project's own
 `{% block provider_library %}` to `demo/templates/base.html` — loading
-`https://js.stripe.com/v3/pricing-table.js`, exactly as Article XIII and the plan's design say a
+`https://js.stripe.com/v3/pricing-table.js`, exactly as Article XII and the plan's design say a
 host project is free to — every page the demo serves inherits that script through the base
 template every page extends, the Plans page included. A runtime assertion against the full
 response reads that script and fails, not because this package emitted it, but because the demo,
@@ -160,7 +160,7 @@ appears relative to this package's markup — that would be a test of the demo p
 template, not of `mvp_payments`.
 
 **ADR:** none — where one success criterion is proved, recorded against the criterion it belongs
-to, the same as D4. The standard it tests is already Article XIII's; this decides the assertion's
+to, the same as D4. The standard it tests is already Article XII's; this decides the assertion's
 level, not the rule.
 
 ## D3 — US-1 triage: the Plans page's routing assertion was Forge's to update
@@ -386,7 +386,7 @@ settings module stops being an invented mechanism and becomes the only way to is
 
 ## D12 — CONSTITUTION.md's "no publishable key from settings" rule narrows to the component, and names the page as the permitted reader
 
-**Decision:** Article XII's "No secret keys" bullet and Article XIII's embed paragraph each said,
+**Decision:** Article XI's "No secret keys" bullet and Article XII's embed paragraph each said,
 flatly, that a publishable key is "never read from Django settings by this package". Both now say
 a *component* never reads it from settings, and that a page this package ships may read it from
 settings and pass it down as the attribute the component already accepts.
@@ -407,7 +407,7 @@ component to the same zero-query, no-view guarantee T016 established for the shi
 
 What changes is which *kind* of object is allowed to be the one exception. A page is not a
 component: it already has a `get_context_data`, it is already the one place in this package
-permitted a view (Article XIV's "a page appears because two apps are installed" is about how a
+permitted a view (Article XIII's "a page appears because two apps are installed" is about how a
 page is *routed*, not what its view may read), and it is the one place a project overriding the
 component cannot reach around — supplying `cotton/drf_stripe/pricing_table.html` still goes
 through whichever page places the tag. Narrowing the rule to the component, rather than dropping
@@ -418,7 +418,7 @@ instead of an accident of how this one feature happened to be built.
 feature's standing instruction that the constitution states rules and this file carries the why.
 `mvp_payments/views.py::PlansPageView` is the only place in the package that reads
 `DRF_STRIPE_PUBLISHABLE_KEY`; `tests/test_app.py::TestPackagedApp::test_no_module_reaches_a_database_or_a_provider`
-and the rest of `TestPackagedApp` continue to hold every other Article XII/XIII guarantee this
+and the rest of `TestPackagedApp` continue to hold every other Article XI/XIII guarantee this
 amendment does not touch.
 
 **Revisit if:** a second backend's page needs to read a different setting a component must never

@@ -27,7 +27,7 @@ the subscription the person already has. Opening it directly, rather than on the
 page, keeps "Switch plans" meaning what it says.
 
 The endpoint belongs to the project for the same reason the portal endpoint does. This package may
-not call a provider (Article XII), and the backend ships no endpoint for the plan-change screen.
+not call a provider (Article XI), and the backend ships no endpoint for the plan-change screen.
 Naming the endpoint in settings is the pattern ADR 0005 already set.
 
 Suppressing the control without the setting, rather than falling back to the Plans page, follows

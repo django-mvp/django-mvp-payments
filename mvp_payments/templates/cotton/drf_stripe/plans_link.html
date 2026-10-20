@@ -1,26 +1,10 @@
 {% load i18n %}
-{# ============================================================ #}
-{# <c-drf-stripe.plans-link> — the way to another plan           #}
-{#                                                                #}
-{# Props:                                                        #}
-{#   url             – where the plans page is mounted            #}
-{#   subscribed      – whether this reader is on a plan already   #}
-{#   switch_endpoint – the project's plan-change endpoint, or None#}
-{#                                                                #}
-{# Somebody on no plan gets a link to the plans page, worded as  #}
-{# a choice. Somebody on a plan gets "Switch plans", which posts #}
-{# to switch_endpoint and follows the provider's plan-change     #}
-{# screen — never the plans page, whose pricing table cannot     #}
-{# tell them which plan they are on and would sell them a second #}
-{# subscription. Without an endpoint a subscriber gets nothing   #}
-{# here: the control is suppressed rather than pointed somewhere #}
-{# that does the wrong thing.                                    #}
-{#                                                                #}
-{# The subscriber's control carries the same data attributes as #}
-{# <c-drf-stripe.portal-link>, so billing_portal.js binds it     #}
-{# too. It reads {{ csrf_token }} from context for the same      #}
-{# reason that component does.                                   #}
-{# ============================================================ #}
+{# @description The way to another plan. A reader on no plan gets a link to the plans page. A subscriber gets a control that opens the provider's plan-change screen, or nothing when no endpoint is configured. #}
+{# @prop url:text | description:"Where the plans page is mounted." #}
+{# @prop subscribed:boolean | default:False | description:"Whether the reader is on a plan already." #}
+{# @prop switch_endpoint:text | description:"The project's plan-change endpoint. Without it a subscriber is offered nothing." #}
+{# A subscriber never gets the plans page, whose pricing table would sell them a second subscription (ADR 0008). #}
+{# The control carries portal-link's data attributes so billing_portal.js binds it, and reads csrf_token from context for the same reason. #}
 <c-vars url subscribed=False switch_endpoint />
 {% if subscribed %}
   {% if switch_endpoint %}

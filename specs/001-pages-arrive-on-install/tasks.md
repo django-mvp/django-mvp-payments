@@ -9,7 +9,7 @@ Per-task test scope is the class or module the task touches. The full suite runs
 the story's report.
 
 Assertions are made against rendered output, never against the presence of a class name
-(Article XVI).
+(Article XV).
 
 ## Phase 0 — Foundational
 
@@ -37,7 +37,7 @@ convergence.
   authentication URLs with a sign-in template, set the sign-in location and where it returns to,
   and add a development-only management command seeding the standard demo accounts. None of it is
   package code; it all lives under `demo/`.
-- **T003** `CONSTITUTION.md` — amend Article XII. The sentence restricting a view to one that hands
+- **T003** `CONSTITUTION.md` — amend Article XI. The sentence restricting a view to one that hands
   a template to the renderer goes, and the paragraph around it is rewritten to say that a page may
   have whatever view it needs, built on django-mvp's view classes. Everything else the article
   forbids stays exactly as written: no models, no migrations, no forms or admin or serializers, no
@@ -81,7 +81,7 @@ convergence.
   `ready()` and the URL configuration both call it and neither may reverse a URL.
   `is_reachable()` is the second half — this namespace's pages reverse — and only a render-time
   caller may use it (D3). No `MenuItem` is constructed at import time: building one attaches it to
-  the global tree, which Article XIV forbids before the application is ready. `register()` is
+  the global tree, which Article XIII forbids before the application is ready. `register()` is
   idempotent by entry name.
 - **T011** `mvp_payments/namespaces/__init__.py`, `mvp_payments/namespaces/drf_stripe.py` — the
   drf-stripe contribution, declaring the subscription, plans and billing pages with translatable
@@ -144,7 +144,7 @@ convergence.
 - **T024** `mvp_payments/templatetags/mvp_payments.py` — the tag, rendering the card of each
   contribution that is both available and reachable. Both halves are on `Contribution` already
   (T010), so the tag asks rather than decides. A registered template tag module is an explicit
-  exception to Article XI, so this is not a structural deviation.
+  exception to Article X, so this is not a structural deviation.
 - **T025** `mvp_payments/templates/mvp/account/overview.html`,
   `mvp_payments/templates/mvp_payments/card.html` — the override extends the same template name,
   keeps `{{ block.super }}` and calls the tag. The card carries a translatable heading and a link

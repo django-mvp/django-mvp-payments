@@ -6,9 +6,8 @@ Overriding the setting after that point leaves all three exactly as they were
 built the first time — a namespace's pages stay mounted and its entries stay
 registered no matter what a later test claims about installed applications.
 
-US-2's claim is what a project that never installed the backend gets, so this
-is a distinct settings module a fresh process starts from, not a setting
-overridden mid-test.
+So a fresh process starts from this module, rather than a test overriding the
+setting mid-run.
 """
 
 from tests.settings import *  # noqa: F403

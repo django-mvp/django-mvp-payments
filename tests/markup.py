@@ -1,14 +1,14 @@
 """Regions of a rendered Account Center, for tests that need one part of it.
 
-Article XVI asks for assertions against rendered output rather than against the
+Article XV asks for assertions against rendered output rather than against the
 presence of a class name. A whole page is often too coarse for that: the same
 label appears in the navigation and on a card, so counting it across the page
 answers a question nobody asked. These helpers narrow an assertion to the
 region it is actually about.
 
-django-mvp draws the Account Center's navigation twice — a collapsed copy above
-the content and a persistent one beside it — so one registered entry
-legitimately renders once per region.
+django-mvp draws the Account Center's navigation once, in the sidebar, on every
+page the Account Center's menu has an entry for. A page with no entry keeps the
+project's own sidebar and has no such region.
 """
 
 NAVIGATION_LABEL = 'aria-label="Account navigation"'
@@ -37,7 +37,7 @@ def account_navigation_regions(content: str) -> list[str]:
         found = content.find(NAVIGATION_LABEL, searched_to)
         if found == -1:
             return regions
-        region = _enclosing_element(content, found, "ul")
+        region = _enclosing_element(content, found, "nav")
         regions.append(region)
         searched_to = found + len(NAVIGATION_LABEL)
 

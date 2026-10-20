@@ -4,7 +4,7 @@ Development only. The demo project is never deployed, and these passwords are
 written here in plain sight precisely so nobody mistakes them for real ones.
 
 The backend's models are reached through ``apps.get_model`` rather than imported, matching the
-rule ``mvp_payments/`` itself follows (Article XIII) — the demo shows the package working the same
+rule ``mvp_payments/`` itself follows (Article XII) — the demo shows the package working the same
 way a host project would use it, not a shortcut available only here.
 """
 
@@ -68,7 +68,7 @@ class Command(BaseCommand):
             self._seed_subscriptions(user_model)
 
     def seed_sandbox_subscriptions(self, user_model):
-        """Real subscriptions in the provider's sandbox, pulled back into the backend's records.
+        """Create real subscriptions in the provider's sandbox and read them back.
 
         Used instead of the invented records whenever ``demo/.env`` holds a sandbox key. The
         provider's portal shows, switches and cancels only subscriptions it holds itself, so a
@@ -84,6 +84,9 @@ class Command(BaseCommand):
         Invented subscriptions left by an earlier offline run are removed, so the page never
         shows one beside a real one. Products, prices and subscriptions are then read back
         through the backend's own synchronisation, exactly as its management commands do.
+
+        Args:
+            user_model: The project's user model.
         """
         from drf_stripe.stripe_api.products import stripe_api_update_products_prices
         from drf_stripe.stripe_api.subscriptions import stripe_api_update_subscriptions
@@ -118,7 +121,14 @@ class Command(BaseCommand):
         self.stdout.write("pulled sandbox products, prices and subscriptions")
 
     def cheapest_monthly_price(self):
-        """The sandbox's cheapest active monthly price, so every run picks the same one."""
+        """Find the sandbox's cheapest active monthly price, so every run picks the same one.
+
+        Returns:
+            The price's identifier.
+
+        Raises:
+            CommandError: The sandbox has no active monthly price.
+        """
         prices = [
             price
             for price in stripe.Price.list(
@@ -134,7 +144,16 @@ class Command(BaseCommand):
         return min(prices, key=lambda price: price.unit_amount or 0).id
 
     def ensure_sandbox_subscription(self, customer_id, price_id, trial_days):
-        """Subscribe this customer with the provider's test card, unless they are already."""
+        """Subscribe this customer with the provider's test card, unless they are already.
+
+        Args:
+            customer_id: The provider's identifier for the customer.
+            price_id: The price to subscribe them to.
+            trial_days: Days of trial to start with, or none.
+
+        Returns:
+            The customer's live subscription, existing or new.
+        """
         live = [
             subscription
             for subscription in stripe.Subscription.list(
@@ -156,7 +175,7 @@ class Command(BaseCommand):
         )
 
     def _customer_id(self, email, fallback):
-        """A provider customer for this person, real where the demo has credentials.
+        """Find or create a provider customer for this person, where the demo has credentials.
 
         The portal a subscriber is handed to is minted by the provider for a customer it knows
         about, so an invented identifier gets as far as the button and no further: the control
@@ -167,6 +186,13 @@ class Command(BaseCommand):
 
         Without credentials it returns the invented identifier and the demo behaves exactly as a
         project that has not configured its backend, which is worth being able to look at too.
+
+        Args:
+            email: The person's email address.
+            fallback: The invented identifier to use without credentials.
+
+        Returns:
+            The provider's customer identifier.
         """
         secret = getattr(settings, "DEV_ENV", {}).get("STRIPE_TEST_SECRET_KEY")
         if not secret:
@@ -179,11 +205,19 @@ class Command(BaseCommand):
         return stripe.Customer.create(email=email, name=email.partition("@")[0]).id
 
     def _stripe_user(self, stripe_user_model, user, fallback_customer_id):
-        """This person's backend customer record, with its identifier kept current.
+        """Get or create this person's backend customer record, keeping its identifier current.
 
         ``get_or_create`` applies its defaults only when it creates, so a demo database seeded
         before credentials were configured would keep its invented identifier forever and the
         portal would go on failing for reasons nothing on screen explains.
+
+        Args:
+            stripe_user_model: The backend's ``StripeUser`` model.
+            user: The person the record belongs to.
+            fallback_customer_id: The invented identifier to use without credentials.
+
+        Returns:
+            The person's ``StripeUser`` record.
         """
         customer_id = self._customer_id(user.email, fallback_customer_id)
         stripe_user, created = stripe_user_model.objects.get_or_create(
@@ -200,9 +234,12 @@ class Command(BaseCommand):
         ``regular.user`` gets one active subscription covering two priced items in different
         currencies, on products that carry a feature each. ``staff.user`` gets a subscription the
         backend counts as trialing. ``super.user`` is left with no ``StripeUser`` row at all, so
-        the empty state (US-4) is reachable without editing anything. A fourth, unlisted person
+        the empty state is reachable without editing anything. A fourth, unlisted person
         gets a subscription of their own — nothing this command creates for ``regular.user`` may
         ever show it, which is the cross-user guarantee the page's own tests hold separately.
+
+        Args:
+            user_model: The project's user model.
         """
         stripe_user_model = apps.get_model("drf_stripe", "StripeUser")
         feature_model = apps.get_model("drf_stripe", "Feature")

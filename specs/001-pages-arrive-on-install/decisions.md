@@ -358,7 +358,7 @@ exactly what this project's review standard rejects, so the assertion is tighten
 and the card then uses the component.
 
 **`AGENTS.md` still describes every view here as a template-rendering one** and the package as
-Cotton components only. Article XII was amended in this feature's foundational phase and two
+Cotton components only. Article XI was amended in this feature's foundational phase and two
 separate story reports have now flagged the contradiction. It was outside every story's named
 scope, which is correct — it is repository-level documentation, not a story's surface.
 

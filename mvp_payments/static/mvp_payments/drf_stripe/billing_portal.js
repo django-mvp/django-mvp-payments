@@ -1,16 +1,8 @@
-/**
- * Binds <c-drf-stripe.portal-link>'s control, and the "Switch plans" control
- * <c-drf-stripe.plans-link> renders for a subscriber: posts to the endpoint
- * the control carries, with the CSRF token the component rendered as data,
- * and follows the address the answer carries. Reveals one of the control's own
- * hidden messages on any failure rather than sending the reader nowhere
- * (D3, US-2 scenario 3): "reload the page" when the page has outlived the
- * session, "could not be reached" otherwise.
- *
- * No build step and no bundler (Article XIII) — this file is loaded exactly
- * as the host project loads its other static assets, and acts only on a click
- * inside its own control rather than assuming one is present.
- */
+// Posts each portal-link control to its endpoint and follows the address returned,
+// revealing the control's hidden failure message on any failure (ADR 0005), or its
+// "reload" message when the page has outlived the session.
+// Loaded as a plain static file, with no build step (Article XII).
+
 // The token Django checks is the one in its cookie now, not the one the page
 // was rendered with: signing in again replaces it, so a page left open would
 // send a token that is refused. The rendered one is the fallback for a
