@@ -40,7 +40,8 @@ properly, on the current SDK, with no dependency beyond Stripe's own library.
 
 The install option is called `stripe-lite` rather than `stripe` so that nobody reads it as
 support for a fuller Stripe integration such as dj-stripe. The app's Django label is
-`mvp_payments_stripe`, so it cannot collide with another app called `stripe`.
+`mvp_payments_stripe`, so its tables, such as `mvp_payments_stripe_subscription`, name the package
+that owns them rather than reading as Stripe's own.
 
 ## What it costs
 
