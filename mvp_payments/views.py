@@ -88,12 +88,21 @@ class SubscriptionPageView(PaymentPageView):
     - ``plans_url``: the plans page, which is not in the navigation.
     - ``plan_switch_endpoint``: the project's endpoint opening the provider's plan-change screen,
       from the same settings (ADR 0008). ``None`` for anyone with nothing current.
+    - ``provider_return``: set when the reader comes back from the provider (``?returned=N``) and
+      nothing current shows yet, because the backend can hear of a payment after the reader is
+      back. A dict of ``attempt`` and ``poll_url``, which is ``None`` once ``RETURN_POLL_LIMIT``
+      polls are spent. ``None`` otherwise.
     """
+
+    #: How many times the subscription region polls for a payment to arrive after the reader
+    #: comes back from the provider, before it stops and says to reload later.
+    RETURN_POLL_LIMIT = 5
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Add the subscriptions and the ways onward from them."""
         context: dict[str, Any] = super().get_context_data(**kwargs)
         subscriptions = SubscriptionReader.for_user(self.request.user)
+        context["provider_return"] = self.provider_return(subscriptions)
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["subscriptions"] = subscriptions
         context["billing_portal_endpoint"] = (
@@ -108,6 +117,19 @@ class SubscriptionPageView(PaymentPageView):
         )
         context["plans_url"] = self.get_contribution().page_url("plans")
         return context
+
+    def provider_return(self, subscriptions: Any) -> dict[str, Any] | None:
+        """Whether the reader is waiting on a payment to arrive, and where to poll for it."""
+        returned = self.request.GET.get("returned")
+        if returned is None or subscriptions:
+            return None
+        attempt = int(returned) if returned.isdigit() and int(returned) > 0 else 1
+        return {
+            "attempt": attempt,
+            "poll_url": f"{self.request.path}?returned={attempt + 1}"
+            if attempt < self.RETURN_POLL_LIMIT
+            else None,
+        }
 
 
 class PlansPageView(PaymentPageView):

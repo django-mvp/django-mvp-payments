@@ -37,7 +37,7 @@ still runs, on obviously fake values, which is what a fresh clone and CI see.
 
 ### R2 — The first backend: drf-stripe-subscription
 
-*resolve · advances G1, G2*
+*delivered in [#6](https://github.com/django-mvp/django-mvp-payments/issues/6), [#16](https://github.com/django-mvp/django-mvp-payments/issues/16), [#24](https://github.com/django-mvp/django-mvp-payments/issues/24), [#25](https://github.com/django-mvp/django-mvp-payments/issues/25), [#37](https://github.com/django-mvp/django-mvp-payments/issues/37) · advances G1, G2*
 
 Everything a subscriber needs, for projects using drf-stripe-subscription, looking like the rest of
 their django-mvp site. The pages show a person where they stand. Anything that changes what they
@@ -54,7 +54,7 @@ chosen first.
 - come back from Stripe and see what they just did, not the state from before it
   ([#37](https://github.com/django-mvp/django-mvp-payments/issues/37))
 
-Everything but the last is in place. A project gets all of it by installing the package beside the
+A project gets all of it by installing the package beside the
 backend and mounting its URLs once, with no view, template or menu entry of its own.
 
 ## Aspirational goals

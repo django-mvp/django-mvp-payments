@@ -40,5 +40,9 @@ if apps.is_installed("drf_stripe"):
         path("api/plan-switch/", PlanSwitchView.as_view(), name="plan-switch")
     )
     urlpatterns.append(
-        path("billing/return/", BillingReturnView.as_view(), name="billing-return")
+        path(
+            "account/billing/return/",
+            BillingReturnView.as_view(),
+            name="billing-return",
+        )
     )

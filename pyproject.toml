@@ -153,7 +153,7 @@ ignore_missing_model_attributes = "True"
 # mvp_payments/app.py purely to give the test file something to point at.
 # test_demo.py's subject is the demo project's rendered pages, which are
 # templates and settings rather than a module.
-non-mirror-paths = ["tests/test_app.py", "tests/test_demo.py", "tests/test_components/"]
+non-mirror-paths = ["tests/test_app.py", "tests/test_demo.py", "tests/test_components/", "tests/test_static/"]
 
 [tool.deptry]
 extend_exclude = ["tests/", "demo/", "docs/"]
