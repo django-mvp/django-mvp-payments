@@ -1,11 +1,11 @@
 # django-mvp-payments
 
 Domain model for django-mvp-payments — payment and subscription UI as Cotton components for
-projects built on django-mvp.
+projects built on django-mvp, and the provider apps that keep the records behind it.
 
 The terms below are the ones to use in issues, commits, tests and component names. Several exist
 to keep three vocabularies apart that are easy to collapse into one: the payment company, the
-Django package that talks to it, and the thing a customer sees. English reuses the same words for
+code that talks to it, and the thing a customer sees. English reuses the same words for
 all three, and a bug report that mixes them cannot be acted on.
 
 ## Core concepts
@@ -22,11 +22,32 @@ its own and publishes its own browser script.
 _Avoid_: gateway, processor, vendor.
 
 **Backend**:
-The Django package that talks to a provider, holds whatever local state it keeps and exposes it to
-the application. drf-stripe-subscription is the first backend. A backend is chosen by the template
-author per component, by picking a namespace, and is never swapped by configuration.
-_Avoid_: integration (this package integrates with nothing — the backend does), adapter, driver,
-provider (that is the company, above).
+The code that talks to a provider and keeps the local records a page reads. In this package a
+backend is a provider app, and `mvp_payments.stripe` is the first. It replaces
+drf-stripe-subscription, which the `drf-stripe` namespace reads until its pages move across. A
+backend is chosen by the template author per component, by picking a namespace, and is never
+swapped by configuration.
+_Avoid_: integration, adapter, driver, provider (that is the company, above).
+
+**Provider app**:
+An app inside this package that talks to one provider: it keeps the local copy of that
+provider's customers and subscriptions, receives its webhooks and hands readers to its hosted
+pages. A project turns one on by adding it to `INSTALLED_APPS`. `mvp_payments.stripe` is the
+Stripe app.
+_Avoid_: plugin, extension, integration, sub-package.
+
+**Webhook**:
+The provider's notice that something about a customer or subscription has changed, sent to an
+endpoint a provider app mounts. Its signature is checked, and it is then a prompt to ask the
+provider for the current state, never the state itself.
+_Avoid_: callback, hook, event (an event is the provider's object that a webhook carries).
+
+**stripe-lite**:
+The name of the install option, `django-mvp-payments[stripe-lite]`, that brings in what the Stripe
+app needs. It names that extra and nothing else: the app is the Stripe app, `mvp_payments.stripe`.
+The name says the app is deliberately small, so that nobody reads it as support for a fuller
+Stripe integration such as dj-stripe.
+_Avoid_: using it for the app, the namespace or the provider.
 
 **Contribution**:
 Everything one namespace puts into the Account Center when its backend is installed — its
@@ -52,8 +73,9 @@ _Avoid_: tier, package (means this distribution), SKU, product (which is a speci
 backends and must keep that meaning).
 
 **Subscription**:
-The backend's record that a host project's user is signed up to something, with a status and a
-period. This package displays it and never creates, changes or cancels one.
+The record that a host project's user is signed up to something, with a status and a period.
+A provider app records it as the provider reports it. Nothing in this package creates, changes or
+cancels one: that happens on the provider's hosted pages.
 _Avoid_: membership, plan (above), licence, entitlement.
 
 **Checkout**:
@@ -98,8 +120,9 @@ _Avoid_: bundling (names only one of the answers), asset pipeline, static files.
 Say which backend, or say *per-backend namespace*.
 
 **Paywall**: names an access-control decision — who may see what, and what happens when they may
-not. That is the host project's, enforced in its views. Using the word here invites requests for
-permission logic this package will not have.
+not. That is the host project's, enforced in its views. A provider app can tell a project whether
+someone is subscribed, and what that grants stays the project's decision. Using the word here
+invites requests for permission logic this package will not have.
 
 **Payment method**: only ever a provider's stored instrument. This package never collects, stores
 or displays card details, so the term should appear here only when describing what happens

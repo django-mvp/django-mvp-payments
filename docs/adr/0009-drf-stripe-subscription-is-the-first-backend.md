@@ -1,6 +1,6 @@
 # ADR 0009 — drf-stripe-subscription is the first backend supported
 
-**Status:** accepted
+**Status:** superseded by [ADR 0010](0010-the-package-ships-its-own-stripe-app.md)
 
 ## Decision
 
