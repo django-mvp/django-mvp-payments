@@ -67,13 +67,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Poetry. The wheel contains the same files as before. The source distribution does too, plus the
   repository's `.gitignore`, which hatchling includes so that a build from it leaves out the same
   files.
-- Requires django-mvp 0.30.0 or later, where it required 0.27.0. From django-mvp 0.29.0,
-  django-filter is one of its dependencies, so a project adds `"django_filters"` to
-  `INSTALLED_APPS`. From django-mvp 0.30.0, an alert no longer picks its icon from its
-  variant. The alerts this package draws on the provider return page now name their icon, and
-  an alert of yours that relied on the variant's icon needs `icon="info"`, `icon="warning"`,
-  `icon="error"` or `icon="success"` to match. See django-mvp's own changelog for the rest of
-  what its upgrade asks of a project.
+- Requires django-mvp 0.30.0 or later, where it required 0.27.0. Two things in its upgrade
+  reach a project using this package:
+  - django-filter is now one of django-mvp's dependencies, so add `"django_filters"` to
+    `INSTALLED_APPS`.
+  - An alert no longer picks its icon from its variant. The alerts this package draws while a
+    payment is being confirmed now name their icon. An alert of yours that relied on its
+    variant's icon needs `icon="info"`, `icon="warning"`, `icon="error"` or `icon="success"`.
+
+  See django-mvp's own changelog for the rest of what its upgrade asks of a project.
 - Requires django-mvp 0.27.0 or later, where it required 0.24.0. The package's templates use
   django-mvp's page, card, data-field and empty-state components, which 0.27.0 moved under the
   `mvp.` prefix (`<c-mvp.page>`, `<c-mvp.card>`), and the old names no longer resolve. A template
