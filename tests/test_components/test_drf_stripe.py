@@ -480,7 +480,7 @@ class TestStandalone:
 
         assert "Account" in html
         assert 'data-endpoint="/api/stripe/customer-portal/"' in html
-        assert 'data-csrf-token=""' in html
+        assert re.search(r'data-csrf-token="[^"]+"', html)
 
     def test_no_subscription_renders_inside_an_unrelated_template(
         self, cotton_render_string
