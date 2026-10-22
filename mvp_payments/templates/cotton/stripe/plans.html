@@ -3,6 +3,7 @@
 {# @prop plans:text | description:"What {% stripe_plans %} returns: the prices on offer, their frequencies, and how this reader buys each." | required #}
 {# Without JavaScript every frequency is shown, each under its own heading. #}
 <c-vars plans />
+{% if plans.prices %}
 <div class="flex flex-col gap-6"
      x-data="{ interval: '{{ plans.first_interval }}' }">
   {% if plans.intervals|length > 1 %}
@@ -38,3 +39,4 @@
     {% translate "Payment is taken on Stripe's secure checkout page." %}
   </p>
 </div>
+{% endif %}

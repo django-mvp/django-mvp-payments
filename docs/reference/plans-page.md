@@ -165,22 +165,65 @@ Load `mvp_payments` to use them.
 
 ## Placing and replacing
 
-To draw the plans on a page of your own, use the tag and the `<c-stripe.plans>` component as
-above. To change one part for one placement, loop over `plans.prices` yourself and use the parts
-you keep:
+### Placing the plans on a page of your own
+
+Use the tag and the `<c-stripe.plans>` component in any template whose context carries `request`.
+No view of your own is needed, and nothing calls Stripe from your project:
+
+```html
+{% load mvp_payments %}
+{% stripe_plans as plans %}
+{% if plans.prices %}
+  <section id="pricing">
+    <c-stripe.plans :plans="plans" />
+  </section>
+{% endif %}
+```
+
+It shows the same plans as the plans page, with the same ways to buy. A visitor who is not signed
+in goes through sign-in and comes back to the page the plans are on, with the plan they picked
+ready. A signed-in person starts checkout exactly as they do from the plans page, and a cancelled
+or failed checkout returns them to the page they started from.
+
+Without `mvp_payments.stripe` in `INSTALLED_APPS`, `plans.prices` is `None` and
+`<c-stripe.plans>` renders nothing, so the guard above is all a page needs to work in a project
+that has not installed the Stripe app.
+
+### Replacing a part everywhere
+
+Supply your own copy of the part's template at `cotton/stripe/<part>.html`, earlier on the
+template search path than this package. Every card then uses it. For example, to show a product's
+features your own way, add `cotton/stripe/plan_features.html` to your application:
+
+```html
+<c-vars product />
+<p>{{ product.name }} includes {{ product.marketing_features|length }} features.</p>
+```
+
+The part receives what the package's own version receives, under the same names. For
+`plan_features` that is `product`, the Stripe product with its fields as Stripe names them. The
+parts and what each receives are listed under [The parts](#the-parts). Your own application has to
+appear before `mvp_payments` in `INSTALLED_APPS`, because Django's app-directories loader uses the
+first match it finds.
+
+### Replacing a part on one page
+
+Loop over `plans.prices` yourself and compose the parts you keep, writing your own markup for the
+one you replace. Every other placement is unaffected:
 
 ```html
 {% for price in plans.prices %}
-  <c-stripe.plan-card :price="price" :plans="plans" />
+  <article>
+    <h3>{{ price.product.name }}</h3>
+    <c-stripe.plan-price :price="price" />
+    <p>{{ price.product.description }}</p>
+    <c-stripe.plan-choose :price="price" :plans="plans" />
+  </article>
 {% endfor %}
 ```
-
-To change a part everywhere, supply your own copy of its template at `cotton/stripe/<part>.html`,
-earlier on the template search path than this package.
 
 To replace the whole page, supply your own template at `mvp_payments/stripe/plans.html`. It
 receives `plans` in its context and replaces everything the template decides. The view underneath
 it, the address and the page being open to everyone, stay the shipped page's.
 
-Django's app-directories template loader uses the first match it finds in `INSTALLED_APPS` order,
-so your own application has to appear before `mvp_payments` in that list.
+Your own application has to appear before `mvp_payments` in `INSTALLED_APPS` here too.

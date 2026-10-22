@@ -129,6 +129,76 @@ print(json.dumps({
 """
 
 
+_PLANS_PART_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
+from django.test import RequestFactory
+from django_cotton.utils import render_component
+
+from mvp_payments.namespaces.stripe_plans import PlanChoices
+from mvp_payments.stripe.catalogue import Catalogue
+
+cache.set(
+    Catalogue.KEY,
+    [
+        {
+            "id": "price_probe",
+            "unit_amount": 2000,
+            "currency": "usd",
+            "recurring": {"interval": "month", "interval_count": 1},
+            "product": {
+                "id": "prod_probe",
+                "name": "Probe",
+                "marketing_features": [{"name": "Own feature"}],
+            },
+        }
+    ],
+    3600,
+)
+request = RequestFactory().get("/plans/")
+request.user = AnonymousUser()
+plans = PlanChoices.for_request(request)
+
+print(json.dumps({"content": render_component(request, "stripe.plans", plans=plans)}))
+"""
+
+_PLANS_WITHOUT_STRIPE_APP_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import AnonymousUser
+from django.template import Template
+from django.template.context import make_context
+from django.test import RequestFactory
+from django_cotton.compiler_regex import CottonCompiler
+
+from mvp_payments.namespaces.stripe_plans import PlanChoices
+
+request = RequestFactory().get("/pricing/")
+request.user = AnonymousUser()
+source = (
+    "{% load mvp_payments %}{% stripe_plans as plans %}"
+    "<b>{{ plans.prices|default_if_none:'none' }}</b>"
+    '<c-stripe.plans :plans="plans" />'
+)
+template = Template(CottonCompiler().process(source))
+
+print(json.dumps({
+    "prices": PlanChoices.for_request(request)["prices"],
+    "content": template.render(make_context({"request": request}, request)),
+}))
+"""
+
+
 class TestPaymentPage:
     @pytest.mark.parametrize(
         "page", stripe_contribution.pages, ids=lambda page: page.slug
@@ -872,3 +942,31 @@ class TestPlansPageOverride:
         content = result["content"]
         assert 'data-testid="the-hosting-projects-own-plans-page"' in content
         assert '<p data-testid="price-id">price_probe</p>' in content
+
+    def test_a_part_the_project_replaces_changes_on_every_card_and_nothing_else(self):
+        result = run_probe(
+            _PLANS_PART_OVERRIDE_PROBE,
+            "tests.settings_with_project_template_override",
+        )
+
+        content = result["content"]
+        assert (
+            '<p data-testid="the-hosting-projects-own-features">Probe has 1 features</p>'
+            in content
+        )
+        assert "Own feature" not in content
+        assert 'id="price_probe"' in content
+        assert "20.00 USD" in content
+        assert "every month" in content
+
+
+class TestPlansWithoutTheStripeApp:
+    def test_the_plans_are_unavailable_and_the_parts_render_nothing(self):
+        result = run_probe(
+            _PLANS_WITHOUT_STRIPE_APP_PROBE, "tests.settings_without_stripe_app"
+        )
+
+        assert result["prices"] is None
+        assert "<b>none</b>" in result["content"]
+        assert 'id="price_' not in result["content"]
+        assert "mvp-payments-checkout-note" not in result["content"]

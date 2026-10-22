@@ -102,14 +102,19 @@ class PlanChoices:
             request: The request the plans are drawn for.
 
         Returns:
-            ``prices`` (``None`` when the catalogue cannot be read), ``intervals`` and
+            ``prices`` (``None`` when the catalogue cannot be read, including when the
+            Stripe app is not installed), ``intervals`` and
             ``first_interval`` for the frequency switch, ``held`` (the price ids the
             signed-in person currently subscribes to), ``ready`` (the price picked before
             signing in), ``signed_in`` and the addresses ``login_url``, ``checkout_url``
             and ``subscriptions_url``, with ``return_to``, the page the plans are on.
         """
-        stripe_app: Any = apps.get_app_config("mvp_payments_stripe")
-        prices = stripe_app.catalogue.prices()
+        stripe_app: Any = (
+            apps.get_app_config("mvp_payments_stripe")
+            if apps.is_installed("mvp_payments.stripe")
+            else None
+        )
+        prices = stripe_app.catalogue.prices() if stripe_app else None
         intervals = cls.intervals(prices or [])
         ready = request.GET.get("plan", "")
         first_interval = intervals[0]["key"] if intervals else ""
@@ -118,7 +123,7 @@ class PlanChoices:
                 first_interval = cls.interval_key(price)
         held: list[str] = []
         user = request.user
-        if user.is_authenticated:
+        if stripe_app and user.is_authenticated:
             subscription_model = apps.get_model("mvp_payments_stripe", "Subscription")
             held = list(
                 subscription_model.objects.for_user(user)
@@ -133,7 +138,11 @@ class PlanChoices:
             "ready": ready,
             "signed_in": user.is_authenticated,
             "login_url": resolve_url(settings.LOGIN_URL),
-            "checkout_url": reverse(f"{APP_NAMESPACE}:stripe-checkout"),
-            "subscriptions_url": reverse(f"{APP_NAMESPACE}:stripe-subscription"),
+            "checkout_url": (
+                reverse(f"{APP_NAMESPACE}:stripe-checkout") if stripe_app else ""
+            ),
+            "subscriptions_url": (
+                reverse(f"{APP_NAMESPACE}:stripe-subscription") if stripe_app else ""
+            ),
             "return_to": request.path,
         }
