@@ -1,5 +1,6 @@
 """The Stripe app's local copy of a customer and their subscriptions."""
 
+import re
 from datetime import UTC, datetime
 
 import pytest
@@ -13,8 +14,10 @@ from mvp_payments.stripe.models import Customer, Subscription
 from tests.factories import (
     StripeCustomerFactory,
     StripeSubscriptionFactory,
+    UserFactory,
 )
 from tests.stripe_fake import (
+    checkout_session_payload,
     customer_payload,
     product_payload,
     subscription_payload,
@@ -416,3 +419,148 @@ class TestCustomerSync:
         customer.sync()
 
         assert stripe_fake.requests == []
+
+
+@pytest.mark.django_db
+class TestCustomerClientReference:
+    def test_the_reference_uses_only_characters_the_pricing_table_accepts(self):
+        reference = Customer.client_reference(UserFactory())
+
+        assert re.fullmatch(r"[A-Za-z0-9_-]+", reference)
+
+    def test_the_reference_starts_with_the_users_primary_key(self):
+        user = UserFactory()
+
+        assert Customer.client_reference(user).startswith(f"{user.pk}_")
+
+    def test_two_users_get_different_references(self):
+        first, second = UserFactory(), UserFactory()
+
+        assert Customer.client_reference(first) != Customer.client_reference(second)
+
+    def test_the_same_user_always_gets_the_same_reference(self):
+        user = UserFactory()
+
+        assert Customer.client_reference(user) == Customer.client_reference(user)
+
+
+def completed_checkout(fake, reference, customer="cus_new", mode="subscription"):
+    fake.respond(
+        "GET",
+        "/v1/checkout/sessions/cs_1",
+        checkout_session_payload(
+            "cs_1", client_reference_id=reference, customer=customer, mode=mode
+        ),
+    )
+
+
+@pytest.mark.django_db
+class TestCustomerFromCheckout:
+    def test_a_valid_reference_ties_a_new_customer_to_the_user(self, stripe_fake):
+        user = UserFactory()
+        completed_checkout(stripe_fake, Customer.client_reference(user))
+
+        customer = Customer.from_checkout("cs_1")
+
+        assert (customer.user, customer.stripe_id) == (user, "cus_new")
+        assert Customer.objects.get().pk == customer.pk
+
+    def test_a_user_who_subscribes_again_keeps_the_same_customer(self, stripe_fake):
+        existing = StripeCustomerFactory(stripe_id="cus_new")
+        completed_checkout(stripe_fake, Customer.client_reference(existing.user))
+
+        customer = Customer.from_checkout("cs_1")
+
+        assert customer == existing
+        assert Customer.objects.count() == 1
+
+    def test_a_second_customer_for_a_user_is_refused_and_logged_with_both_ids(
+        self, stripe_fake, caplog
+    ):
+        existing = StripeCustomerFactory(stripe_id="cus_first")
+        completed_checkout(
+            stripe_fake, Customer.client_reference(existing.user), customer="cus_second"
+        )
+
+        with caplog.at_level("ERROR"):
+            result = Customer.from_checkout("cs_1")
+
+        assert result is None
+        assert [c.stripe_id for c in Customer.objects.all()] == ["cus_first"]
+        messages = [r.getMessage() for r in caplog.records if r.levelname == "ERROR"]
+        assert any("cus_first" in m and "cus_second" in m for m in messages)
+
+    def test_a_customer_already_recorded_for_another_user_is_not_taken_over(
+        self, stripe_fake
+    ):
+        owner = StripeCustomerFactory(stripe_id="cus_new")
+        newcomer = UserFactory()
+        completed_checkout(stripe_fake, Customer.client_reference(newcomer))
+
+        result = Customer.from_checkout("cs_1")
+
+        assert result is None
+        assert Customer.objects.get().user == owner.user
+
+    def test_a_bare_primary_key_ties_nobody(self, stripe_fake):
+        user = UserFactory()
+        completed_checkout(stripe_fake, str(user.pk))
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
+    def test_a_tampered_signature_ties_nobody(self, stripe_fake):
+        user = UserFactory()
+        reference = Customer.client_reference(user)
+        completed_checkout(
+            stripe_fake, reference[:-1] + ("0" if reference[-1] != "0" else "1")
+        )
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
+    def test_another_users_signature_ties_nobody(self, stripe_fake):
+        attacker, victim = UserFactory(), UserFactory()
+        signature = Customer.client_reference(attacker).partition("_")[2]
+        completed_checkout(stripe_fake, f"{victim.pk}_{signature}")
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
+    def test_a_reference_for_a_user_who_no_longer_exists_ties_nobody(self, stripe_fake):
+        user = UserFactory()
+        reference = Customer.client_reference(user)
+        user.delete()
+        completed_checkout(stripe_fake, reference)
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
+    @pytest.mark.parametrize("reference", [None, ""])
+    def test_a_session_with_no_reference_ties_nobody(self, stripe_fake, reference):
+        completed_checkout(stripe_fake, reference)
+
+        assert Customer.from_checkout("cs_1") is None
+
+    def test_a_session_with_no_customer_ties_nobody(self, stripe_fake):
+        completed_checkout(
+            stripe_fake, Customer.client_reference(UserFactory()), customer=None
+        )
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
+    @pytest.mark.parametrize("mode", ["payment", "setup"])
+    def test_a_session_not_in_subscription_mode_ties_nobody(self, stripe_fake, mode):
+        completed_checkout(
+            stripe_fake, Customer.client_reference(UserFactory()), mode=mode
+        )
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
+    def test_stripe_being_unreachable_is_raised(self, stripe_fake):
+        stripe_fake.become_unreachable("GET", "/v1/checkout/sessions/cs_1")
+
+        with pytest.raises(stripe.APIConnectionError):
+            Customer.from_checkout("cs_1")

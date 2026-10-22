@@ -5,14 +5,23 @@ Rows are written only from what Stripe reports (Article XI), never by hand.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 
 import stripe
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models, transaction
+from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.translation import gettext_lazy as _
 
 from .client import client
+
+logger = logging.getLogger(__name__)
+
+#: Keys the HMAC of a checkout reference to this app, so a signature made for another purpose
+#: from the same SECRET_KEY can never pass as one.
+_REFERENCE_SALT = "mvp_payments.stripe.client_reference"
 
 
 class Customer(models.Model):
@@ -49,6 +58,77 @@ class Customer(models.Model):
 
     def __str__(self) -> str:
         return self.stripe_id
+
+    @classmethod
+    def client_reference(cls, user) -> str:
+        """Build the reference a page hands to Stripe's pricing table for a signed-in user.
+
+        Stripe carries it through checkout and returns it on the completed session, which is
+        how a purchase is tied to a user. It is signed, because the public pricing table could
+        otherwise be embedded on another page with someone else's primary key.
+
+        Args:
+            user: The signed-in user.
+
+        Returns:
+            The user's primary key and an HMAC of it, joined by ``_``. It holds only letters,
+            digits and underscores, which is all the pricing table accepts.
+        """
+        return f"{user.pk}_{cls._signature(user.pk)}"
+
+    @staticmethod
+    def _signature(pk) -> str:
+        return salted_hmac(_REFERENCE_SALT, str(pk), algorithm="sha256").hexdigest()
+
+    @classmethod
+    def from_checkout(cls, session_id: str) -> Customer | None:
+        """Tie the customer of a completed checkout to the user who started it.
+
+        Args:
+            session_id: Stripe's identifier for the Checkout Session.
+
+        Returns:
+            The customer to sync: the one this user already has when it is the same, or a new
+            one. ``None`` when the session is not a subscription checkout, carries no
+            customer, carries no reference that verifies, names no existing user, or would give
+            the user a second customer, or take over one that belongs to another user.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused.
+        """
+        session = client().v1.checkout.sessions.retrieve(session_id)
+        if session.mode != "subscription" or not session.client_reference_id:
+            return None
+        stripe_id = session.customer
+        if not stripe_id:
+            return None
+        pk, _separator, signature = session.client_reference_id.rpartition("_")
+        if not constant_time_compare(signature, cls._signature(pk)):
+            return None
+        user = get_user_model().objects.filter(pk=pk).first()
+        if user is None:
+            return None
+        existing = cls.objects.filter(user=user).first()
+        if existing is not None:
+            if existing.stripe_id == stripe_id:
+                return existing
+            logger.error(
+                "Checkout %s names Stripe customer %s for user %s, who already has %s.",
+                session_id,
+                stripe_id,
+                user.pk,
+                existing.stripe_id,
+            )
+            return None
+        if cls.objects.filter(stripe_id=stripe_id).exists():
+            logger.error(
+                "Checkout %s names Stripe customer %s for user %s, but it belongs to another user.",
+                session_id,
+                stripe_id,
+                user.pk,
+            )
+            return None
+        return cls.objects.create(user=user, stripe_id=stripe_id)
 
     def sync(self) -> None:
         """Bring this customer's subscriptions into step with what Stripe holds now.

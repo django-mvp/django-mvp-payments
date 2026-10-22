@@ -143,8 +143,21 @@
         },
         {
           "id": "T006",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py::TestCustomerClientReference",
+              "tests/test_stripe/test_models.py::TestCustomerFromCheckout"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:60",
+              "mvp_payments/stripe/models.py:85"
+            ]
+          }
         },
         {
           "id": "T007",

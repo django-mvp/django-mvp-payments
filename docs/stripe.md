@@ -146,3 +146,32 @@ from mvp_payments.stripe.models import Customer
 
 Customer.objects.get(stripe_id="cus_123").sync()
 ```
+
+## Tying a purchase to a user
+
+A purchase is tied to a user only through the identity of the signed-in user, carried through
+Stripe's checkout. Email addresses are never matched.
+
+`Customer.client_reference(user)` returns the value a page passes to Stripe's pricing table as
+its `client-reference-id`. It is the user's primary key and a signature of it, joined by `_`, so
+it holds only letters, digits and underscores. The signature is made with your `SECRET_KEY` and a
+salt of this app's own. Embedding the public pricing table on another page with someone else's
+primary key therefore ties nothing to that person.
+
+```python
+from mvp_payments.stripe.models import Customer
+
+reference = Customer.client_reference(request.user)
+```
+
+`Customer.from_checkout(session_id)` retrieves a completed Checkout Session from Stripe and
+returns the customer to sync, or `None`. It returns `None`, and records nothing, when:
+
+- the session is not a subscription checkout, or has no customer;
+- the reference is missing, is a bare primary key, or does not verify;
+- the reference names a user who no longer exists;
+- the user already has a different Stripe customer, or the session's customer is already recorded
+  for another user. Both cases are logged as errors naming the identifiers and nothing else.
+
+A user who subscribes again keeps the same customer, and the new subscription is recorded beside
+the old one.

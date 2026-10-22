@@ -36,3 +36,10 @@ Did: Customer.sync() in models.py. Atomic; first statement re-reads the customer
 Verified: uv run pytest tests/test_stripe (44 passed in test_models.py, 17 of them for sync). Probed by mutation: replacing the final .delete() with .none() fails test_a_row_stripe_no_longer_returns_is_deleted. Red first: all 17 failed with AttributeError before the method existed.
 Next: T006 client_reference and from_checkout.
 Watch: SQLite has no row locks, so the suite cannot prove FOR UPDATE is emitted. The test asserts the customer SELECT is the first statement in the transaction; the lock itself is by construction.
+
+## 2026-10-22T08:49:59Z · Implementer US1 · T006
+
+Did: Customer.client_reference(user) (pk + "_" + salted_hmac sha256 hexdigest under the app's own salt) and Customer.from_checkout(session_id): retrieves the session, refuses non-subscription mode, missing reference or customer, verifies the signature with constant_time_compare before looking the user up, creates or reuses the user's customer, and logs an error naming both ids for a second customer. One refusal beyond the plan: a customer id already recorded for a different user is also refused and logged, since creating it would hit the unique constraint and make the webhook fail on every retry. Documented in docs/stripe.md.
+Verified: uv run pytest tests/test_stripe (77 passed). Red first: 18 new tests failed with AttributeError. Covered: allowed characters, bare pk, tampered signature, another user's signature, deleted user, no reference, no customer, payment and setup modes, same customer reused, second customer, customer owned by someone else, Stripe unreachable.
+Next: T007 webhook view and URLs.
+Watch: salted_hmac is given algorithm="sha256" explicitly; the default warns of a change in Django 2028.
