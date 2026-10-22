@@ -78,3 +78,52 @@ Did: removed Page.in_navigation and its filter; retired/rewrote the tests tied t
 Verified: uv run pytest tests/test_contributions.py tests/test_namespaces tests/test_views.py -q -> 127 passed after the change; new rejection test failed first with DID NOT RAISE.
 Next: US4 records, full verify, report.
 Watch: tests/test_contributions.py, tests/test_namespaces/test_stripe.py and tests/test_views.py tests tied to in_navigation were edited as the brief allows.
+
+## 2026-10-22T17:27:34Z · Implementer FIX-1 · T012
+
+Did: marked the two empty-state components with data attributes; the two plans page tests assert the right marker and the other's absence.
+Verified: uv run pytest tests/test_views.py -k 'cannot_be_read or nothing_on_offer' green; swapping the branches in plans.html gave 2 failed; restored.
+Next: T013.
+Watch: none.
+
+## 2026-10-22T17:27:35Z · Implementer FIX-1 · T013
+
+Did: PlanChoices.intervals takes the catalogue's BILLING_DAYS; INTERVAL_DAYS deleted; test reorders the table and expects the switch to follow.
+Verified: test_stripe_plans.py and test_app.py 31 passed; a local copy of the table gave 1 failed; restored.
+Next: T014.
+Watch: intervals now has a required second argument.
+
+## 2026-10-22T17:27:35Z · Implementer FIX-1 · T014
+
+Did: plans-page.md, stripe-app.md and the Catalogue docstrings say cheapest first within a currency, no conversion.
+Verified: pre-commit all passed.
+Next: T015.
+Watch: none.
+
+## 2026-10-22T17:27:35Z · Implementer FIX-1 · T015
+
+Did: start_checkout syncs a vanished customer only when resource_missing names the customer or names nothing; new test for a missing price.
+Verified: test_models.py 107 passed; dropping the param condition gave 1 failed; restored.
+Next: T016.
+Watch: absent param still counts as the customer, see decisions.md.
+
+## 2026-10-22T17:27:35Z · Implementer FIX-1 · T016
+
+Did: user-subscriptions-page.md says checkout from the plans page already returns through the billing return view.
+Verified: pre-commit all passed.
+Next: T017.
+Watch: none.
+
+## 2026-10-22T17:27:35Z · Implementer FIX-1 · T017
+
+Did: loop example and plan-choose entry in plans-page.md carry the note id; new placement test asserts each aria-describedby id is on the page.
+Verified: test_mvp_payments.py 17 passed; removing the note from the loop gave 1 failed; restored.
+Next: T018.
+Watch: none.
+
+## 2026-10-22T17:27:35Z · Implementer FIX-1 · T018
+
+Did: override probe has two prices; the test asserts the marker once per product.
+Verified: TestPlansPageOverride 2 passed; override limited to one product gave 1 failed; restored.
+Next: full verify and report.
+Watch: none.

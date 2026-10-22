@@ -151,18 +151,49 @@
         },
         {
           "id": "T012",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansPage::test_a_catalogue_that_cannot_be_read_is_stated_and_offers_no_plan,tests/test_views.py::TestPlansPage::test_a_catalogue_with_nothing_on_offer_is_stated_and_offers_no_plan"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py -k 'cannot_be_read or nothing_on_offer' (green); mutation: swap the two components in plans.html, same command, 2 failed; restored"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/stripe/plans.html:4"
+            ]
+          }
         },
         {
           "id": "T013",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_stripe_plans.py::TestPlanChoices::test_the_switch_is_ordered_by_the_catalogues_own_billing_lengths"
+            ],
+            "commands": [
+              "uv run pytest tests/test_namespaces/test_stripe_plans.py tests/test_app.py (31 passed); mutation: intervals given a local copy of the table instead of the catalogue's, 1 failed; restored"
+            ],
+            "code": [
+              "mvp_payments/namespaces/stripe_plans.py:80"
+            ]
+          }
         },
         {
           "id": "T014",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "uv run pre-commit run --all-files (all passed); documentation and docstring change, no behaviour, no test"
+            ],
+            "code": [
+              "docs/reference/plans-page.md:32",
+              "mvp_payments/stripe/catalogue.py:45"
+            ]
+          }
         }
       ]
     },
@@ -224,13 +255,32 @@
         },
         {
           "id": "T015",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py::TestCustomerStartCheckout::test_a_missing_price_is_raised_without_asking_stripe_for_the_customer"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_models.py (107 passed); mutation: drop the param condition, 1 failed; restored"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:201"
+            ]
+          }
         },
         {
           "id": "T016",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "uv run pre-commit run --all-files (all passed); documentation change, no behaviour, no test"
+            ],
+            "code": [
+              "docs/reference/user-subscriptions-page.md:222"
+            ]
+          }
         }
       ]
     },
@@ -318,13 +368,35 @@
         },
         {
           "id": "T017",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestStripePlansPlacement::test_a_project_loop_carries_the_note_the_choose_control_is_described_by"
+            ],
+            "commands": [
+              "uv run pytest tests/test_templatetags/test_mvp_payments.py (17 passed); mutation: delete the note paragraph from the loop in the test, 1 failed; restored"
+            ],
+            "code": [
+              "docs/reference/plans-page.md:223"
+            ]
+          }
         },
         {
           "id": "T018",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansPageOverride::test_a_part_the_project_replaces_changes_on_every_card_and_nothing_else"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py -k TestPlansPageOverride (2 passed); mutation: override template renders only for one product, 1 failed; restored"
+            ],
+            "code": [
+              "tests/test_views.py:960"
+            ]
+          }
         }
       ]
     }
