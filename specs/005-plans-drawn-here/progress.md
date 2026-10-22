@@ -50,3 +50,10 @@ Did: tests and docs for the way to buy on each card (sign-in with next back to t
 Verified: uv run pytest tests/test_views.py -k TestPlansWayToBuy -> 8 passed. Probed by removing aria-describedby, the anchor, the held branch and return_to from plan_choose.html: each failed a test; template restored.
 Next: US2 records, then T008.
 Watch: the held badge is not asserted (wording/appearance).
+
+## 2026-10-22T17:06:25Z · Implementer US3 · T008
+
+Did: verified product.* and price.* webhooks and stripe_sync clear the catalogue. Docs: webhook events, cache timeout, shared-cache caveat.
+Verified: uv run pytest tests/test_stripe -q -> 270 passed.
+Next: US3 records, then T009.
+Watch: none.

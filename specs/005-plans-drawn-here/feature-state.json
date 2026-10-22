@@ -209,8 +209,19 @@
       "tasks": [
         {
           "id": "T008",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_management/test_commands/test_stripe_sync.py::TestStripeSyncClearsTheCatalogue"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe -q"
+            ],
+            "code": [
+              "mvp_payments/stripe/management/commands/stripe_sync.py:46"
+            ]
+          }
         }
       ]
     },
