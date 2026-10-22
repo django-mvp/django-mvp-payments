@@ -69,7 +69,9 @@ Ruled by Sam:
 - The plans page is public, so it is not under the account address. It lives at `/plans/`,
   outside the Account Center, with an entry in the demo's sidebar (round 1).
 
-Taste decisions, for Sam to keep or change:
+- Round 2 approved as shown (2026-10-22): every taste decision below stands.
+
+Taste decisions, approved by Sam in round 2:
 
 - One card per price, grouped by billing frequency behind a switch, the pattern Stripe's own
   pricing table uses. Without JavaScript every frequency shows, each under its own heading.
