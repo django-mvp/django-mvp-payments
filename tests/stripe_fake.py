@@ -84,6 +84,22 @@ class FakeStripe(stripe.HTTPClient):
             for number, objects in enumerate(pages)
         ]
 
+    def respond_in_turn(
+        self, method: str, path: str, responses: list[tuple[dict, int]]
+    ) -> None:
+        """Answer consecutive requests to ``method`` on ``path`` with consecutive responses.
+
+        A request past the last response repeats it.
+
+        Args:
+            method: The HTTP method.
+            path: The path without host or query string.
+            responses: The JSON object and HTTP status to return, in order.
+        """
+        self._routes[(method, path)] = [
+            (json.dumps(body), status) for body, status in responses
+        ]
+
     def respond_with_error(
         self, method: str, path: str, code: str, status: int = 404
     ) -> None:

@@ -765,3 +765,136 @@ class TestCustomerForUser:
 
     def test_someone_not_signed_in_has_none(self):
         assert Customer.for_user(AnonymousUser()) is None
+
+
+SESSIONS = "/v1/checkout/sessions"
+SUCCESS = "https://site.example/back/?session_id={CHECKOUT_SESSION_ID}"
+CANCEL = "https://site.example/plans/"
+
+
+@pytest.fixture
+def session_created(stripe_fake):
+    stripe_fake.respond(
+        "POST",
+        SESSIONS,
+        {
+            "id": "cs_1",
+            "object": "checkout.session",
+            "url": "https://checkout.stripe.com/c/pay/cs_1",
+        },
+    )
+    return stripe_fake
+
+
+@pytest.fixture
+def emailed(user):
+    user.email = "pat@example.com"
+    user.save()
+    return user
+
+
+@pytest.mark.django_db
+class TestCustomerStartCheckout:
+    def test_asks_stripe_for_a_subscription_session_and_returns_its_address(
+        self, session_created, user
+    ):
+        url = Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
+
+        assert url == "https://checkout.stripe.com/c/pay/cs_1"
+        ((_, _, params),) = session_created.requests
+        assert params["mode"] == ["subscription"]
+        assert params["line_items[0][price]"] == ["price_1"]
+        assert params["line_items[0][quantity]"] == ["1"]
+        assert params["client_reference_id"] == [Customer.client_reference(user)]
+        assert params["allow_promotion_codes"] == ["true"]
+        assert params["success_url"] == [SUCCESS]
+        assert params["cancel_url"] == [CANCEL]
+
+    def test_a_person_with_a_customer_is_checked_out_as_that_customer(
+        self, session_created, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+
+        Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
+
+        ((_, _, params),) = session_created.requests
+        assert params["customer"] == ["cus_mine"]
+        assert "customer_email" not in params
+
+    def test_a_person_with_no_customer_is_checked_out_with_their_email(
+        self, session_created, emailed
+    ):
+        Customer.start_checkout(emailed, "price_1", SUCCESS, CANCEL)
+
+        ((_, _, params),) = session_created.requests
+        assert params["customer_email"] == ["pat@example.com"]
+        assert "customer" not in params
+
+    def test_an_account_with_no_email_sends_none(self, session_created, user):
+        Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
+
+        ((_, _, params),) = session_created.requests
+        assert "customer_email" not in params
+        assert "customer" not in params
+
+    def test_a_customer_stripe_no_longer_has_is_dropped_and_the_session_made_without_it(
+        self, stripe_fake, emailed
+    ):
+        user = emailed
+        StripeCustomerFactory(user=user, stripe_id="cus_gone")
+        stripe_fake.respond_with_error(
+            "GET", "/v1/customers/cus_gone", "resource_missing"
+        )
+        stripe_fake.respond_in_turn(
+            "POST",
+            SESSIONS,
+            [
+                (
+                    {
+                        "error": {
+                            "type": "invalid_request_error",
+                            "code": "resource_missing",
+                        }
+                    },
+                    404,
+                ),
+                (
+                    {
+                        "id": "cs_2",
+                        "object": "checkout.session",
+                        "url": "https://checkout.stripe.com/c/pay/cs_2",
+                    },
+                    200,
+                ),
+            ],
+        )
+
+        url = Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
+
+        assert url == "https://checkout.stripe.com/c/pay/cs_2"
+        assert not Customer.objects.filter(user=user).exists()
+        posts = [p for method, _, p in stripe_fake.requests if method == "POST"]
+        assert posts[0]["customer"] == ["cus_gone"]
+        assert "customer" not in posts[1]
+        assert posts[1]["customer_email"] == ["pat@example.com"]
+
+    def test_a_refusal_that_is_not_about_the_customer_is_raised(
+        self, stripe_fake, user
+    ):
+        customer = StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_fake.respond_with_error("POST", SESSIONS, "resource_missing")
+        stripe_fake.respond(
+            "GET", "/v1/customers/cus_mine", customer_payload("cus_mine")
+        )
+        stripe_fake.respond_with_list("/v1/subscriptions", [])
+
+        with pytest.raises(stripe.InvalidRequestError):
+            Customer.start_checkout(user, "price_made_up", SUCCESS, CANCEL)
+
+        assert Customer.objects.filter(pk=customer.pk).exists()
+
+    def test_a_stripe_failure_is_raised(self, stripe_fake, user):
+        stripe_fake.become_unreachable("POST", SESSIONS)
+
+        with pytest.raises(stripe.StripeError):
+            Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)

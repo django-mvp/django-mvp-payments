@@ -282,8 +282,28 @@ billing-portal session for the person's customer, which a script follows. They a
 | 502 | Stripe could not be asked or refused. The log names the kind of error and never Stripe's message |
 
 `CheckoutView` is where a plan's Choose button posts, with the `price` chosen and a `return_to`
-path on your site. It needs a signed-in person. It does not start a Stripe checkout yet: it sends
-the person back to `return_to`.
+path on your site. It needs a signed-in person, answers only a POST, and keeps Django's CSRF check.
+It checks the price against the catalogue, then calls `Customer.start_checkout()` and redirects the
+reader to Stripe's checkout page. The session is a subscription for the price, with promotion codes
+allowed and the person's signed reference attached. A person who already has a Stripe customer buys
+as that customer; anyone else gives Stripe their email address, if the account has one. If Stripe no
+longer has the customer, the app deletes its local copy and asks for the session again without it.
+
+Whatever stops the checkout, the reader goes back to `return_to` with a message that
+`mvp/base.html` shows above the page. A `return_to` that is not a path on your site is replaced by
+the plans page.
+
+| Case | What the reader gets |
+|---|---|
+| The catalogue cannot be read | An error message |
+| The price is not on offer, or was not sent | A warning that the plan is no longer on offer |
+| The person already holds the price | A redirect to the user subscriptions page |
+| Stripe refuses or cannot be reached | An error message. The log names the kind of error and never Stripe's message |
+
+`Customer.start_checkout(user, price_id, success_url, cancel_url)` returns the address of the
+Checkout Session and raises `stripe.StripeError` when Stripe cannot be asked. The view builds
+`success_url` from the return view's absolute address with `?session_id={CHECKOUT_SESSION_ID}`
+appended, so Stripe fills the session's id in.
 
 The portal view opens the portal's home. The plan-switch view opens the plan-change screen for the
 person's subscription, or the portal's home when they have several. Both send the reader back

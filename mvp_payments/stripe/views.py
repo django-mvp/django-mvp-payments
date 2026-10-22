@@ -4,11 +4,14 @@ import logging
 
 import stripe
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -16,7 +19,8 @@ from stripe.params.billing_portal import SessionCreateParamsFlowData
 
 from mvp_payments.contributions import APP_NAMESPACE
 
-from .models import Customer
+from .catalogue import Catalogue
+from .models import Customer, Subscription
 
 logger = logging.getLogger(__name__)
 
@@ -222,17 +226,87 @@ class BillingReturnView(LoginRequiredMixin, View):
 
 
 class CheckoutView(LoginRequiredMixin, View):
-    """SKETCH (FS-005): where a plan's way to buy posts to.
+    """Start a Stripe checkout for the plan a signed-in person chose.
 
-    The build creates a Stripe checkout session here for the chosen price, with the
-    person's signed reference and Stripe customer, and redirects to it (FR-007). The
-    sketch only returns to the page the plan was chosen on, saying so.
+    A POST of the ``price`` chosen and a ``return_to`` path on this site, from the plans
+    page. The price must be one the catalogue offers. Every way it can fail adds a message
+    and sends the reader back to ``return_to``: the plans page is where they chose, and
+    ``mvp/base.html`` shows the message above it.
     """
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        """Go back to where the plan was chosen, naming the price that would be bought."""
-        return_to = request.POST.get("return_to") or "/"
-        if not return_to.startswith("/") or return_to.startswith("//"):
-            return_to = "/"
-        price = request.POST.get("price", "")
-        return redirect(f"{return_to}?sketch_checkout={price}")
+        """Send the reader to Stripe's checkout for the price, or back with a message.
+
+        Args:
+            request: The signed-in person's POST.
+
+        Returns:
+            A redirect to Stripe's checkout; to the user subscriptions page when the person
+            already holds the price; otherwise back to ``return_to``.
+        """
+        return_to = self.get_return_to(request)
+        if Catalogue.prices() is None:
+            messages.error(
+                request,
+                _("The plans can't be shown right now. Please try again shortly."),
+            )
+            return redirect(return_to)
+        price_id = request.POST.get("price", "")
+        if Catalogue.price(price_id) is None:
+            messages.warning(request, _("That plan is no longer on offer."))
+            return redirect(return_to)
+        if (
+            Subscription.objects.for_user(request.user)
+            .current()
+            .filter(price_id=price_id)
+            .exists()
+        ):
+            return redirect(f"{APP_NAMESPACE}:stripe-subscription")
+        success_url = (
+            request.build_absolute_uri(
+                reverse(f"{APP_NAMESPACE}:stripe-billing-return")
+            )
+            + "?session_id={CHECKOUT_SESSION_ID}"
+        )
+        try:
+            url = Customer.start_checkout(
+                request.user,
+                price_id,
+                success_url,
+                request.build_absolute_uri(return_to),
+            )
+        except stripe.StripeError as error:
+            # Not logger.exception: Stripe's message can echo part of the secret key.
+            logger.error(  # noqa: TRY400
+                "Could not start a Stripe checkout for user %s: %s.",
+                request.user.pk,
+                type(error).__name__,
+            )
+            messages.error(
+                request,
+                _("We couldn't start the checkout. Please try again shortly."),
+            )
+            return redirect(return_to)
+        return redirect(url)
+
+    def get_return_to(self, request: HttpRequest) -> str:
+        """Choose where to send the reader when checkout does not start.
+
+        Args:
+            request: The POST, whose ``return_to`` names the page the plan was chosen on.
+
+        Returns:
+            ``return_to`` when it is a path on this site, otherwise the plans page, or the
+            site's root when the project has not mounted one.
+        """
+        return_to = request.POST.get("return_to", "")
+        if return_to and url_has_allowed_host_and_scheme(
+            return_to,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return return_to
+        try:
+            return reverse("payments_plans:stripe-plans")
+        except NoReverseMatch:
+            return "/"

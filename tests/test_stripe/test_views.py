@@ -3,6 +3,7 @@
 import logging
 
 import pytest
+from django.contrib.messages import get_messages
 from django.urls import reverse
 
 from mvp_payments.stripe.models import Customer, Subscription
@@ -16,6 +17,7 @@ from tests.stripe_fake import (
     checkout_session_payload,
     customer_payload,
     event_payload,
+    price_payload,
     product_payload,
     sign_webhook,
     subscription_payload,
@@ -649,3 +651,247 @@ class TestBillingReturn:
         assert response.status_code == 302
         assert response.url.startswith(reverse("account_login"))
         assert stripe_fake.requests == []
+
+
+SESSIONS = "/v1/checkout/sessions"
+
+
+@pytest.fixture
+def on_offer(stripe_fake):
+    """Stripe's catalogue holds one price, ``price_pro``."""
+    pro = {**product_payload("prod_pro", "Pro"), "active": True}
+    stripe_fake.respond_with_list("/v1/prices", [price_payload("price_pro", pro)])
+    return stripe_fake
+
+
+@pytest.fixture
+def checkout_created(on_offer):
+    on_offer.respond(
+        "POST",
+        SESSIONS,
+        {
+            "id": "cs_1",
+            "object": "checkout.session",
+            "url": "https://checkout.stripe.com/c/pay/cs_1",
+        },
+    )
+    return on_offer
+
+
+def messages_of(response):
+    return [(m.level_tag, str(m)) for m in get_messages(response.wsgi_request)]
+
+
+@pytest.mark.django_db
+class TestCheckout:
+    url = "/account/billing/stripe/checkout/"
+    plans = "/plans/"
+
+    def post(self, client, price="price_pro", **extra):
+        return client.post(self.url, {"price": price, "return_to": self.plans, **extra})
+
+    def test_a_signed_in_person_is_sent_to_the_session_stripe_made(
+        self, checkout_created, client, user
+    ):
+        client.force_login(user)
+
+        response = self.post(client)
+
+        assert response.status_code == 302
+        assert response.url == "https://checkout.stripe.com/c/pay/cs_1"
+
+    def test_stripe_is_asked_for_the_price_with_the_persons_reference_and_both_addresses(
+        self, checkout_created, client, user
+    ):
+        client.force_login(user)
+
+        self.post(client)
+
+        (_, _, params) = checkout_created.requests[-1]
+        assert params["line_items[0][price]"] == ["price_pro"]
+        assert params["mode"] == ["subscription"]
+        assert params["client_reference_id"] == [Customer.client_reference(user)]
+        assert params["allow_promotion_codes"] == ["true"]
+        assert params["cancel_url"] == ["http://testserver/plans/"]
+
+    def test_the_success_address_returns_through_the_return_view_with_the_session_id_unencoded(
+        self, checkout_created, client, user
+    ):
+        client.force_login(user)
+
+        self.post(client)
+
+        (_, _, params) = checkout_created.requests[-1]
+        assert params["success_url"] == [
+            "http://testserver"
+            + reverse("payments:stripe-billing-return")
+            + "?session_id={CHECKOUT_SESSION_ID}"
+        ]
+
+    def test_a_person_with_a_customer_buys_as_that_customer(
+        self, checkout_created, client, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        client.force_login(user)
+
+        self.post(client)
+
+        (_, _, params) = checkout_created.requests[-1]
+        assert params["customer"] == ["cus_mine"]
+
+    def test_a_person_who_is_not_signed_in_is_sent_to_sign_in_and_stripe_is_not_asked(
+        self, stripe_fake, client, db
+    ):
+        response = self.post(client)
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("account_login"))
+        assert stripe_fake.requests == []
+
+    def test_a_get_is_refused(self, checkout_created, client, user):
+        client.force_login(user)
+
+        assert client.get(self.url).status_code == 405
+        assert checkout_created.requests == []
+
+    def test_a_post_without_the_csrf_token_is_refused(self, checkout_created, user):
+        from django.test import Client
+
+        strict = Client(enforce_csrf_checks=True)
+        strict.force_login(user)
+
+        response = strict.post(self.url, {"price": "price_pro"})
+
+        assert response.status_code == 403
+        assert checkout_created.requests == []
+
+    def test_a_price_not_on_offer_adds_a_warning_and_creates_nothing(
+        self, on_offer, client, user
+    ):
+        client.force_login(user)
+
+        response = self.post(client, price="price_made_up")
+
+        assert response.url == self.plans
+        assert [level for level, _ in messages_of(response)] == ["warning"]
+        assert SESSIONS not in on_offer.paths("POST")
+
+    def test_a_missing_price_is_treated_the_same(self, on_offer, client, user):
+        client.force_login(user)
+
+        response = client.post(self.url, {"return_to": self.plans})
+
+        assert [level for level, _ in messages_of(response)] == ["warning"]
+        assert SESSIONS not in on_offer.paths("POST")
+
+    def test_an_unavailable_catalogue_adds_an_error_not_a_warning(
+        self, stripe_fake, client, user
+    ):
+        stripe_fake.become_unreachable("GET", "/v1/prices")
+        client.force_login(user)
+
+        response = self.post(client)
+
+        assert response.url == self.plans
+        assert [level for level, _ in messages_of(response)] == ["error"]
+        assert SESSIONS not in stripe_fake.paths("POST")
+
+    def test_a_price_the_person_holds_goes_to_the_subscriptions_page(
+        self, on_offer, client, user
+    ):
+        customer = StripeCustomerFactory(user=user)
+        StripeSubscriptionFactory(
+            customer=customer, price_id="price_pro", status="active"
+        )
+        client.force_login(user)
+
+        response = self.post(client)
+
+        assert response.url == reverse("payments:stripe-subscription")
+        assert SESSIONS not in on_offer.paths("POST")
+
+    def test_a_price_whose_subscription_ended_can_be_bought_again(
+        self, checkout_created, client, user
+    ):
+        customer = StripeCustomerFactory(user=user)
+        StripeSubscriptionFactory(
+            customer=customer, price_id="price_pro", status="canceled"
+        )
+        client.force_login(user)
+
+        response = self.post(client)
+
+        assert response.url == "https://checkout.stripe.com/c/pay/cs_1"
+
+    def test_a_stripe_error_adds_an_error_and_returns(
+        self, on_offer, client, user, caplog
+    ):
+        on_offer.respond_with_message_echoing(
+            "POST", SESSIONS, "sk_test_not_a_real_key"
+        )
+        client.force_login(user)
+
+        response = self.post(client)
+
+        assert response.url == self.plans
+        assert [level for level, _ in messages_of(response)] == ["error"]
+        assert "sk_test_not_a_real_key" not in caplog.text
+        assert "AuthenticationError" in caplog.text
+
+    @pytest.mark.parametrize(
+        "unsafe", ["https://evil.example/", "//evil.example/", "javascript:alert(1)"]
+    )
+    def test_an_unsafe_return_to_falls_back_to_the_plans_page(
+        self, on_offer, client, user, unsafe
+    ):
+        client.force_login(user)
+
+        response = client.post(
+            self.url, {"price": "price_made_up", "return_to": unsafe}
+        )
+
+        assert response.url == self.plans
+
+    def test_a_safe_return_to_on_this_site_is_honoured(self, on_offer, client, user):
+        client.force_login(user)
+
+        response = client.post(
+            self.url, {"price": "price_made_up", "return_to": "/pricing/?x=1#a"}
+        )
+
+        assert response.url == "/pricing/?x=1#a"
+
+    def test_a_customer_stripe_no_longer_has_is_dropped_and_checkout_still_starts(
+        self, on_offer, client, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_gone")
+        on_offer.respond_with_error("GET", "/v1/customers/cus_gone", "resource_missing")
+        on_offer.respond_in_turn(
+            "POST",
+            SESSIONS,
+            [
+                (
+                    {
+                        "error": {
+                            "type": "invalid_request_error",
+                            "code": "resource_missing",
+                        }
+                    },
+                    404,
+                ),
+                (
+                    {
+                        "id": "cs_2",
+                        "object": "checkout.session",
+                        "url": "https://checkout.stripe.com/c/pay/cs_2",
+                    },
+                    200,
+                ),
+            ],
+        )
+        client.force_login(user)
+
+        response = self.post(client)
+
+        assert response.url == "https://checkout.stripe.com/c/pay/cs_2"
+        assert not Customer.objects.filter(user=user).exists()
