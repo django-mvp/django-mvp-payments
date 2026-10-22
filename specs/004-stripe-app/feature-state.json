@@ -2,7 +2,7 @@
   "feature": "004-stripe-app",
   "branch": "004-stripe-app",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "REVIEW",
+  "state": "PR_READY",
   "state_history": [
     {
       "state": "PLAN",
@@ -28,6 +28,11 @@
       "state": "REVIEW",
       "at": "2026-10-22T09:14:42Z",
       "note": "convergence complete: ADR 0011 graduated, S5 green"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-10-22T09:25:13Z",
+      "note": "review recorded; walkthrough laid out"
     }
   ],
   "gates": {
@@ -398,6 +403,6 @@
   },
   "pr": {
     "number": 53,
-    "draft": true
+    "draft": false
   }
 }
