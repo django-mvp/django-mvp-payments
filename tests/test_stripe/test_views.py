@@ -531,6 +531,17 @@ class TestBillingPortal:
 
         assert statuses == [200, 200, 200]
 
+    def test_after_ten_in_a_minute_the_person_is_refused_and_stripe_not_asked(
+        self, portal_opens, client, user
+    ):
+        StripeCustomerFactory(user=user)
+        client.force_login(user)
+
+        statuses = [client.post(self.url).status_code for _ in range(11)]
+
+        assert statuses == [200] * 10 + [429]
+        assert len(posted_to_the_portal(portal_opens)) == 10
+
     def test_stripe_is_asked_for_this_persons_own_customer_never_anothers(
         self, portal_opens, client, user
     ):
@@ -642,6 +653,19 @@ class TestPlanSwitch:
 
         assert response.status_code == 409
         assert portal_opens.requests == []
+
+    def test_switching_counts_against_the_same_limit_as_the_portal(
+        self, portal_opens, client, user
+    ):
+        customer = StripeCustomerFactory(user=user)
+        StripeSubscriptionFactory(customer=customer, status="active")
+        client.force_login(user)
+        for _ in range(10):
+            client.post(TestBillingPortal.url)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 429
 
     def test_somebody_with_no_customer_has_nothing_to_switch(
         self, portal_opens, client, user
@@ -956,6 +980,35 @@ class TestCheckout:
         assert response.status_code == 302
         assert response.url.startswith(reverse("account_login"))
         assert stripe_fake.requests == []
+
+    def test_after_ten_checkouts_in_a_minute_the_person_is_sent_back_with_a_warning(
+        self, checkout_created, client, user
+    ):
+        client.force_login(user)
+        for _ in range(10):
+            self.post(client)
+        created = checkout_created.paths("POST").count(SESSIONS)
+
+        response = self.post(client)
+
+        assert created == 10
+        assert response.url == self.plans
+        assert [level for level, _ in messages_of(response)] == ["warning"]
+        assert checkout_created.paths("POST").count(SESSIONS) == 10
+
+    def test_the_checkout_limit_is_each_persons_own(
+        self, checkout_created, client, user
+    ):
+        client.force_login(user)
+        for _ in range(11):
+            self.post(client)
+        other = UserFactory()
+        StripeCustomerFactory(user=other, stripe_id="cus_other")
+        client.force_login(other)
+
+        response = self.post(client)
+
+        assert response.url == "https://checkout.stripe.com/c/pay/cs_1"
 
     def test_a_get_is_refused(self, checkout_created, client, user):
         client.force_login(user)

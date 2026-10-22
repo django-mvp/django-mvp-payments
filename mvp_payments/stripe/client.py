@@ -10,6 +10,16 @@ from django.core.exceptions import ImproperlyConfigured
 #: to the account's default version cannot change what the app receives.
 API_VERSION = "2026-09-30.endive"
 
+#: Seconds a request to Stripe may take when ``MVP_PAYMENTS["STRIPE_TIMEOUT"]`` is not set.
+#: Every call the app makes is answered in well under a second, and a worker waiting longer
+#: is one a public page cannot use. The SDK's own default is 80.
+TIMEOUT = 10
+
+#: How many times a request that timed out, could not connect or met a Stripe-side error is
+#: tried again. The SDK sends every POST with an idempotency key, so a retried checkout or
+#: portal session is never created twice.
+MAX_NETWORK_RETRIES = 2
+
 #: Replaced only by the test suite, to keep requests off the network.
 http_client: stripe.HTTPClient | None = None
 
@@ -21,16 +31,22 @@ def client() -> stripe.StripeClient:
     integration in the same process cannot change which key or version this uses.
 
     Returns:
-        A client for ``API_VERSION``, authorised with ``STRIPE_SECRET_KEY``.
+        A client for ``API_VERSION``, authorised with ``STRIPE_SECRET_KEY``, whose requests
+        give up after ``STRIPE_TIMEOUT`` seconds and are retried ``MAX_NETWORK_RETRIES`` times.
 
     Raises:
         ImproperlyConfigured: If ``MVP_PAYMENTS["STRIPE_SECRET_KEY"]`` is missing or empty.
     """
-    secret_key = getattr(settings, "MVP_PAYMENTS", {}).get("STRIPE_SECRET_KEY")
+    configured = getattr(settings, "MVP_PAYMENTS", {})
+    secret_key = configured.get("STRIPE_SECRET_KEY")
     if not secret_key:
         raise ImproperlyConfigured(
             "MVP_PAYMENTS['STRIPE_SECRET_KEY'] must be set to use mvp_payments.stripe."
         )
     return stripe.StripeClient(
-        secret_key, stripe_version=API_VERSION, http_client=http_client
+        secret_key,
+        stripe_version=API_VERSION,
+        max_network_retries=MAX_NETWORK_RETRIES,
+        http_client=http_client
+        or stripe.RequestsClient(timeout=configured.get("STRIPE_TIMEOUT", TIMEOUT)),
     )

@@ -76,9 +76,7 @@ specs/001-pages-arrive-on-install/
 ├── decisions.md         # merged with it; appended to here
 ├── plan.md              # this file
 ├── research.md          # what was read from the dependencies
-├── tasks.md             # the task graph
-├── progress.md          # run narrative
-└── feature-state.json   # the ledger
+└── tasks.md             # the task graph
 ```
 
 No `data-model.md`: the feature has no data. No `contracts/`: the rendered page is the contract and
