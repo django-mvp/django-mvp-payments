@@ -1,5 +1,7 @@
 """The template tag that renders each available contribution's card."""
 
+import re
+
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
@@ -163,3 +165,21 @@ class TestStripePlansPlacement:
         assert "next=%2Fpricing%2F" in replaced
         assert "Priority support" not in replaced
         assert "Priority support" in elsewhere
+
+    def test_a_project_loop_carries_the_note_the_choose_control_is_described_by(
+        self, cotton_render_string, on_offer
+    ):
+        loop = (
+            "{% load mvp_payments %}{% stripe_plans as plans %}"
+            "{% for price in plans.prices %}<article>"
+            '<c-stripe.plan-choose :price="price" :plans="plans" />'
+            "</article>{% endfor %}"
+            '<p id="mvp-payments-checkout-note">Payment is taken on Stripe.</p>'
+        )
+
+        html = cotton_render_string(loop, {"request": request_on("/pricing/")})
+
+        described_by = set(re.findall(r'aria-describedby="([^"]+)"', html))
+        assert described_by
+        for element_id in described_by:
+            assert f'id="{element_id}"' in html

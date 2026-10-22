@@ -99,7 +99,9 @@ of its own, with the same parts or with its own markup for some of them.
 : The way to buy one plan. A signed-in person gets a button that submits the price to the checkout
   address. A visitor who is not signed in gets a link to sign in that brings them back to the page
   with the plan they picked marked. A person who holds the plan gets a link to their user
-  subscriptions page.
+  subscriptions page. The control is described by the element with id
+  `mvp-payments-checkout-note`, which the page must carry. `<c-stripe.plans>` draws it. A page
+  that places this part itself draws it too.
 
 `<c-stripe.no-plans />` and `<c-stripe.plans-unavailable />`
 : The two states above. Neither takes anything.
@@ -222,7 +224,12 @@ one you replace. Every other placement is unaffected:
     <c-stripe.plan-choose :price="price" :plans="plans" />
   </article>
 {% endfor %}
+<p id="mvp-payments-checkout-note">Payment is taken on Stripe's secure checkout page.</p>
 ```
+
+Keep the note. Each Choose control names it with `aria-describedby`, so a reader using a screen
+reader hears that payment leaves the site. Without an element carrying that id the control has
+no description.
 
 To replace the whole page, supply your own template at `mvp_payments/stripe/plans.html`. It
 receives `plans` in its context and replaces everything the template decides. The view underneath
