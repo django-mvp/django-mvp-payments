@@ -1,8 +1,8 @@
-"""The drf-stripe-subscription backend's records, as presentation objects.
+"""The Stripe app's subscriptions, as presentation objects.
 
 Reached through ``apps.get_model`` throughout, never imported (Article XII). What counts as
-*current* is the backend's own answer, :attr:`StripeUser.current_subscription_items`, never a
-status list of ours (ADR 0003).
+*current* is the Stripe app's own answer, ``SubscriptionQuerySet.subscribed``, never a status
+list of ours (ADR 0003).
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from django.apps import apps
 from django.contrib.auth.models import AbstractBaseUser
@@ -20,37 +20,29 @@ from mvp_payments.money import Money
 
 
 @dataclass(frozen=True)
-class PlanFeature:
-    """One feature recorded against a plan's product.
+class CurrentSubscription:
+    """One subscription the Stripe app counts as the person being subscribed.
 
     Attributes:
-        identifier: The feature's identifier in the backend.
-        description: The feature's description, or its identifier where it has none.
-    """
-
-    identifier: str
-    description: str
-
-
-@dataclass(frozen=True)
-class Plan:
-    """One priced item on a current subscription.
-
-    Attributes:
-        name: The price's nickname, or its product's name.
-        amount: What the item costs per billing interval.
-        frequency: The backend's encoding of the billing interval, if it recorded one.
-        quantity: How many of the item the subscription holds.
-        features: What the item's product grants.
-        FREQUENCY_TRANSLATORS: How each interval the backend can report reads in words,
+        status: The subscription's status, as Stripe reported it.
+        name: The name of the product the subscription is for.
+        amount: What the subscription costs per billing interval, or ``None`` when its price
+            has no fixed amount.
+        interval: The billing interval's unit, as Stripe reports it.
+        interval_count: How many intervals pass between bills.
+        period_start: When the current billing period began, if recorded.
+        period_end: When the current billing period ends, if recorded.
+        FREQUENCY_TRANSLATORS: How each interval Stripe can report reads in words,
             singular and plural.
     """
 
+    status: str
     name: str
-    amount: Money
-    frequency: str | None
-    quantity: int
-    features: tuple[PlanFeature, ...] = ()
+    amount: Money | None
+    interval: str
+    interval_count: int
+    period_start: datetime | None
+    period_end: datetime | None
 
     FREQUENCY_TRANSLATORS: ClassVar[dict[str, Callable[[int], str]]] = {
         "day": lambda n: ngettext("every day", "every %(count)d days", n),
@@ -63,115 +55,47 @@ class Plan:
     def frequency_display(self) -> str:
         """The billing frequency in words, or the raw value where it is not recognised.
 
-        drf-stripe-subscription composes ``frequency`` as ``f"{interval}_{interval_count}"``.
-        An unrecognised value is shown as itself rather than dropped (Article XV).
-
-        On Python 3.12 and later that f-string formats the backend's ``RecurringInterval`` enum
-        member by name, so a synchronised record holds ``RecurringInterval.MONTH_1`` where it
-        means ``month_1``. Both spellings are read.
+        An unrecognised interval is shown as itself rather than dropped (Article XV).
         """
-        if not self.frequency:
+        if not self.interval:
             return ""
-        interval, separator, count_text = self.frequency.rpartition("_")
-        if not separator or not count_text.isdigit():
-            return self.frequency
-        interval = interval.removeprefix("RecurringInterval.").lower()
-        translator = self.FREQUENCY_TRANSLATORS.get(interval)
+        translator = self.FREQUENCY_TRANSLATORS.get(self.interval)
         if translator is None:
-            return self.frequency
-        count = int(count_text)
-        text = translator(count)
-        return text if count == 1 else text % {"count": count}
-
-
-@dataclass(frozen=True)
-class CurrentSubscription:
-    """One subscription the backend currently grants access for.
-
-    Attributes:
-        status: The subscription's status, as the backend recorded it.
-        period_start: When the current billing period began, if recorded.
-        period_end: When the current billing period ends, if recorded.
-        plans: The priced items on the subscription.
-    """
-
-    status: str
-    period_start: datetime | None
-    period_end: datetime | None
-    plans: tuple[Plan, ...]
+            return f"{self.interval}_{self.interval_count}"
+        text = translator(self.interval_count)
+        if self.interval_count == 1:
+            return text
+        return text % {"count": self.interval_count}
 
 
 class SubscriptionReader:
-    """Reads one person's current subscriptions from the installed backend."""
+    """Reads one person's current subscriptions from the Stripe app."""
 
     @staticmethod
     def for_user(user: AbstractBaseUser) -> tuple[CurrentSubscription, ...]:
-        """Read the subscriptions the backend currently grants a person access for.
+        """Read the subscriptions the Stripe app counts as the person being subscribed.
 
         Args:
-            user: The person whose subscriptions to read.
+            user: The person whose subscriptions to read, who may not be signed in.
 
         Returns:
-            The current subscriptions, newest first. Empty for a person the backend holds no
-            customer record for.
+            Every current subscription, newest period first. Empty for a person the app
+            holds no customer for.
         """
-        stripe_user_model = apps.get_model("drf_stripe", "StripeUser")
-        try:
-            stripe_user = stripe_user_model.objects.get(pk=user.pk)
-        except stripe_user_model.DoesNotExist:
-            return ()
-
-        items = (
-            stripe_user.current_subscription_items.select_related(
-                "subscription", "price__product"
-            )
-            .prefetch_related("price__product__linked_features__feature")
-            .order_by("-subscription__period_start")
-        )
-
-        subscriptions: list[Any] = []
-        plans_by_subscription: dict[Any, list[Plan]] = {}
-        for item in items:
-            subscription = item.subscription
-            if subscription not in plans_by_subscription:
-                plans_by_subscription[subscription] = []
-                subscriptions.append(subscription)
-            plans_by_subscription[subscription].append(
-                SubscriptionReader.build_plan(item)
-            )
-
+        subscription_model = apps.get_model("mvp_payments_stripe", "Subscription")
         return tuple(
             CurrentSubscription(
                 status=subscription.status,
-                period_start=subscription.period_start,
-                period_end=subscription.period_end,
-                plans=tuple(plans_by_subscription[subscription]),
+                name=subscription.product_name,
+                amount=None
+                if subscription.amount is None
+                else Money(
+                    minor_units=subscription.amount, currency=subscription.currency
+                ),
+                interval=subscription.interval,
+                interval_count=subscription.interval_count,
+                period_start=subscription.current_period_start,
+                period_end=subscription.current_period_end,
             )
-            for subscription in subscriptions
-        )
-
-    @staticmethod
-    def build_plan(item) -> Plan:
-        """Build the ``Plan`` a template reads from one subscription line item.
-
-        Args:
-            item: The backend's ``SubscriptionItem``, with its price and product.
-
-        Returns:
-            The line item as a plan.
-        """
-        price = item.price
-        return Plan(
-            name=price.nickname or price.product.name,
-            amount=Money(minor_units=price.price, currency=price.currency),
-            frequency=price.freq,
-            quantity=item.quantity,
-            features=tuple(
-                PlanFeature(
-                    identifier=product_feature.feature.feature_id,
-                    description=product_feature.feature.description
-                    or product_feature.feature.feature_id,
-                )
-                for product_feature in price.product.linked_features.all()
-            ),
+            for subscription in subscription_model.objects.for_user(user).subscribed()
         )

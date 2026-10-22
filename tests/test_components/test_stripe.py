@@ -11,11 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from mvp_payments.money import Money
-from mvp_payments.namespaces.stripe_records import (
-    CurrentSubscription,
-    Plan,
-    PlanFeature,
-)
+from mvp_payments.namespaces.stripe_records import CurrentSubscription
 
 
 class TestPricingTable:
@@ -128,6 +124,11 @@ class TestPricingTable:
 
 
 class TestAmount:
+    def test_no_amount_renders_nothing(self, cotton_render):
+        html = cotton_render("stripe.amount", amount=None)
+
+        assert html.strip() == ""
+
     def test_renders_the_amount_it_was_given(self, cotton_render):
         html = cotton_render(
             "stripe.amount", amount=Money(minor_units=2000, currency="USD")
@@ -144,99 +145,31 @@ class TestAmount:
         assert "20.00" not in html
 
 
-class TestPlan:
-    def test_renders_the_name_amount_and_frequency_it_was_given(self, cotton_render):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
+def current_subscription(**overrides):
+    fields = {
+        "status": "active",
+        "name": "Premium monthly",
+        "amount": Money(minor_units=2500, currency="USD"),
+        "interval": "month",
+        "interval_count": 1,
+        "period_start": None,
+        "period_end": None,
+    }
+    return CurrentSubscription(**{**fields, **overrides})
 
-        html = cotton_render("stripe.plan", plan=plan)
 
+class TestSubscription:
+    def test_renders_the_status_name_amount_and_frequency(self, cotton_render):
+        html = cotton_render("stripe.subscription", subscription=current_subscription())
+
+        assert "active" in html
         assert "Premium monthly" in html
         assert "25.00 USD" in html
         assert "every month" in html
 
-    def test_a_quantity_above_one_is_shown(self, cotton_render):
-        plan = Plan(
-            name="Seats",
-            amount=Money(minor_units=500, currency="USD"),
-            frequency="month_1",
-            quantity=3,
-        )
-
-        html = cotton_render("stripe.plan", plan=plan)
-
-        assert "3" in html
-
-    def test_an_unrecognised_frequency_renders_as_itself(self, cotton_render):
-        plan = Plan(
-            name="Odd billing",
-            amount=Money(minor_units=500, currency="USD"),
-            frequency="fortnight_1",
-            quantity=1,
-        )
-
-        html = cotton_render("stripe.plan", plan=plan)
-
-        assert "fortnight_1" in html
-
-    def test_its_features_render_beneath_it(self, cotton_render):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-            features=(
-                PlanFeature(identifier="reports", description="Advanced reports"),
-            ),
-        )
-
-        html = cotton_render("stripe.plan", plan=plan)
-
-        assert "Advanced reports" in html
-
-    def test_no_features_renders_no_heading_or_list(self, cotton_render):
-        plan = Plan(
-            name="Basic",
-            amount=Money(minor_units=500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
-
-        html = cotton_render("stripe.plan", plan=plan)
-
-        assert "<ul" not in html
-        assert "<li" not in html
-
-
-class TestSubscription:
-    def test_renders_the_status_and_its_plans(self, cotton_render):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
-        subscription = CurrentSubscription(
-            status="active",
-            period_start=None,
-            period_end=None,
-            plans=(plan,),
-        )
-
-        html = cotton_render("stripe.subscription", subscription=subscription)
-
-        assert "active" in html
-        assert "Premium monthly" in html
-
     def test_renders_a_recorded_period(self, cotton_render):
         now = timezone.now()
-        subscription = CurrentSubscription(
-            status="active", period_start=now, period_end=now, plans=()
-        )
+        subscription = current_subscription(period_start=now, period_end=now)
 
         html = cotton_render("stripe.subscription", subscription=subscription)
 
@@ -245,38 +178,26 @@ class TestSubscription:
     def test_an_unrecognised_status_renders_as_itself_with_no_special_variant(
         self, cotton_render
     ):
-        subscription = CurrentSubscription(
-            status="paused", period_start=None, period_end=None, plans=()
+        html = cotton_render(
+            "stripe.subscription", subscription=current_subscription(status="paused")
         )
-
-        html = cotton_render("stripe.subscription", subscription=subscription)
 
         assert "paused" in html
 
+    def test_an_unrecognised_interval_renders_as_itself(self, cotton_render):
+        subscription = current_subscription(interval="fortnight")
 
-class TestFeatures:
-    def test_lists_the_features_it_is_given(self, cotton_render):
-        features = (
-            PlanFeature(identifier="reports", description="Advanced reports"),
-            PlanFeature(identifier="seats", description="Unlimited seats"),
+        html = cotton_render("stripe.subscription", subscription=subscription)
+
+        assert "fortnight_1" in html
+
+    def test_a_price_with_no_fixed_amount_shows_no_figure(self, cotton_render):
+        html = cotton_render(
+            "stripe.subscription", subscription=current_subscription(amount=None)
         )
 
-        html = cotton_render("stripe.features", features=features)
-
-        assert "Advanced reports" in html
-        assert "Unlimited seats" in html
-
-    def test_shows_the_identifier_where_there_is_no_description(self, cotton_render):
-        features = (PlanFeature(identifier="priority_support", description=""),)
-
-        html = cotton_render("stripe.features", features=features)
-
-        assert "priority_support" in html
-
-    def test_renders_nothing_at_all_when_given_none(self, cotton_render):
-        html = cotton_render("stripe.features", features=())
-
-        assert html.strip() == ""
+        assert "None" not in html
+        assert "Premium monthly" in html
 
 
 class TestPlansLink:
@@ -425,29 +346,10 @@ class TestStandalone:
         assert "Order summary" in html
         assert "20.00 USD" in html
 
-    def test_plan_renders_inside_an_unrelated_template(self, cotton_render_string):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
-
-        html = cotton_render_string(
-            '<section><h1>Pricing</h1><c-stripe.plan :plan="plan" /></section>',
-            context={"plan": plan},
-        )
-
-        assert "Pricing" in html
-        assert "Premium monthly" in html
-        assert "25.00 USD" in html
-
     def test_subscription_renders_inside_an_unrelated_template(
         self, cotton_render_string
     ):
-        subscription = CurrentSubscription(
-            status="active", period_start=None, period_end=None, plans=()
-        )
+        subscription = current_subscription()
 
         html = cotton_render_string(
             "<aside><h3>Dashboard widget</h3>"
@@ -457,18 +359,6 @@ class TestStandalone:
 
         assert "Dashboard widget" in html
         assert "active" in html
-
-    def test_features_renders_inside_an_unrelated_template(self, cotton_render_string):
-        features = (PlanFeature(identifier="reports", description="Advanced reports"),)
-
-        html = cotton_render_string(
-            "<footer><p>What's included</p>"
-            '<c-stripe.features :features="features" /></footer>',
-            context={"features": features},
-        )
-
-        assert "What's included" in html
-        assert "Advanced reports" in html
 
     def test_portal_link_renders_inside_an_unrelated_template(
         self, cotton_render_string

@@ -81,16 +81,16 @@ class SubscriptionPageView(PaymentPageView):
 
     Adds to the context:
 
-    - ``subscriptions``: this person's current subscriptions, read at render time (Article XII).
-    - ``billing_portal_endpoint``: where the backend's billing-portal endpoint is mounted, from
-      ``settings.MVP_PAYMENTS`` (ADR 0005). ``None`` for anyone with nothing current, because the
-      endpoint creates a provider customer for whoever posts to it (ADR 0007).
+    - ``subscriptions``: every one of this person's current subscriptions, read at render time
+      (Article XII).
+    - ``billing_portal_endpoint``: where the billing-portal endpoint is mounted, from
+      ``settings.MVP_PAYMENTS`` (ADR 0005). ``None`` for anyone with nothing current, because there is
+      nothing to manage until a subscription exists (ADR 0007).
     - ``plans_url``: the plans page, which is not in the navigation.
     - ``plan_switch_endpoint``: the project's endpoint opening the provider's plan-change screen,
       from the same settings (ADR 0008). ``None`` for anyone with nothing current.
     - ``provider_return``: set when the reader comes back from the provider (``?returned=N``) and
-      nothing current shows yet, because the backend can hear of a payment after the reader is
-      back. A dict of ``attempt`` and ``poll_url``, which is ``None`` once ``RETURN_POLL_LIMIT``
+      nothing current shows yet, because the webhook can arrive after the reader is back. A dict of ``attempt`` and ``poll_url``, which is ``None`` once ``RETURN_POLL_LIMIT``
       polls are spent. ``None`` otherwise.
     """
 

@@ -1,5 +1,5 @@
 {% load i18n %}
-{# @description One current subscription: its status as a badge, the current period, and each priced item on it. #}
+{# @description One current subscription: its status as a badge, the current period, and what it is for, what it costs and how often. #}
 {# @prop subscription:text | description:"A mvp_payments.namespaces.stripe_records.CurrentSubscription." | required #}
 {# A status this component does not recognise still renders, as itself, with a neutral badge (Article XV). #}
 <c-vars subscription />
@@ -20,7 +20,13 @@
       {{ subscription.period_start|date }} – {{ subscription.period_end|date }}
     </c-mvp.data-field>
   {% endif %}
-  {% for plan in subscription.plans %}
-    <c-stripe.plan :plan="plan" />
-  {% endfor %}
+  <div class="flex flex-wrap items-baseline justify-between gap-2 py-2">
+    <p class="font-medium">{{ subscription.name }}</p>
+    <div class="text-right">
+      <c-stripe.amount :amount="subscription.amount" />
+      {% if subscription.frequency_display %}
+        <span class="text-sm text-base-content/60">{{ subscription.frequency_display }}</span>
+      {% endif %}
+    </div>
+  </div>
 </c-mvp.card>
