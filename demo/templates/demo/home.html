@@ -17,12 +17,10 @@
   </c-mvp.section>
   <c-mvp.section title="One namespace per backend" icon="payments">
     <c-mvp.text>
-      A component names the backend it speaks to.
-      <code>&lt;c-stripe.plan-grid&gt;</code> is
-      <a href="https://github.com/oscarychen/drf-stripe-subscription"
-         class="link">drf-stripe-subscription</a>
-      and speaks that library's own vocabulary, and a second backend would get a namespace of
-      its own beside it rather than underneath it.
+      A component names the provider it speaks to.
+      <code>&lt;c-stripe.pricing-table&gt;</code> is Stripe's own pricing table, and the
+      <code>stripe.subscription</code> page reads the records of this package's Stripe app. A
+      second provider would get a namespace of its own beside it rather than underneath it.
     </c-mvp.text>
     <c-mvp.text>
       There is no neutral component that renders through a swappable backend. An interface

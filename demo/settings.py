@@ -83,20 +83,7 @@ INSTALLED_APPS = [
     "django_filters",
     "flex_menu",
     "django_cotton",
-    "rest_framework",
-    "drf_stripe",
 ]
-
-# Without a secret in `demo/.env` the handoff reports the portal unreachable, as a
-# misconfigured project would. The return address replaces the backend's default of a
-# frontend on port 3000, and is overridable because the server's hostname varies.
-DRF_STRIPE = {
-    "STRIPE_API_SECRET": DEV_ENV.get(
-        "STRIPE_TEST_SECRET_KEY", "sk_test_not_a_real_key"
-    ),
-    "STRIPE_WEBHOOK_SECRET": "whsec_not_a_real_secret",
-    "FRONT_END_BASE_URL": DEV_ENV.get("DEMO_BASE_URL", "http://localhost:8020"),
-}
 
 # The pricing table values come from `demo/.env`, or are obviously fake, and the provider's
 # embed then reports that it could not load.

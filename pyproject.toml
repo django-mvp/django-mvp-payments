@@ -51,11 +51,9 @@ packages = ["mvp_payments"]
 [tool.hatch.build.targets.sdist]
 include = ["/mvp_payments", "/README.md", "/LICENSE"]
 
-# No payment backend is declared as a dependency, and none ever will be. A
-# namespace is templates and static files that speak to one backend's HTTP
-# endpoints; installing this package pulls in nothing, and the project decides
-# which backend it runs. That is also what keeps the UI layer alive when a
-# backend is replaced.
+# The pages and components outside `mvp_payments/stripe/` import no payment
+# provider's SDK, and installing this package pulls in nothing beyond Django and
+# django-mvp.
 #
 # The one thing installable beside the package is a provider's own SDK, for the
 # provider app that talks to it, and only through that app's extra.
@@ -70,15 +68,8 @@ dev = [
     # every package in this organisation runs one version of each tool. Ships ruff,
     # mypy, deptry, pre-commit, pytest, pytest-django, coverage and django-stubs.
     "mvp-shared[dev,test]",
-    # The first backend, for the demo project and the test suite only. The rule
-    # above is about what a project installing this package inherits, and a
-    # development dependency is inherited by nobody. The demo needs the real
-    # backend because what it demonstrates is a real backend's pages arriving.
-    "drf-stripe-subscription>=1.2.2,<2",
-    # The Stripe app's own SDK, through its extra. drf-stripe-subscription's
-    # metadata bounds nothing, so it runs on this version; only its URL
-    # configuration imports the removed `stripe.error`, and the demo no longer
-    # mounts that.
+    # The Stripe app's own SDK, through its extra, for the demo project and the
+    # test suite.
     "django-mvp-payments[stripe-lite]",
 ]
 

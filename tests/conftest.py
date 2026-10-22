@@ -8,9 +8,6 @@ from mvp_payments.stripe import client as stripe_client_module
 from tests.factories import (
     StripeCustomerFactory,
     StripeSubscriptionFactory,
-    StripeUserFactory,
-    SubscriptionFactory,
-    SubscriptionItemFactory,
     UserFactory,
 )
 from tests.stripe_fake import FakeStripe
@@ -44,24 +41,6 @@ def client_for(db):
 
 @pytest.fixture
 def logged_in_client(client, user):
-    client.force_login(user)
-    return client
-
-
-@pytest.fixture
-def stripe_user(user):
-    return StripeUserFactory(user=user)
-
-
-@pytest.fixture
-def current_subscription(stripe_user):
-    subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
-    SubscriptionItemFactory(subscription=subscription)
-    return subscription
-
-
-@pytest.fixture
-def subscriber_client(client, user, current_subscription):
     client.force_login(user)
     return client
 

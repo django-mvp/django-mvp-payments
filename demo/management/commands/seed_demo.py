@@ -3,19 +3,19 @@
 Development only. The demo project is never deployed, and these passwords are
 written here in plain sight precisely so nobody mistakes them for real ones.
 
-The backend's models are reached through ``apps.get_model`` rather than imported, matching the
-rule ``mvp_payments/`` itself follows (Article XII) — the demo shows the package working the same
-way a host project would use it, not a shortcut available only here.
+The Stripe app's models are reached through ``apps.get_model`` rather than imported, matching
+the rule ``mvp_payments/`` itself follows (Article XII) — the demo shows the package working the
+same way a host project would use it, not a shortcut available only here.
 """
 
-import contextlib
-import io
+from datetime import timedelta
 
 import stripe
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 PASSWORD = "password"
 
@@ -65,7 +65,7 @@ class Command(BaseCommand):
         if getattr(settings, "DEV_ENV", {}).get("STRIPE_TEST_SECRET_KEY"):
             self.seed_sandbox_subscriptions(user_model)
         else:
-            self._seed_subscriptions(user_model)
+            self.seed_offline_subscriptions(user_model)
 
     def seed_sandbox_subscriptions(self, user_model):
         """Create real subscriptions in the provider's sandbox and read them back.
@@ -82,18 +82,13 @@ class Command(BaseCommand):
         new and a plan switched in the portal is not switched back.
 
         Invented subscriptions left by an earlier offline run are removed, so the page never
-        shows one beside a real one. Products, prices and subscriptions are then read back
-        through the backend's own synchronisation, exactly as its management commands do.
+        shows one beside a real one. Each customer is then tied to its account and read back
+        through the Stripe app's own ``sync()``.
 
         Args:
             user_model: The project's user model.
         """
-        from drf_stripe.stripe_api.products import stripe_api_update_products_prices
-        from drf_stripe.stripe_api.subscriptions import stripe_api_update_subscriptions
-
         stripe.api_key = settings.DEV_ENV["STRIPE_TEST_SECRET_KEY"]
-        stripe_user_model = apps.get_model("drf_stripe", "StripeUser")
-        subscription_model = apps.get_model("drf_stripe", "Subscription")
 
         other_user, _ = user_model.objects.get_or_create(
             username="other.subscriber",
@@ -106,23 +101,13 @@ class Command(BaseCommand):
         sandbox_customers = {}
         for username, trial_days in SANDBOX_SUBSCRIBERS:
             user = user_model.objects.get(username=username)
-            stripe_user = self._stripe_user(stripe_user_model, user, None)
-            self.ensure_sandbox_subscription(
-                stripe_user.customer_id, price_id, trial_days
-            )
-            sandbox_customers[user] = stripe_user.customer_id
+            customer_id = self.customer_id_for(user.email, None)
+            self.ensure_sandbox_subscription(customer_id, price_id, trial_days)
+            sandbox_customers[user] = customer_id
 
-        subscription_model.objects.filter(
-            subscription_id__startswith="sub_demo_"
-        ).delete()
-        if apps.is_installed("mvp_payments.stripe"):
-            self.record_in_the_stripe_app(sandbox_customers)
-        with contextlib.redirect_stdout(io.StringIO()):
-            stripe_api_update_products_prices()
-            stripe_api_update_subscriptions(
-                status="all", ignore_new_user_creation_errors=True
-            )
-        self.stdout.write("pulled sandbox products, prices and subscriptions")
+        subscription_model = apps.get_model("mvp_payments_stripe", "Subscription")
+        subscription_model.objects.filter(stripe_id__startswith="sub_demo_").delete()
+        self.record_in_the_stripe_app(sandbox_customers)
 
     def record_in_the_stripe_app(self, sandbox_customers):
         """Tie each sandbox customer to its demo account in the Stripe app, then sync it.
@@ -197,7 +182,7 @@ class Command(BaseCommand):
             customer=customer_id, items=[{"price": price_id}], **options
         )
 
-    def _customer_id(self, email, fallback):
+    def customer_id_for(self, email, fallback):
         """Find or create a provider customer for this person, where the demo has credentials.
 
         The portal a subscriber is handed to is minted by the provider for a customer it knows
@@ -227,174 +212,88 @@ class Command(BaseCommand):
             return existing[0].id
         return stripe.Customer.create(email=email, name=email.partition("@")[0]).id
 
-    def _stripe_user(self, stripe_user_model, user, fallback_customer_id):
-        """Get or create this person's backend customer record, keeping its identifier current.
+    def seed_offline_subscriptions(self, user_model):
+        """Give the demo something for the subscription page to show, without Stripe.
 
-        ``get_or_create`` applies its defaults only when it creates, so a demo database seeded
-        before credentials were configured would keep its invented identifier forever and the
-        portal would go on failing for reasons nothing on screen explains.
+        ``regular.user`` gets two active subscriptions in different currencies, which is the
+        several-at-once case. ``staff.user`` gets a trialing one. ``super.user`` is left with no
+        customer at all, so the empty state is reachable without editing anything. A fourth,
+        unlisted person gets a subscription of their own, which nothing this command creates
+        for ``regular.user`` may ever show: the cross-user guarantee the page's own tests hold
+        separately.
 
-        Args:
-            stripe_user_model: The backend's ``StripeUser`` model.
-            user: The person the record belongs to.
-            fallback_customer_id: The invented identifier to use without credentials.
-
-        Returns:
-            The person's ``StripeUser`` record.
-        """
-        customer_id = self._customer_id(user.email, fallback_customer_id)
-        stripe_user, created = stripe_user_model.objects.get_or_create(
-            user=user, defaults={"customer_id": customer_id}
-        )
-        if not created and stripe_user.customer_id != customer_id:
-            stripe_user.customer_id = customer_id
-            stripe_user.save(update_fields=["customer_id"])
-        return stripe_user
-
-    def _seed_subscriptions(self, user_model):
-        """Give the demo something for the subscription page to show.
-
-        ``regular.user`` gets one active subscription covering two priced items in different
-        currencies, on products that carry a feature each. ``staff.user`` gets a subscription the
-        backend counts as trialing. ``super.user`` is left with no ``StripeUser`` row at all, so
-        the empty state is reachable without editing anything. A fourth, unlisted person
-        gets a subscription of their own — nothing this command creates for ``regular.user`` may
-        ever show it, which is the cross-user guarantee the page's own tests hold separately.
+        The rows are written straight to the Stripe app's tables, which a real project never
+        does (Article XI). The demo has no Stripe account to read them from.
 
         Args:
             user_model: The project's user model.
         """
-        stripe_user_model = apps.get_model("drf_stripe", "StripeUser")
-        feature_model = apps.get_model("drf_stripe", "Feature")
-        product_model = apps.get_model("drf_stripe", "Product")
-        product_feature_model = apps.get_model("drf_stripe", "ProductFeature")
-        price_model = apps.get_model("drf_stripe", "Price")
-        subscription_model = apps.get_model("drf_stripe", "Subscription")
-        subscription_item_model = apps.get_model("drf_stripe", "SubscriptionItem")
-
-        priority_support, _ = feature_model.objects.get_or_create(
-            feature_id="feature_demo_priority_support",
-            defaults={"description": "Priority support"},
-        )
-        advanced_reports, _ = feature_model.objects.get_or_create(
-            feature_id="feature_demo_advanced_reports",
-            defaults={"description": "Advanced reports"},
-        )
-
-        basic, _ = product_model.objects.get_or_create(
-            product_id="prod_demo_basic",
-            defaults={"active": True, "name": "Basic", "description": "The basic plan"},
-        )
-        premium, _ = product_model.objects.get_or_create(
-            product_id="prod_demo_premium",
-            defaults={
-                "active": True,
-                "name": "Premium",
-                "description": "The premium plan",
-            },
-        )
-        product_feature_model.objects.get_or_create(
-            product=basic, feature=priority_support
-        )
-        product_feature_model.objects.get_or_create(
-            product=premium, feature=advanced_reports
-        )
-
-        basic_price, _ = price_model.objects.get_or_create(
-            price_id="price_demo_basic_usd",
-            defaults={
-                "product": basic,
-                "nickname": "Basic monthly",
-                "price": 2000,
-                "freq": "month_1",
-                "active": True,
-                "currency": "USD",
-            },
-        )
-        premium_price, _ = price_model.objects.get_or_create(
-            price_id="price_demo_premium_jpy",
-            defaults={
-                "product": premium,
-                "nickname": "Premium monthly",
-                "price": 500000,
-                "freq": "month_1",
-                "active": True,
-                "currency": "JPY",
-            },
-        )
-
-        regular_user = user_model.objects.get(username="regular.user")
-        regular_stripe_user = self._stripe_user(
-            stripe_user_model, regular_user, "cus_demo_regular"
-        )
-        regular_subscription, _ = subscription_model.objects.get_or_create(
-            subscription_id="sub_demo_regular",
-            defaults={
-                "stripe_user": regular_stripe_user,
-                "status": "active",
-                "cancel_at_period_end": False,
-            },
-        )
-        subscription_item_model.objects.get_or_create(
-            sub_item_id="si_demo_regular_basic",
-            defaults={
-                "subscription": regular_subscription,
-                "price": basic_price,
-                "quantity": 1,
-            },
-        )
-        subscription_item_model.objects.get_or_create(
-            sub_item_id="si_demo_regular_premium",
-            defaults={
-                "subscription": regular_subscription,
-                "price": premium_price,
-                "quantity": 1,
-            },
-        )
-
-        staff_user = user_model.objects.get(username="staff.user")
-        staff_stripe_user = self._stripe_user(
-            stripe_user_model, staff_user, "cus_demo_staff"
-        )
-        staff_subscription, _ = subscription_model.objects.get_or_create(
-            subscription_id="sub_demo_staff",
-            defaults={
-                "stripe_user": staff_stripe_user,
-                "status": "trialing",
-                "cancel_at_period_end": False,
-            },
-        )
-        subscription_item_model.objects.get_or_create(
-            sub_item_id="si_demo_staff_basic",
-            defaults={
-                "subscription": staff_subscription,
-                "price": basic_price,
-                "quantity": 1,
-            },
-        )
-
         other_user, _ = user_model.objects.get_or_create(
             username="other.subscriber",
             defaults={"email": "other.subscriber@example.com"},
         )
         other_user.set_password(PASSWORD)
         other_user.save()
-        other_stripe_user = self._stripe_user(
-            stripe_user_model, other_user, "cus_demo_other"
+
+        self.invent_subscription(
+            user_model.objects.get(username="regular.user"),
+            "regular",
+            "Basic",
+            status="active",
+            amount=2000,
+            currency="usd",
         )
-        other_subscription, _ = subscription_model.objects.get_or_create(
-            subscription_id="sub_demo_other",
-            defaults={
-                "stripe_user": other_stripe_user,
-                "status": "active",
-                "cancel_at_period_end": False,
-            },
+        self.invent_subscription(
+            user_model.objects.get(username="regular.user"),
+            "regular_premium",
+            "Premium",
+            status="active",
+            amount=500000,
+            currency="jpy",
         )
-        subscription_item_model.objects.get_or_create(
-            sub_item_id="si_demo_other_basic",
+        self.invent_subscription(
+            user_model.objects.get(username="staff.user"),
+            "staff",
+            "Basic",
+            status="trialing",
+            amount=2000,
+            currency="usd",
+        )
+        self.invent_subscription(
+            other_user,
+            "other",
+            "Basic",
+            status="active",
+            amount=2000,
+            currency="usd",
+        )
+
+    def invent_subscription(self, user, key, product_name, **fields):
+        """Record one invented subscription on the user's customer, creating the customer.
+
+        Args:
+            user: The person the subscription belongs to.
+            key: Names the subscription, and so what its identifiers are.
+            product_name: The name of the product it is for.
+            **fields: The status, amount and currency of the subscription.
+        """
+        customer_model = apps.get_model("mvp_payments_stripe", "Customer")
+        subscription_model = apps.get_model("mvp_payments_stripe", "Subscription")
+        stripe_id = self.customer_id_for(user.email, f"cus_demo_{user.username}")
+        customer, _ = customer_model.objects.update_or_create(
+            user=user, defaults={"stripe_id": stripe_id}
+        )
+        now = timezone.now()
+        subscription_model.objects.update_or_create(
+            stripe_id=f"sub_demo_{key}",
             defaults={
-                "subscription": other_subscription,
-                "price": basic_price,
-                "quantity": 1,
+                "customer": customer,
+                "price_id": f"price_demo_{key}",
+                "product_name": product_name,
+                "interval": "month",
+                "interval_count": 1,
+                "current_period_start": now - timedelta(days=10),
+                "current_period_end": now + timedelta(days=20),
+                **fields,
             },
         )

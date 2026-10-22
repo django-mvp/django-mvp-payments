@@ -33,14 +33,7 @@ class DemoConfig(AppConfig):
 
     def ready(self):
         """Register the sidebar entries and the site-naming hook."""
-        import stripe
-
         from demo import menus  # noqa: F401
-
-        # drf-stripe-subscription sets this itself, but only when its API module is first
-        # imported, which the demo does lazily. Set here, every call it makes parses the
-        # responses it was written for. The Stripe app pins its own version per client.
-        stripe.api_version = "2020-08-27"
 
         # Django skips post_migrate for an app with no models, so the hook hangs off the
         # sites app, and connecting it before SiteConfig.ready() means example.com is never made.

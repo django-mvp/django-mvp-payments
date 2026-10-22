@@ -32,10 +32,6 @@ DATABASES = {
 # as a fresh clone and CI do, on the demo's obviously fake values, so a local
 # run never reaches the provider and never depends on whose machine it is.
 DEV_ENV: dict[str, str] = {}
-DRF_STRIPE = {
-    **DRF_STRIPE,  # noqa: F405
-    "STRIPE_API_SECRET": "sk_test_not_a_real_key",
-}
 MVP_PAYMENTS = {
     **MVP_PAYMENTS,  # noqa: F405
     "STRIPE_SECRET_KEY": "sk_test_not_a_real_key",
