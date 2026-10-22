@@ -236,3 +236,23 @@ newer one about the same subscription therefore leaves the same records.
 | 200 | Everything else, including an event type the app does not keep and a customer that was never tied to a user |
 
 Every answer has an empty body.
+
+## Module names
+
+These are importable but are not the app's interface. They are listed so that nothing public goes
+undescribed.
+
+`mvp_payments.stripe.client.http_client`
+: `None` in normal use, so the SDK picks its own HTTP client. A test sets it to a
+  `stripe.HTTPClient` of its own to keep requests off the network.
+
+`mvp_payments.stripe.models.from_epoch(seconds)`
+: Turns a Stripe timestamp in epoch seconds into an aware UTC datetime, or `None` when Stripe
+  reported none.
+
+`mvp_payments.stripe.views.customer_for(event)`
+: Finds the `Customer` a verified webhook event is about, or `None`.
+
+`mvp_payments.stripe.models.logger` and `mvp_payments.stripe.views.logger`
+: The modules' loggers, named after the module. They record error types and identifiers, never a
+  secret or Stripe's message.
