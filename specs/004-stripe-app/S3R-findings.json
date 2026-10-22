@@ -1,0 +1,113 @@
+{
+  "stage": "design",
+  "lens": "security",
+  "verdict": "request_changes",
+  "risk": "medium",
+  "scope": "FS-004 design review (S3R), one dispatch, three lenses (spec-compliance, security, architecture). Findings carry their lens in the claim prefix and the id prefix (SPEC-, SEC-, ARCH-) because the schema holds one top-level lens. Coverage: FR 21 of 21 traced to a task and a planned failing test (FR-019 is a negative with no behaviour to test; FR-016 and SC-001 rest on documentation and a manual sandbox run); SC 8 of 8; acceptance scenarios 20 of 20 (US1 6, US2 4, US3 5, US4 3, US5 2; US5 AC1 is manual by nature); edge cases 8 of 8 (two have no test, SPEC-004); tasks 12 of 12 traced back to a spec requirement, none without provenance; new code against the tree and installed packages: 12 of 12 rows in research.md 'What already exists' checked, plus 2 pieces the list omits (tests/stripe_fake.py is listed; StripeConfig/AppConfig and demo settings keys are not); routes added or changed: 1 of 1 (stripe/webhook/, POST only, csrf_exempt, authenticated by signature, no user permission by design) plus the routes each of 2 ModelAdmin registrations creates (changelist, add, change, delete, history: 5 per model, 10 of 10 checked against has_*_permission); templates touched by the plan: 0 (no {# #} check applies); planned skips or xfails: 0. Existing code read: mvp_payments/urls.py, contributions.py, namespaces/__init__.py, tests/test_app.py, tests/settings.py, tests/settings_without_backend.py, tests/probes.py, demo/settings.py, demo/urls.py, demo/views.py, pyproject.toml, mvp_payments/templates/cotton/drf_stripe/pricing_table.html. SDK read in /home/sam/projects/worktrees/fs004-scratch/sdk/x/stripe (16.0.0): _webhook.py, _stripe_client.py, _subscription.py, _subscription_item.py, _price.py, _customer.py, checkout/_session.py, params/_subscription_list_params.py. Django read from the worktree venv: contrib/admin/utils.py, contrib/admin/options.py.",
+  "skills_loaded": [
+    { "name": "craft-review", "receipt": "craft-review/2026-10-15/6b8372b4", "loaded_via": "path-read" },
+    { "name": "craft-security", "receipt": "craft-security/2026-08-04/ea3d6742", "loaded_via": "path-read" },
+    { "name": "craft-simplify", "receipt": "craft-simplify/2026-08-04/69038ce1", "loaded_via": "path-read" }
+  ],
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "high",
+      "confidence": "verified",
+      "claim": "[security] The user identity carried through checkout is a bare primary key in a value the visitor controls, so anyone can bind their purchase to any other user, and the plan's 'log and refuse a second customer' rule then makes that permanent. FR-007 and decision D0a promise that no purchase lands on the wrong account; the design does not deliver that.",
+      "evidence": "research.md finding 4 (lines 40-45) and plan.md 'Customer.from_checkout' (lines 99-103): the app 'finds the user by primary key from client_reference_id' and trusts it because it is read back from the session fetched from Stripe. That fetch proves only that Stripe holds this value, not that the signed-in user put it there. client_reference_id is a plain attribute on the pricing table element (stripe checkout/_session.py:2446 is a free-form Optional[str]); the table is embedded with a publishable key and table id that are public in the page source (mvp_payments/templates/cotton/drf_stripe/pricing_table.html:10 renders the element), so a visitor can embed the same table on their own page with client-reference-id set to 42. plan.md lines 101-103: a user with a customer under a different id gets 'log an error, return None'.",
+      "reproduction": "Attacker A, signed in or not, embeds the project's pricing table elsewhere with client-reference-id=<victim pk> and completes checkout (a $0 or trial price in the table makes this free). checkout.session.completed arrives; from_checkout finds the victim by pk, the victim has no customer, so A's Stripe customer is recorded against the victim. The victim now shows as subscribed on a purchase they never made. When the victim later pays for their own plan, from_checkout sees a different customer id, logs an error and returns None, so their real subscription is never recorded. Primary keys are small sequential integers, so every user can be targeted in a loop.",
+      "suggested_fix": "plan.md 'Customer.from_checkout' and tasks.md T006: make the reference unforgeable with the one mechanism Django ships. Add a documented classmethod on Customer that returns django.core.signing.dumps(user.pk, salt=<fixed app salt>) for the page work to place in client-reference-id, and have from_checkout read it with signing.loads(value, salt=..., max_age=<one setting-free constant, e.g. 24h>); BadSignature or SignatureExpired returns None. Add to T006 tests: an unsigned pk, a value signed with another salt and an expired value are each refused; a value signed for user A cannot tie to user B. Update research.md finding 4 and the docs task (T006/T007 docs) so the follow-up work calls the classmethod. This is the smallest edit that makes FR-007's 'identity of the signed-in user' true; the spec's wording stands."
+    },
+    {
+      "id": "ARCH-001",
+      "severity": "high",
+      "confidence": "verified",
+      "claim": "[architecture] A read-only admin whose has_delete_permission always returns False stops anyone, superusers included, from deleting a user in the project's admin once that user has a Stripe customer. That contradicts the spec's edge case that deleting the user takes the customer and subscriptions with it, and it reaches into the host project's own User admin.",
+      "evidence": "plan.md 'Admin' (lines 122-125): has_delete_permission returns False. Django's cascade check asks the admin of every related registered model: django/contrib/admin/utils.py:155-158 adds the model to perms_needed when get_model_admin(model).has_delete_permission(request, obj) is False, and django/contrib/admin/options.py:2539 raises PermissionDenied on the POST and :2551 withholds the confirmation form when perms_needed is non-empty. Customer has a OneToOneField to AUTH_USER_MODEL with CASCADE (plan.md line 55), and Subscription cascades from Customer. spec.md Edge Cases lines 206-207: 'The user a customer is tied to is deleted from the project: the customer and its subscriptions go with them.' US4 AC3 and SC-007 are about deleting a customer or subscription itself.",
+      "reproduction": "A superuser opens the admin delete page for any user who has subscribed. The page lists the Stripe customer as an object the account lacks permission to delete, and the delete cannot be confirmed. The same blocks the 'delete selected users' action. T010's planned tests (superuser gets no add, change or delete on the app's own models) pass while this is broken.",
+      "suggested_fix": "plan.md 'Admin' and tasks.md T010: keep add and change denied outright, and make has_delete_permission deny only on the app's own delete views (for example by checking request.resolver_match.view_name against this app's admin URL names) and allow it when the call comes from another model's cascade. Add one T010 test: a superuser can delete a user who has a customer and a subscription, and the rows go with them, while the same superuser still gets 403 on the customer's own delete URL. If Sam reads SC-007 as forbidding even cascade deletion, that is a spec decision: the spec's edge case and SC-007 then conflict and need a delta brief; the plan cannot satisfy both as written."
+    },
+    {
+      "id": "ARCH-002",
+      "severity": "medium",
+      "confidence": "verified",
+      "claim": "[architecture] StripeConfig sets no default_auto_field, so on Django 5.2 (in the supported range) a project whose DEFAULT_AUTO_FIELD is unset or AutoField sees makemigrations want a migration inside the installed package. Article XVI treats a shipped migration as public surface.",
+      "evidence": "plan.md Layout line 37: apps.py lists 'name, label, verbose_name; ready() imports checks' and no default_auto_field. The suite and demo hide this because demo/settings.py:209 sets DEFAULT_AUTO_FIELD to BigAutoField and tests/settings.py inherits it. plan.md Technical context line 14 supports Django 5.2, where an unset DEFAULT_AUTO_FIELD is AutoField.",
+      "reproduction": "A Django 5.2 project with no DEFAULT_AUTO_FIELD installs the package, runs migrate (0001 creates BigAutoField keys from the demo's setting), then runs makemigrations --check: the model state says AutoField, the migration says BigAutoField, and it reports pending changes in mvp_payments_stripe.",
+      "suggested_fix": "plan.md Layout / tasks.md T002: add default_auto_field = 'django.db.models.BigAutoField' to StripeConfig, and have the T003 migration generated after it is set. The T003 makemigrations --check test should run under a settings override that unsets DEFAULT_AUTO_FIELD so the test can fail."
+    },
+    {
+      "id": "ARCH-003",
+      "severity": "medium",
+      "confidence": "likely",
+      "claim": "[architecture] pyproject's mypy_path points at mvp_payments/, so a package named mvp_payments/stripe/ becomes a top-level module 'stripe' for mypy, shadowing the real SDK for every import stripe in the app and being found twice under two names. The plan's pyproject step ('mypy files gain the app') misses this, and mypy is a stage-exit gate.",
+      "evidence": "pyproject.toml:131-143: files = ['mvp_payments'] and mypy_path = 'mvp_payments/'. plan.md 'Interface changes outside the app' lines 135-136 touches the mypy files setting only. mypy resolves mypy_path entries before site-packages. I did not run mypy because the brief forbids writing outside the findings file, so this is likely rather than verified.",
+      "reproduction": "pre-commit run --all-files (the stated gate) reports 'Source file found twice under different module names: stripe and mvp_payments.stripe' or errors on stripe.Webhook / stripe.StripeClient attributes that the local empty package does not have.",
+      "suggested_fix": "tasks.md T002: change mypy_path to '.' (or remove it, since files already names the package) in the same commit that creates mvp_payments/stripe/, and run mypy before moving on. Replaces the plan's 'mypy files gain the app', which files already covers."
+    },
+    {
+      "id": "SPEC-001",
+      "severity": "medium",
+      "confidence": "verified",
+      "claim": "[spec-compliance] The demo fails its own system checks from T002 until T011, and no task sets the demo's secret key. FR-016 and US5 AC2 require the demo to run without the forwarding command.",
+      "evidence": "tasks.md T002 (lines 13-17) adds mvp_payments.stripe to the demo's INSTALLED_APPS and gives only the 'test settings' placeholder keys. T011 (lines 61-64), Phase 6, is the first task to touch the demo's webhook secret. plan.md Checks (lines 127-129): E001 and E002 are Errors, which stop runserver and migrate. demo/settings.py:102-111 defines MVP_PAYMENTS with no STRIPE_SECRET_KEY, and tests/settings.py:39-43 only extends that dict. demo/settings.py:35-40 reads os.environ for a fixed list of four keys that does not include STRIPE_TEST_WEBHOOK_SECRET.",
+      "reproduction": "After T002, python manage.py runserver in the demo exits with mvp_payments_stripe.E001 and E002. Every session that starts the demo for a link (the repo's own rule) is blocked until Phase 6.",
+      "suggested_fix": "tasks.md: move the demo-settings half of T011 into T002. In demo/settings.py set MVP_PAYMENTS['STRIPE_SECRET_KEY'] from the existing STRIPE_TEST_SECRET_KEY with the existing obviously-fake fallback, and MVP_PAYMENTS['STRIPE_WEBHOOK_SECRET'] from STRIPE_TEST_WEBHOOK_SECRET with a fake fallback; add that name to the tuple in _dev_env(). T011 keeps the stripe listen documentation. This moves existing work earlier and adds none."
+    },
+    {
+      "id": "ARCH-004",
+      "severity": "medium",
+      "confidence": "verified",
+      "claim": "[architecture] Customer.sync() is atomic but nothing serialises two syncs of the same customer, so two webhooks handled at once can write an older Stripe state over a newer one. That is the 'late or out-of-order leaves the same records' guarantee (FR-006, SC-003) failing under concurrency, which the sequential tests cannot see.",
+      "evidence": "plan.md Customer.sync (lines 93-98): retrieve the customer, list subscriptions, update_or_create each, delete the rest, all in one transaction, with no lock. Stripe sends several events for one subscription change (checkout.session.completed, customer.subscription.created, customer.subscription.updated), which a multi-worker server handles concurrently; the demo's runserver is threaded.",
+      "reproduction": "Worker A lists the customer's subscriptions while the subscription is 'incomplete'. Worker B, for the later customer.subscription.updated, lists it as 'active' and commits. A then commits its older view: the row ends 'incomplete' and the user is not subscribed. No further event is guaranteed, and the constitution's 'next event or a sync puts it right' leaves a paying user wrong until then. The same interleaving lets A's 'delete rows Stripe did not return' remove a subscription B just created.",
+      "suggested_fix": "plan.md Customer.sync and tasks.md T005: take Customer.objects.select_for_update().get(pk=self.pk) as the first statement inside the atomic block so a second sync for the same customer waits for the first and then re-fetches. One line; a no-op on SQLite. T005 records it as a design note rather than a test, because a sequential test cannot show it."
+    },
+    {
+      "id": "SPEC-002",
+      "severity": "medium",
+      "confidence": "likely",
+      "claim": "[spec-compliance] The load-bearing expansion data.items.data.price.product is asserted without a citation, and the planned fake HTTP client cannot detect Stripe rejecting it. If Stripe's four-level expansion limit counts the data. prefix, every sync fails with a StripeError, every webhook returns 500 and nothing is ever recorded.",
+      "evidence": "plan.md Customer.sync (lines 95-96) and research.md carry the expansion with no source. The SDK documents the parameter only as 'Specifies which fields in the response should be expanded' (params/_subscription_list_params.py:47-50) and says nothing of depth. The expanded field is price.product (_price.py:243, ExpandableField['Product']), and price itself is returned as an object. tests/stripe_fake.py (plan lines 148-150) returns canned objects and never evaluates the expand list. The Stripe-side rule is not in the unpacked SDK, so I could not confirm it from the resolved artefact.",
+      "reproduction": "Not reproducible offline. If the limit counts data.items.data.price.product as five levels, the first real sandbox call returns an invalid_request_error that the fake never produced.",
+      "suggested_fix": "tasks.md T005: make one real sandbox call with this exact expand list the exit check for the task, and record the result and the Stripe page it rests on in research.md. If it is rejected, drop to expand=['data.items.data.price'] only and read the product name with one products.retrieve per distinct product id; do not add a second mechanism now."
+    },
+    {
+      "id": "ARCH-005",
+      "severity": "low",
+      "confidence": "verified",
+      "claim": "[architecture] The planned subscription changelist shows the user, which reaches it through the customer, with no list_select_related, so a page of 100 rows costs about 201 queries.",
+      "evidence": "plan.md Admin (lines 122-125): list_display 'user, status, product name, period end'. Subscription has no user field (plan.md lines 59-76); the user lives on customer.user, so the column is a method reading self.customer.user. docs/contributing/standards/testing.md section 5 expects the same query count with one record and with several.",
+      "suggested_fix": "tasks.md T010: set list_select_related = ('customer__user',) on SubscriptionAdmin and add the one-record-versus-several query-count assertion section 5 already asks for."
+    },
+    {
+      "id": "SPEC-003",
+      "severity": "low",
+      "confidence": "likely",
+      "claim": "[spec-compliance] Stories US1, US2, US3 and US4 all edit models.py and docs/stripe.md, so any parallel dispatch collides at convergence. tasks.md does not say they run in sequence.",
+      "evidence": "tasks.md T005, T006 and T008 all edit mvp_payments/stripe/models.py; T003, T007, T008, T009 and T010 all edit docs/stripe.md; T009 and T005 both depend on Customer.sync().",
+      "suggested_fix": "tasks.md header: add one line saying Phases 2-5 run one after another in a single worktree in task order. No task changes."
+    },
+    {
+      "id": "SPEC-004",
+      "severity": "low",
+      "confidence": "verified",
+      "claim": "[spec-compliance] Two of the spec's eight edge cases have no task that produces a failing test: the extra installed with the app absent from INSTALLED_APPS (nothing mounted, migrated or contributed), and user deletion taking the customer and subscriptions with it.",
+      "evidence": "spec.md Edge Cases lines 206-207 and 216-217. tasks.md T007 tests the include 'when the app is installed' only; no task asserts the absent case, and tests/probes.py (run_probe) exists for exactly this because urlpatterns are built once at process start. No task tests the cascade.",
+      "suggested_fix": "tasks.md T007: add one run_probe test under a settings module that omits mvp_payments.stripe, asserting payments:stripe-webhook does not reverse. tasks.md T005: add one test that deleting the user removes the customer and its subscriptions (it also covers the carve-out in ARCH-001). Both are one-assertion tests."
+    }
+  ],
+  "notes": [
+    "research.md finding 4 says 'the app writes the user's primary key there'. No task in the plan writes the reference; the page work sets it. Reword once SEC-001 settles the format.",
+    "research.md finding 5: 'the whole suite passed on stripe 16.0.0' only shows the suite is green. The suite does not call Stripe, so it says nothing about drf_stripe's runtime calls in demo/views.py (stripe_api.billing_portal.Session.create, stripe_api_update_subscriptions) under stripe 16 plus the pinned global api_version. Say so in the T001 description rather than claiming the pages 'keep working'.",
+    "SDK facts checked and holding: construct_event verifies the header before parsing the body (_webhook.py:78, then :80-86), so FR-005 holds; ValueError arises only after verification or from UTF-8 decoding at :144-145, and the plan's 400 mapping covers both; StripeClient takes stripe_version and http_client (_stripe_client.py:154-161) and defaults to _ApiVersion.CURRENT only when none is given (:194); the billing period is on the item (_subscription_item.py:72,76) and absent from _subscription.py; Customer carries deleted: Optional[Literal[True]] (_customer.py:334); the eight statuses match _subscription.py:1087-1099; status='all' is a valid list value (params/_subscription_list_params.py:67-71).",
+    "Construct_event builds the Event with stripe.api_key from the global (_webhook.py:83-85). The plan never relies on that requestor, but a test that sets the global key to a real-looking value would hide it; keep the test settings' global key unset.",
+    "A webhook that returns its own 500 on StripeError is not logged by Django. Log the exception type at error level so an operator can see an authentication failure; assert in T012 that the record carries no secret (SC-008).",
+    "research.md 'What already exists' omits the AppConfig and the demo settings keys; neither is a finding, but list them for completeness.",
+    "Admin search over 'the user's email' should use get_user_model().get_email_field_name() and the lookup on USERNAME_FIELD, so a custom user model without an 'email' field does not raise FieldError on search.",
+    "stripe_sync on a Stripe account that does not own the recorded customers (a test key pointed at live data) takes the resource_missing branch for every customer and deletes them all, losing the user tie, which Stripe cannot restore. Worth one sentence in the docs task rather than code.",
+    "Article IX asks for the index decisions to be recorded in data-model.md or decisions.md; plan.md holds them inline. The repo has no documentation.md standard and its package docs are flat (docs/namespaces.md, docs/plans-page.md), so docs/stripe.md follows the repo's own layout; the 'one how-to and one reference section' wording in plan.md line 46 reads as two types on one page, so split or reword it if the Diátaxis standard is adopted.",
+    "SC-001 (a developer follows the docs to recorded subscriptions) and US5 AC1 have no automated test and cannot have one; the demo walk-through in T011 is their demonstration."
+  ]
+}

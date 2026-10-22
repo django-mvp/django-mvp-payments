@@ -2,12 +2,17 @@
   "feature": "004-stripe-app",
   "branch": "004-stripe-app",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "PLAN",
+  "state": "DESIGN_REVIEW",
   "state_history": [
     {
       "state": "PLAN",
-      "at": "2026-10-22T09:30:00Z",
+      "at": "2026-10-22T08:25:00Z",
       "note": "S3 opened in the session that specified the feature; branch brought up to date with main"
+    },
+    {
+      "state": "DESIGN_REVIEW",
+      "at": "2026-10-22T08:29:36Z",
+      "note": "plan, research and tasks committed; design reviewer dispatched"
     }
   ],
   "gates": {
@@ -16,6 +21,21 @@
       "at": "2026-10-22T08:22:48Z",
       "self_resolved": [
         "approved in session at d8278fb36e34c5ec9bc8cc2e6b96cfcb25b21816"
+      ]
+    },
+    "plan": {
+      "approved_by": "open",
+      "at": "2026-10-22T08:38:41Z"
+    },
+    "merge": {
+      "approved_by": null,
+      "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-10-22T08:38:41Z",
+      "self_resolved": [
+        "2 high, 4 medium, 4 low applied to plan.md and tasks.md (decisions.md D4)"
       ]
     }
   },
@@ -132,10 +152,25 @@
     }
   ],
   "budgets": {
+    "converge_cycles": {
+      "used": 0,
+      "max": 2
+    },
+    "review_cycles": {
+      "used": 0,
+      "max": 1
+    },
+    "design_review_cycles": {
+      "used": 1,
+      "max": 1
+    },
     "tokens": {
       "used": 0,
       "max": 120
     }
   },
-  "pr": 53
+  "pr": {
+    "number": 53,
+    "draft": true
+  }
 }

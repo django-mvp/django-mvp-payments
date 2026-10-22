@@ -34,7 +34,7 @@ subscriptions and writes what comes back.
 ```text
 mvp_payments/stripe/
 ├── __init__.py
-├── apps.py            StripeConfig: name, label, verbose_name; ready() imports checks
+├── apps.py            StripeConfig: name, label, verbose_name, default_auto_field; ready() imports checks
 ├── checks.py          E001 secret key missing, E002 webhook secret missing
 ├── client.py          API_VERSION and client(): StripeClient from settings
 ├── models.py          Customer, Subscription, SubscriptionQuerySet
@@ -90,15 +90,27 @@ docs/stripe.md         the app's how-to and reference (Diátaxis: one how-to and
 The documented answers are `Subscription.objects.for_user(user).subscribed().exists()` and
 `.first()`. No other helper.
 
-**`Customer.sync()`** — atomic. Retrieve the customer from Stripe. Deleted or `resource_missing`
-→ delete this row (its subscriptions go with it) and return. Otherwise list the customer's
-subscriptions with `status="all"`, expanding `data.items.data.price.product`, auto-paging, and
-`update_or_create` one row per subscription by `stripe_id`. Rows for this customer that Stripe
+**`Customer.sync()`** — atomic, and its first statement locks this customer's row with
+`select_for_update()`, so two webhooks for one customer cannot write an older state over a newer
+one. Retrieve the customer from Stripe. Deleted or `resource_missing` → delete this row (its
+subscriptions go with it) and return. Otherwise list the customer's subscriptions with
+`status="all"`, auto-paging, with no expansion: Stripe refuses `data.items.data.price.product`
+as more than four levels deep (sandbox call, 2026-10-22). Retrieve each distinct product named by
+the first items' prices once, for its name, and `update_or_create` one row per subscription by
+`stripe_id`. Rows for this customer that Stripe
 did not return are deleted. Any other `StripeError` propagates.
 
+**`Customer.client_reference(user)`** — classmethod. The value a page passes to the pricing table
+as `client-reference-id`: the user's primary key and an HMAC of it, joined by `_`, built with
+`django.utils.crypto.salted_hmac` under the app's own salt. The pricing table accepts only
+letters, digits, dashes and underscores, which rules out `django.core.signing`'s separator. A
+bare primary key would let anyone embed the public pricing table on a page of their own and tie
+their purchase to another user.
+
 **`Customer.from_checkout(session_id)`** — classmethod. Retrieve the checkout session. Not
-`mode="subscription"`, or no `client_reference_id`, or no `customer` → return `None`. Find the
-user by primary key from `client_reference_id`; none → `None`. User has no customer → create one
+`mode="subscription"`, or no `client_reference_id`, or no `customer` → return `None`. Split the
+reference, check its HMAC with `constant_time_compare`, and find the user by the primary key;
+a bad signature or no such user → `None`. User has no customer → create one
 with the session's customer id. User has one with the same id → it. User has one with a
 different id → log an error naming both, return `None`. Returns the customer to sync.
 
@@ -119,8 +131,13 @@ in every case.
 `StripeError` stops it with `CommandError` naming how many were synced; each customer's sync is
 its own transaction, so those are kept.
 
-**Admin** — both models registered; `has_add_permission`, `has_change_permission` and
-`has_delete_permission` return `False`, `has_view_permission` is Django's. Subscriptions:
+**Admin** — both models registered; `has_add_permission` and `has_change_permission` return
+`False`, `has_view_permission` is Django's. `has_delete_permission` returns `False` on the app's
+own admin views and Django's answer elsewhere, so nothing here can be deleted from its own pages
+while deleting a user from the user admin still removes their customer and subscriptions
+(Django checks every cascaded model's delete permission, `django/contrib/admin/utils.py`,
+`get_deleted_objects`). The `delete_selected` action is removed. `SubscriptionAdmin` sets
+`list_select_related = ("customer__user",)`. Subscriptions:
 `list_display` user, status, product name, period end; `list_filter` status;
 `search_fields` the user's `USERNAME_FIELD` and email, and the Stripe ids.
 

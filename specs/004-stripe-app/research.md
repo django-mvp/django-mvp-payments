@@ -56,7 +56,18 @@ generic event dispatcher, background tasks), this plan leaves it out:
    A customer that never existed raises `InvalidRequestError` with code `resource_missing`. Both
    mean "Stripe no longer has it". Cancelled subscriptions stay retrievable and are listed by
    `subscriptions.list(customer=..., status="all")`.
-7. **Events worth handling.** `checkout.session.completed` (a new customer to tie),
+7. **Product names need their own fetch.** Stripe refuses to expand more than four levels, and
+   `data.items.data.price.product` on a subscription list is five: a sandbox call on 2026-10-22
+   returned `You cannot expand more than 4 levels of a property`. Listing without expansion and
+   retrieving each distinct product once returned the name, the item's period, the price's
+   interval, currency and unit amount for every subscription. The same call confirmed a missing
+   customer raises `resource_missing`.
+8. **The checkout reference must be signed.** `client_reference_id` comes from the pricing
+   table's `client-reference-id` attribute, and the pricing table's id and publishable key are
+   public, so anyone can embed it on their own page with any reference. A bare primary key would
+   let someone tie their purchase to another user, whose own purchase the second-customer rule
+   would then refuse. The reference carries an HMAC of the primary key.
+9. **Events worth handling.** `checkout.session.completed` (a new customer to tie),
    `customer.subscription.*` (created, updated, deleted, paused, resumed, trial_will_end and any
    added later) and `customer.deleted`. Everything else is acknowledged with 200 and ignored.
    The handling reads only the identifiers from the event: the customer's id, or the checkout

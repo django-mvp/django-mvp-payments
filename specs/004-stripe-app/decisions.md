@@ -66,3 +66,16 @@ keeping two would break the one-customer-per-user rule the admin and the subscri
 on.
 
 **ADR:** none — a local rule of this app, prevented at the source by the work that moves the pages.
+
+## D4 — Design review applied
+
+The design review returned two high findings, four medium and four low, all applied to
+`plan.md` and `tasks.md`: a signed checkout reference (SEC-001), delete permission that still
+lets the user admin cascade (ARCH-001), `default_auto_field` (ARCH-002), a `mypy_path` check
+(ARCH-003), demo keys from the first task (SPEC-001), a row lock in `sync()` (ARCH-004), product
+names fetched separately because the planned expansion is refused by Stripe (SPEC-002, confirmed
+against the sandbox), `list_select_related` (ARCH-005), sequential stories (SPEC-003) and two
+edge-case tests (SPEC-004). Deleting a user from the user admin removing their Stripe records is
+the spec's own edge case, so ARCH-001 needs no change to the specification.
+
+**ADR:** none — plan corrections, each visible in the code that implements it.
