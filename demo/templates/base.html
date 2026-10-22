@@ -2,15 +2,5 @@
 {% load static %}
 {# page_view.html extends "base.html" by that name, so the demo supplies one. #}
 {% block extra_js %}
-  {% block provider_library %}
-    {% comment %}
-      Loaded from the provider's network, which its terms require; this package emits no script
-      tag for it (Article XII). A page can empty this block to show the library never arriving.
-    {% endcomment %}
-    <script defer src="https://js.stripe.com/v3/pricing-table.js"></script>
-  {% endblock provider_library %}
-  {# Outside provider_library, so a page emptying that block keeps the script that reveals its message (FS-003). #}
-  <script defer
-          src="{% static 'mvp_payments/stripe/pricing_table.js' %}"></script>
   <script defer src="{% static 'mvp_payments/stripe/billing_portal.js' %}"></script>
 {% endblock extra_js %}

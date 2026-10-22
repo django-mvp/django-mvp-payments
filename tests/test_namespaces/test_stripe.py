@@ -11,11 +11,8 @@ class TestStripeContribution:
     def test_names_the_backends_application_label(self):
         assert stripe_contribution.backend_app_name == "mvp_payments.stripe"
 
-    def test_declares_exactly_two_pages_with_the_expected_slugs(self):
-        assert [page.slug for page in stripe_contribution.pages] == [
-            "subscription",
-            "plans",
-        ]
+    def test_declares_exactly_one_page_with_the_expected_slug(self):
+        assert [page.slug for page in stripe_contribution.pages] == ["subscription"]
 
     def test_only_the_subscription_page_is_in_the_navigation(self):
         assert [

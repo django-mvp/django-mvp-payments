@@ -19,7 +19,7 @@ AppMenu.extend(
         ),
         MenuItem(
             name="plans",
-            view_name="stripe-plans",
+            view_name="payments_plans:stripe-plans",
             extra_context={"label": "Plans", "icon": "plan"},
         ),
     ]

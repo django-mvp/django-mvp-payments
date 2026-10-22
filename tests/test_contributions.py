@@ -46,20 +46,6 @@ def _make_contribution(app_label="mvp_payments.stripe", namespace="fixture-names
     )
 
 
-class TestPage:
-    def test_a_page_requires_a_signed_in_visitor_unless_it_says_otherwise(self):
-        page = Page(slug="a", label="A", icon="a", template_name="a.html")
-
-        assert page.login_required is True
-
-    def test_the_stripe_namespace_opens_only_its_plans_page_to_everyone(self):
-        open_pages = [
-            page.slug for page in stripe_contribution.pages if not page.login_required
-        ]
-
-        assert open_pages == ["plans"]
-
-
 class TestContribution:
     def test_reports_available_when_its_backend_is_installed(self):
         assert (
@@ -295,7 +281,6 @@ response = client.get(reverse("account-center"))
 reverses = {}
 for name in (
     "payments:stripe-subscription",
-    "payments:stripe-plans",
     "payments:second-namespace-overview",
 ):
     try:
@@ -330,10 +315,7 @@ class TestNamespaceIndependence:
         assert card_href in alone["content"]
         assert card_href in alongside["content"]
 
-        for name in (
-            "payments:stripe-subscription",
-            "payments:stripe-plans",
-        ):
+        for name in ("payments:stripe-subscription",):
             assert alongside["reverses"][name] == alone["reverses"][name]
 
     def test_neither_namespaces_pages_resolve_to_the_others(self) -> None:

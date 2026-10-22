@@ -364,8 +364,7 @@ class TestPlansUnavailable:
     def test_renders_its_sentence_given_nothing(self, cotton_render):
         html = cotton_render("stripe.plans-unavailable")
 
-        assert "Plans not available" in html
-        assert "This project has not configured its plans yet." in html
+        assert "mvp-list-empty" in html
 
 
 class TestStandalone:

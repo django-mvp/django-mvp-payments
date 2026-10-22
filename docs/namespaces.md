@@ -47,15 +47,12 @@ acme_payments = Contribution(
   and must be translatable, its `icon` is a name from the project's icon set, and its
   `template_name` is the template the page renders.
 - **`Page.in_navigation`** decides whether that page gets an entry in the menu. It defaults to
-  `True`. Set it `False` for a page that is reached from somewhere else — the shipped namespace's
-  plans page is reached from a control on its user subscriptions page — and the page is still routed,
+  `True`. Set it `False` for a page that is reached from somewhere else, such as a control on
+  another page, and the page is still routed,
   still reverses and still renders. Reachable and navigable are different questions, and a menu
   only answers the second. django-mvp shows the Account Center's navigation in the sidebar only on
   a page that navigation has an entry for, so a page kept out of it is drawn with the project's own
   sidebar.
-- **`Page.login_required`** decides whether a visitor who is not signed in is sent to the sign-in
-  page. It defaults to `True`. Set it `False` for a page that is open to everyone — the shipped
-  namespace's plans page is, because the plans on offer are not private.
 - **`card_template`** renders this namespace's card on the Account Center's overview.
 - **`group_label`** heads the section this namespace's pages sit under in the Account Center's
   navigation, and must be translatable. Label it for what a reader will find there, not for the
@@ -94,8 +91,8 @@ disagree about what is installed.
 ## Pages
 
 Every contributed page is served by `PaymentPageView`, which takes its template and heading from
-the `Page` it was built for. It requires a signed-in person, unless the `Page` sets
-`login_required=False`, and makes no finer access decision than that: who among the signed-in people may see what is the host project's to enforce, because this
+the `Page` it was built for. It requires a signed-in person and makes no finer access decision
+than that: who among the signed-in people may see what is the host project's to enforce, because this
 package holds no entitlement information.
 
 A page template extends `mvp/account/base.html` and fills its content block, so the page renders

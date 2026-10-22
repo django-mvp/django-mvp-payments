@@ -9,17 +9,19 @@ from mvp_payments.views import PlansPageView, SubscriptionPageView
 class TestPaymentURLs:
     @pytest.mark.parametrize(
         ("name", "view_class"),
-        [
-            ("stripe-subscription", SubscriptionPageView),
-            ("stripe-plans", PlansPageView),
-        ],
+        [("stripe-subscription", SubscriptionPageView)],
     )
     def test_declared_page_name_reverses_to_its_view(self, name, view_class):
         url = reverse(f"payments:{name}")
         assert resolve(url).func.view_class is view_class
 
-    def test_a_page_kept_out_of_the_navigation_still_reverses(self):
-        assert reverse("payments:stripe-plans")
+    def test_the_plans_page_is_not_one_of_the_account_centers_pages(self):
+        with pytest.raises(NoReverseMatch):
+            reverse("payments:stripe-plans")
+
+    def test_the_plans_page_reverses_under_its_own_namespace(self):
+        url = reverse("payments_plans:stripe-plans")
+        assert resolve(url).func.view_class is PlansPageView
 
     def test_a_name_belonging_to_no_declared_page_does_not_reverse(self):
         with pytest.raises(NoReverseMatch):

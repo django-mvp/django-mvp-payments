@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from mvp.views import MVPTemplateView
@@ -25,8 +25,7 @@ if TYPE_CHECKING:
 class PaymentPageView(AccessMixin, MVPTemplateView):
     """One page a namespace contributes, following ``AccountCenterView``'s shape.
 
-    A visitor who is not signed in is sent to sign in, unless the page sets
-    ``login_required=False``.
+    A visitor who is not signed in is sent to sign in.
 
     Never used directly, only built once per declared ``Page`` through ``as_view()``.
 
@@ -41,8 +40,8 @@ class PaymentPageView(AccessMixin, MVPTemplateView):
     contribution: Contribution | None = None
 
     def dispatch(self, request, *args, **kwargs):
-        """Send a visitor who is not signed in to sign in, unless the page is open to all."""
-        if self.get_page().login_required and not request.user.is_authenticated:
+        """Send a visitor who is not signed in to sign in."""
+        if not request.user.is_authenticated:
             return self.handle_no_permission()
         return super().dispatch(request, *args, **kwargs)
 
@@ -96,7 +95,8 @@ class SubscriptionPageView(PaymentPageView):
     - ``billing_portal_endpoint``: where the Stripe app's billing-portal view is mounted
       (ADR 0005). ``None`` for anyone with nothing current, because there is nothing to manage
       until a subscription exists (ADR 0007).
-    - ``plans_url``: the plans page, which is not in the navigation.
+    - ``plans_url``: the plans page, or ``None`` when the project has not mounted
+      ``mvp_payments.plans_urls``.
     - ``plan_switch_endpoint``: where the Stripe app's plan-switch view is mounted, which opens
       the provider's plan-change screen (ADR 0008). ``None`` for anyone with nothing current.
     - ``provider_return``: set when the reader comes back from the provider (``?returned=N``) and
@@ -122,7 +122,10 @@ class SubscriptionPageView(PaymentPageView):
         context["plan_switch_endpoint"] = (
             reverse(f"{namespace}:stripe-plan-switch") if subscriptions else None
         )
-        context["plans_url"] = reverse("stripe-plans")
+        try:
+            context["plans_url"] = reverse("payments_plans:stripe-plans")
+        except NoReverseMatch:
+            context["plans_url"] = None
         return context
 
     def provider_return(self, subscriptions: Any) -> dict[str, Any] | None:
@@ -153,6 +156,7 @@ class PlansPageView(MVPTemplateView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Add the plans for the person asking."""
+        # Imported here: stripe_plans imports contributions, which imports this module.
         from mvp_payments.namespaces.stripe_plans import PlanChoices
 
         context: dict[str, Any] = super().get_context_data(**kwargs)
