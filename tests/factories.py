@@ -1,7 +1,7 @@
 """One factory per backend model this page reads (Article I).
 
 Every ``Meta.model`` is a string, so factory_boy resolves it through Django's own application
-registry the same way the package it stands in for does — this module never imports ``drf_stripe``.
+registry the same way the package it stands in for does — this module never imports ``mvp_payments.stripe``.
 """
 
 import factory

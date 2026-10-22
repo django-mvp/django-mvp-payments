@@ -9,7 +9,7 @@ from django.apps import apps
 from packaging.requirements import Requirement
 
 import mvp_payments
-from mvp_payments.namespaces.drf_stripe import drf_stripe
+from mvp_payments.namespaces.stripe import stripe_contribution
 from tests.probes import run_probe
 
 #: The provider app is the one place the interface rules do not reach (Article XI).
@@ -52,7 +52,7 @@ client.login(username="person", password="password")
 response = client.get(reverse("account-center"))
 
 reverses = {}
-for name in ("drf-stripe-subscription", "drf-stripe-plans"):
+for name in ("stripe-subscription", "stripe-plans"):
     try:
         reverse(f"payments:{name}")
         reverses[name] = True
@@ -71,9 +71,9 @@ class TestPackagedApp:
     def test_app_is_installed(self) -> None:
         assert apps.is_installed("mvp_payments")
 
-    def test_drf_stripe_namespace_is_where_cotton_looks_for_it(self) -> None:
+    def test_stripe_namespace_is_where_cotton_looks_for_it(self) -> None:
         namespace = (
-            Path(mvp_payments.__file__).parent / "templates" / "cotton" / "drf_stripe"
+            Path(mvp_payments.__file__).parent / "templates" / "cotton" / "stripe"
         )
         assert namespace.is_dir()
 
@@ -148,7 +148,7 @@ class TestPackagedApp:
             Path("urls.py"),
             Path("views.py"),
             Path("namespaces/__init__.py"),
-            Path("namespaces/drf_stripe.py"),
+            Path("namespaces/stripe.py"),
             Path("templatetags/__init__.py"),
             Path("templatetags/mvp_payments.py"),
         }
@@ -173,7 +173,7 @@ class TestNothingWithoutABackend:
         # sys.executable and a module-level string constant, no untrusted input.
         return run_probe(
             _ACCOUNT_CENTER_WITHOUT_THE_BACKEND_PROBE,
-            "tests.settings_without_backend",
+            "tests.settings_without_stripe_app",
         )
 
     def test_account_center_shows_nothing_from_the_absent_backend(self) -> None:
@@ -186,13 +186,13 @@ class TestNothingWithoutABackend:
 
         # No navigation entry and no card: both render the page's label, so
         # one absence check covers both surfaces.
-        for page in drf_stripe.pages:
+        for page in stripe_contribution.pages:
             assert f"<span>{page.label}</span>" not in result["content"]
 
         # None of the backend's page addresses resolve.
         assert result["reverses"] == {
-            "drf-stripe-subscription": False,
-            "drf-stripe-plans": False,
+            "stripe-subscription": False,
+            "stripe-plans": False,
         }
 
     def test_account_center_shows_no_card_from_the_absent_backend(self) -> None:

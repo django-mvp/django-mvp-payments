@@ -5,8 +5,8 @@ import inspect
 import pytest
 
 from mvp_payments.money import Money
-from mvp_payments.namespaces import drf_stripe_records
-from mvp_payments.namespaces.drf_stripe_records import (
+from mvp_payments.namespaces import stripe_records
+from mvp_payments.namespaces.stripe_records import (
     CurrentSubscription,
     Plan,
     SubscriptionReader,
@@ -196,7 +196,7 @@ class TestPlanFrequencyDisplay:
 
 class TestNoStatusIsNamed:
     def test_no_access_granting_status_is_named_in_the_source(self):
-        source = inspect.getsource(drf_stripe_records)
+        source = inspect.getsource(stripe_records)
         for status in (
             "active",
             "trialing",

@@ -14,7 +14,7 @@ import pytest
 
 SCRIPT = (
     Path(__file__).resolve().parents[2]
-    / "mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js"
+    / "mvp_payments/static/mvp_payments/stripe/billing_portal.js"
 )
 HARNESS = Path(__file__).with_name("billing_portal_harness.js")
 

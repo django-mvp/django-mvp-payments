@@ -1,6 +1,6 @@
 {% load i18n %}
 {# @description One current subscription: its status as a badge, the current period, and each priced item on it. #}
-{# @prop subscription:text | description:"A mvp_payments.namespaces.drf_stripe_records.CurrentSubscription." | required #}
+{# @prop subscription:text | description:"A mvp_payments.namespaces.stripe_records.CurrentSubscription." | required #}
 {# A status this component does not recognise still renders, as itself, with a neutral badge (Article XV). #}
 <c-vars subscription />
 <c-mvp.card>
@@ -21,6 +21,6 @@
     </c-mvp.data-field>
   {% endif %}
   {% for plan in subscription.plans %}
-    <c-drf-stripe.plan :plan="plan" />
+    <c-stripe.plan :plan="plan" />
   {% endfor %}
 </c-mvp.card>

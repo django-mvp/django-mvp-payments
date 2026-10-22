@@ -1,6 +1,6 @@
 {% load i18n %}
 {# @description One priced item on a subscription: its name, quantity, amount and billing frequency, with what it grants beneath it. #}
-{# @prop plan:text | description:"A mvp_payments.namespaces.drf_stripe_records.Plan." | required #}
+{# @prop plan:text | description:"A mvp_payments.namespaces.stripe_records.Plan." | required #}
 <c-vars plan />
 <div class="py-2 border-b border-base-200 last:border-b-0">
   <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -13,11 +13,11 @@
       {% endif %}
     </div>
     <div class="text-right">
-      <c-drf-stripe.amount :amount="plan.amount" />
+      <c-stripe.amount :amount="plan.amount" />
       {% if plan.frequency_display %}
         <span class="text-sm text-base-content/60">{{ plan.frequency_display }}</span>
       {% endif %}
     </div>
   </div>
-  <c-drf-stripe.features :features="plan.features" />
+  <c-stripe.features :features="plan.features" />
 </div>

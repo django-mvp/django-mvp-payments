@@ -162,4 +162,4 @@ class BillingReturnView(LoginRequiredMixin, View):
             stripe_api_update_subscriptions(
                 status="all", ignore_new_user_creation_errors=True
             )
-        return redirect(reverse("payments:drf-stripe-subscription") + "?returned=1")
+        return redirect(reverse("payments:stripe-subscription") + "?returned=1")

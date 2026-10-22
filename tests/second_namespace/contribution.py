@@ -1,6 +1,6 @@
 """A second namespace's contribution — a test fixture, not a payment backend.
 
-This package ships exactly one backend (`drf_stripe`), so proving that a
+This package ships exactly one backend (`mvp_payments.stripe`), so proving that a
 second namespace leaves the first alone (FS-001) needs a stand-in for one: a
 minimal installed application (`tests.second_namespace`) to gate on, and a
 ``Contribution`` declared against it through the exact same public
@@ -20,7 +20,7 @@ second_namespace = Contribution(
             slug="overview",
             label="Second namespace",
             icon="overview",
-            template_name="mvp_payments/drf_stripe/subscription.html",
+            template_name="mvp_payments/stripe/subscription.html",
         ),
     ),
     card_template="mvp_payments/card.html",

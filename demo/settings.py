@@ -110,12 +110,12 @@ MVP_PAYMENTS = {
     "STRIPE_WEBHOOK_SECRET": DEV_ENV.get(
         "STRIPE_TEST_WEBHOOK_SECRET", "whsec_not_a_real_secret"
     ),
-    "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
-    "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
-    "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
+    "STRIPE_BILLING_PORTAL": "/api/billing-portal/",
+    "STRIPE_PLAN_SWITCH": "/api/plan-switch/",
+    "STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
         "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
     ),
-    "DRF_STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
+    "STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
         "STRIPE_TEST_PUBLISHABLE_KEY", "pk_test_not_a_real_key"
     ),
 }

@@ -11,6 +11,6 @@
   {% endblock provider_library %}
   {# Outside provider_library, so a page emptying that block keeps the script that reveals its message (FS-003). #}
   <script defer
-          src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
-  <script defer src="{% static 'mvp_payments/drf_stripe/billing_portal.js' %}"></script>
+          src="{% static 'mvp_payments/stripe/pricing_table.js' %}"></script>
+  <script defer src="{% static 'mvp_payments/stripe/billing_portal.js' %}"></script>
 {% endblock extra_js %}

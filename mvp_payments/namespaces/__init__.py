@@ -7,9 +7,9 @@ disagree about what is installed.
 
 from mvp_payments.contributions import Contribution
 
-from .drf_stripe import drf_stripe
+from .stripe import stripe_contribution
 
-CONTRIBUTIONS: tuple[Contribution, ...] = (drf_stripe,)
+CONTRIBUTIONS: tuple[Contribution, ...] = (stripe_contribution,)
 
 
 def available_contributions() -> tuple[Contribution, ...]:

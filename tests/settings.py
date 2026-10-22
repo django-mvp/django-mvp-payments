@@ -40,8 +40,8 @@ MVP_PAYMENTS = {
     **MVP_PAYMENTS,  # noqa: F405
     "STRIPE_SECRET_KEY": "sk_test_not_a_real_key",
     "STRIPE_WEBHOOK_SECRET": "whsec_not_a_real_secret",
-    "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_not_a_real_table",
-    "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_not_a_real_key",
+    "STRIPE_PRICING_TABLE_ID": "prctbl_not_a_real_table",
+    "STRIPE_PUBLISHABLE_KEY": "pk_test_not_a_real_key",
 }
 
 # The demo's routes, behind a urlconf of the suite's own so a route that exists

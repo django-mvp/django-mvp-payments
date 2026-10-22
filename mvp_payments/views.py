@@ -15,7 +15,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.functional import Promise
 from mvp.views import MVPTemplateView
 
-from .namespaces.drf_stripe_records import SubscriptionReader
+from .namespaces.stripe_records import SubscriptionReader
 
 if TYPE_CHECKING:
     from .contributions import Contribution, Page
@@ -77,7 +77,7 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
 
 
 class SubscriptionPageView(PaymentPageView):
-    """The drf-stripe namespace's subscription page: what the signed-in person is on.
+    """The Stripe namespace's subscription page: what the signed-in person is on.
 
     Adds to the context:
 
@@ -106,14 +106,12 @@ class SubscriptionPageView(PaymentPageView):
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["subscriptions"] = subscriptions
         context["billing_portal_endpoint"] = (
-            mvp_payments_settings.get("DRF_STRIPE_BILLING_PORTAL")
+            mvp_payments_settings.get("STRIPE_BILLING_PORTAL")
             if subscriptions
             else None
         )
         context["plan_switch_endpoint"] = (
-            mvp_payments_settings.get("DRF_STRIPE_PLAN_SWITCH")
-            if subscriptions
-            else None
+            mvp_payments_settings.get("STRIPE_PLAN_SWITCH") if subscriptions else None
         )
         context["plans_url"] = self.get_contribution().page_url("plans")
         return context
@@ -133,7 +131,7 @@ class SubscriptionPageView(PaymentPageView):
 
 
 class PlansPageView(PaymentPageView):
-    """The drf-stripe namespace's plans page: the provider's own pricing table, mounted.
+    """The Stripe namespace's plans page: the provider's own pricing table, mounted.
 
     Adds to the context:
 
@@ -151,9 +149,7 @@ class PlansPageView(PaymentPageView):
         context["subscription_url"] = self.get_contribution().page_url("subscription")
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["pricing_table_id"] = mvp_payments_settings.get(
-            "DRF_STRIPE_PRICING_TABLE_ID"
+            "STRIPE_PRICING_TABLE_ID"
         )
-        context["publishable_key"] = mvp_payments_settings.get(
-            "DRF_STRIPE_PUBLISHABLE_KEY"
-        )
+        context["publishable_key"] = mvp_payments_settings.get("STRIPE_PUBLISHABLE_KEY")
         return context
