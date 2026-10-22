@@ -46,6 +46,20 @@ def _make_contribution(app_label="mvp_payments.stripe", namespace="fixture-names
     )
 
 
+class TestPage:
+    def test_a_page_requires_a_signed_in_visitor_unless_it_says_otherwise(self):
+        page = Page(slug="a", label="A", icon="a", template_name="a.html")
+
+        assert page.login_required is True
+
+    def test_the_stripe_namespace_opens_only_its_plans_page_to_everyone(self):
+        open_pages = [
+            page.slug for page in stripe_contribution.pages if not page.login_required
+        ]
+
+        assert open_pages == ["plans"]
+
+
 class TestContribution:
     def test_reports_available_when_its_backend_is_installed(self):
         assert (

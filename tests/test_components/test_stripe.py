@@ -102,6 +102,43 @@ class TestPricingTable:
         assert 'customer-email="explicit@example.com"' in html
         assert "person@example.com" not in html
 
+    def test_a_reference_is_carried_as_the_client_reference_id(self, cotton_render):
+        html = cotton_render(
+            "stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+            client_reference_id="7_abc123",
+        )
+
+        assert 'client-reference-id="7_abc123"' in html
+
+    def test_no_reference_carries_no_client_reference_id_attribute(self, cotton_render):
+        html = cotton_render(
+            "stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+        )
+
+        assert "client-reference-id" not in html
+        assert "customer-session-client-secret" not in html
+
+    def test_a_customer_session_is_carried_and_replaces_the_customer_email(
+        self, cotton_render_string, rf, user
+    ):
+        user.email = "person@example.com"
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" customer_session_client_secret="cuss_s_1" '
+            'customer_email="explicit@example.com" />',
+            context={"request": request},
+        )
+
+        assert 'customer-session-client-secret="cuss_s_1"' in html
+        assert "customer-email" not in html
+
     def test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor(
         self, cotton_render_string, rf, django_assert_num_queries, db
     ):
@@ -273,21 +310,17 @@ class TestProviderReturn:
         assert "Confirming your payment" not in html
 
 
-class TestAlreadySubscribed:
-    def test_it_says_so_and_leads_to_the_subscription_page(self, cotton_render):
+class TestSignInNotice:
+    def test_it_asks_for_a_sign_in_and_leads_to_the_given_address(self, cotton_render):
         html = cotton_render(
-            "stripe.already-subscribed", url="/account/billing/subscription/"
+            "stripe.sign-in-notice", url="/accounts/login/?next=/account/billing/plans/"
         )
 
-        assert "You already have a subscription" in html
-        assert 'href="/account/billing/subscription/"' in html
-        assert "stripe-pricing-table" not in html
+        assert 'href="/accounts/login/?next=/account/billing/plans/"' in html
+        assert "Sign in before choosing a plan" in html
 
-    def test_given_no_address_it_still_says_so_without_a_dead_link(self, cotton_render):
-        html = cotton_render("stripe.already-subscribed", url=None)
-
-        assert "You already have a subscription" in html
-        assert "href" not in html
+    def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
+        assert cotton_render("stripe.sign-in-notice", url=None).strip() == ""
 
 
 class TestPortalLink:

@@ -1,13 +1,14 @@
 {# @description The provider's own embeddable pricing table, with a hidden could-not-be-loaded message that pricing_table.js reveals. #}
 {# @prop table_id:text | description:"The pricing table's id, from the provider's dashboard." | required #}
 {# @prop publishable_key:text | description:"The account's publishable key. Not a secret." | required #}
-{# @prop customer_email:text | description:"The purchaser's email address. Defaults to the signed-in person's own, and is omitted when there is neither." #}
-{# The backend matches a provider customer to a user by email alone, so a purchase under another address attaches to nobody (FS-003). #}
+{# @prop client_reference_id:text | description:"The signed reference that ties a purchase to the signed-in person. Omitted when there is none." #}
+{# @prop customer_session_client_secret:text | description:"The secret of a customer session, so a purchase lands on the person's existing Stripe customer. Omitted when there is none." #}
+{# @prop customer_email:text | description:"The purchaser's email address. Defaults to the signed-in person's own, and is omitted when there is neither or when a customer session is passed, which the provider does not accept alongside it." #}
 {# No script element: loading the provider's library is the host project's decision (Article XII). #}
 {% load i18n %}
-<c-vars table_id publishable_key customer_email />
+<c-vars table_id publishable_key client_reference_id customer_session_client_secret customer_email />
 <stripe-pricing-table pricing-table-id="{{ table_id }}"
-                       publishable-key="{{ publishable_key }}"{% if customer_email %} customer-email="{{ customer_email }}"{% elif request.user.is_authenticated and request.user.email %} customer-email="{{ request.user.email }}"{% endif %}></stripe-pricing-table>
+                       publishable-key="{{ publishable_key }}"{% if client_reference_id %} client-reference-id="{{ client_reference_id }}"{% endif %}{% if customer_session_client_secret %} customer-session-client-secret="{{ customer_session_client_secret }}"{% elif customer_email %} customer-email="{{ customer_email }}"{% elif request.user.is_authenticated and request.user.email %} customer-email="{{ request.user.email }}"{% endif %}></stripe-pricing-table>
 <p hidden data-mvp-payments-pricing-table-unavailable class="text-sm text-error">
   {% translate "The plans could not be loaded. Try again later." %}
 </p>

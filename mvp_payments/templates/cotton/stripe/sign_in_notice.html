@@ -1,0 +1,12 @@
+{% load i18n %}
+{# @description Tells a visitor who is not signed in to sign in before choosing a plan, so the purchase is tied to their account. #}
+{# @prop url:text | description:"The sign-in page, returning to the plans page. Without it, nothing is rendered." #}
+<c-vars url />
+{% if url %}
+  <c-alert variant="info" icon="info">
+    <span>
+      {% translate "Sign in before choosing a plan, so your purchase is tied to your account." %}
+      <a href="{{ url }}" class="link">{% translate "Sign in" %}</a>
+    </span>
+  </c-alert>
+{% endif %}

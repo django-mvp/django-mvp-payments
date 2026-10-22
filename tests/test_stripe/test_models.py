@@ -760,11 +760,18 @@ class TestCustomerPricingTableSecret:
             "components[pricing_table][enabled]": ["true"],
         }
 
-    def test_a_stripe_failure_is_raised(self, stripe_fake):
-        stripe_fake.become_unreachable("POST", "/v1/customer_sessions")
+    def test_a_stripe_failure_gives_none_and_is_logged_without_its_message(
+        self, stripe_fake, caplog
+    ):
+        stripe_fake.respond_with_message_echoing(
+            "POST", "/v1/customer_sessions", "sk_test_not_a_r********_key"
+        )
 
-        with pytest.raises(stripe.StripeError):
-            StripeCustomerFactory().pricing_table_client_secret()
+        secret = StripeCustomerFactory().pricing_table_client_secret()
+
+        assert secret is None
+        assert "sk_test" not in caplog.text
+        assert [r for r in caplog.records if r.name.startswith("mvp_payments")]
 
 
 @pytest.mark.django_db

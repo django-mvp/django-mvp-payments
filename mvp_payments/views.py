@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from django.apps import apps
 from django.conf import settings
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import AccessMixin
+from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from django.utils.functional import Promise
@@ -22,8 +24,11 @@ if TYPE_CHECKING:
     from .contributions import Contribution, Page
 
 
-class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
+class PaymentPageView(AccessMixin, MVPTemplateView):
     """One page a namespace contributes, following ``AccountCenterView``'s shape.
+
+    A visitor who is not signed in is sent to sign in, unless the page sets
+    ``login_required=False``.
 
     Never used directly, only built once per declared ``Page`` through ``as_view()``.
 
@@ -36,6 +41,12 @@ class PaymentPageView(LoginRequiredMixin, MVPTemplateView):
 
     page: Page | None = None
     contribution: Contribution | None = None
+
+    def dispatch(self, request, *args, **kwargs):
+        """Send a visitor who is not signed in to sign in, unless the page is open to all."""
+        if self.get_page().login_required and not request.user.is_authenticated:
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
 
     def get_page(self) -> Page:
         """Return the page this view was built for.
@@ -133,23 +144,40 @@ class SubscriptionPageView(PaymentPageView):
 class PlansPageView(PaymentPageView):
     """The Stripe namespace's plans page: the provider's own pricing table, mounted.
 
+    Open to every visitor, signed in or not, whatever they are subscribed to.
+
     Adds to the context:
 
     - ``pricing_table_id`` and ``publishable_key``: from ``settings.MVP_PAYMENTS`` at render
       time, ``None`` where not supplied (Article XIII).
-    - ``subscriptions``: this person's current subscriptions. A subscriber is sent to the
-      subscription page to switch instead of shown the pricing table (ADR 0008).
-    - ``subscription_url``: the subscription page.
+    - ``client_reference_id``: for a signed-in person, the signed reference that ties their
+      purchase to them (ADR 0011). ``None`` for a visitor who is not signed in.
+    - ``customer_session_client_secret``: for a signed-in person who already has a Stripe
+      customer, the secret that makes a purchase land on that customer. ``None`` otherwise.
+    - ``sign_in_url``: for a visitor who is not signed in, the sign-in page, which returns here.
+      ``None`` for a signed-in person.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        """Add the pricing table's settings and this person's subscriptions."""
+        """Add the pricing table's settings and what ties a purchase to this person."""
         context: dict[str, Any] = super().get_context_data(**kwargs)
-        context["subscriptions"] = SubscriptionReader.for_user(self.request.user)
-        context["subscription_url"] = self.get_contribution().page_url("subscription")
         mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
         context["pricing_table_id"] = mvp_payments_settings.get(
             "STRIPE_PRICING_TABLE_ID"
         )
         context["publishable_key"] = mvp_payments_settings.get("STRIPE_PUBLISHABLE_KEY")
+        context["client_reference_id"] = None
+        context["customer_session_client_secret"] = None
+        context["sign_in_url"] = None
+        user = self.request.user
+        if not user.is_authenticated:
+            context["sign_in_url"] = redirect_to_login(self.request.get_full_path()).url
+            return context
+        customer_model = apps.get_model("mvp_payments_stripe", "Customer")
+        context["client_reference_id"] = customer_model.client_reference(user)
+        customer = customer_model.for_user(user)
+        if customer is not None:
+            context["customer_session_client_secret"] = (
+                customer.pricing_table_client_secret()
+            )
         return context

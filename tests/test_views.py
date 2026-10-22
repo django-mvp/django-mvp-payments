@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from mvp_payments.namespaces.stripe import stripe_contribution
+from mvp_payments.stripe.models import Customer
 from mvp_payments.views import SubscriptionPageView
 from tests.factories import (
     StripeCustomerFactory,
@@ -176,6 +177,11 @@ class TestPaymentPage:
         assert response.status_code == 302
         assert response.url.startswith(reverse("account_login"))
 
+    def test_a_page_may_be_declared_open_to_everyone(self, client, db):
+        response = client.get(reverse("payments:stripe-plans"))
+
+        assert response.status_code == 200
+
 
 def _content_region(content: str) -> str:
     """The page's content, with the Account Center's navigation cut out.
@@ -226,27 +232,126 @@ class TestPlansPage:
         content = _content_region(response.content.decode())
         assert 'customer-email="person@example.com"' in content
 
-    def test_a_subscriber_is_sent_to_their_subscription_instead_of_the_table(
-        self, subscribed_client
-    ):
-        with override_settings(
-            MVP_PAYMENTS={
-                "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-                "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
-            }
-        ):
-            response = subscribed_client.get(reverse("payments:stripe-plans"))
+    def test_a_subscriber_sees_the_pricing_table(self, subscribed_client):
+        response = subscribed_client.get(reverse("payments:stripe-plans"))
 
         content = _content_region(response.content.decode())
         assert response.status_code == 200
-        assert "stripe-pricing-table" not in content
-        assert f'href="{reverse("payments:stripe-subscription")}"' in content
+        assert "<stripe-pricing-table" in content
+        assert "You already have a subscription" not in content
 
-    def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
+    def test_a_signed_in_person_has_their_purchase_tied_to_them(
+        self, logged_in_client, user
+    ):
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        reference = Customer.client_reference(user)
+        assert response.context["client_reference_id"] == reference
+        content = _content_region(response.content.decode())
+        assert f'client-reference-id="{reference}"' in content
+        assert "customer-session-client-secret" not in content
+
+    def test_a_signed_in_person_with_no_customer_causes_no_request_to_stripe(
+        self, logged_in_client, stripe_fake
+    ):
+        logged_in_client.get(reverse("payments:stripe-plans"))
+
+        assert stripe_fake.requests == []
+
+    def test_a_signed_in_customer_has_the_purchase_land_on_their_stripe_customer(
+        self, logged_in_client, stripe_customer, stripe_fake
+    ):
+        stripe_fake.respond(
+            "POST",
+            "/v1/customer_sessions",
+            {"id": "cuss_1", "object": "customer_session", "client_secret": "cuss_s_1"},
+        )
+        stripe_customer.user.email = "person@example.com"
+        stripe_customer.user.save()
+
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert 'customer-session-client-secret="cuss_s_1"' in content
+        assert (
+            f'client-reference-id="{Customer.client_reference(stripe_customer.user)}"'
+            in content
+        )
+        assert "customer-email" not in content
+        ((method, path, params),) = stripe_fake.requests
+        assert (method, path) == ("POST", "/v1/customer_sessions")
+        assert params["customer"] == [stripe_customer.stripe_id]
+
+    def test_a_subscriber_gets_the_session_of_their_own_customer_and_nobody_elses(
+        self, subscribed_client, stripe_customer, stripe_fake
+    ):
+        StripeCustomerFactory(stripe_id="cus_somebody_else")
+        stripe_fake.respond(
+            "POST",
+            "/v1/customer_sessions",
+            {"id": "cuss_1", "object": "customer_session", "client_secret": "cuss_s_1"},
+        )
+
+        subscribed_client.get(reverse("payments:stripe-plans"))
+
+        ((_, _, params),) = stripe_fake.requests
+        assert params["customer"] == [stripe_customer.stripe_id]
+
+    def test_stripe_being_unreachable_still_shows_the_table_with_the_reference(
+        self, logged_in_client, stripe_customer, stripe_fake
+    ):
+        stripe_fake.become_unreachable("POST", "/v1/customer_sessions")
+
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "<stripe-pricing-table" in content
+        assert "client-reference-id" in content
+        assert "customer-session-client-secret" not in content
+
+    def test_an_anonymous_visitor_sees_the_pricing_table_with_no_reference(
+        self, client, db, stripe_fake
+    ):
         response = client.get(reverse("payments:stripe-plans"))
 
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "<stripe-pricing-table" in content
+        assert 'pricing-table-id="prctbl_not_a_real_table"' in content
+        assert "client-reference-id" not in content
+        assert "customer-session-client-secret" not in content
+        assert "customer-email" not in content
+        assert response.context["client_reference_id"] is None
+        assert stripe_fake.requests == []
+
+    def test_an_anonymous_visitor_is_told_to_sign_in_before_choosing_a_plan(
+        self, client, db
+    ):
+        plans = reverse("payments:stripe-plans")
+
+        response = client.get(plans)
+
+        sign_in = f"{reverse('account_login')}?next={plans}"
+        assert response.context["sign_in_url"] == sign_in
+        content = _content_region(response.content.decode())
+        assert f'href="{sign_in}"' in content
+        assert content.index(sign_in) < content.index("<stripe-pricing-table")
+
+    def test_a_signed_in_person_is_not_told_to_sign_in(self, logged_in_client):
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        assert response.context["sign_in_url"] is None
+        assert reverse("account_login") not in _content_region(
+            response.content.decode()
+        )
+
+    def test_an_anonymous_visitor_can_still_not_open_the_subscription_page(
+        self, client, db
+    ):
+        response = client.get(reverse("payments:stripe-subscription"))
+
         assert response.status_code == 302
-        assert response.url.startswith(reverse("account_login"))
 
     def test_renders_with_mvp_payments_absent_from_settings_entirely(
         self, logged_in_client, settings

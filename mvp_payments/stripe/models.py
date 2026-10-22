@@ -204,24 +204,32 @@ class Customer(models.Model):
             },
         }
 
-    def pricing_table_client_secret(self) -> str:
+    def pricing_table_client_secret(self) -> str | None:
         """Ask Stripe for the secret that lets the pricing table act for this customer.
 
         Passed to the pricing table, it makes a purchase land on this customer rather than
-        creating a second one.
+        creating a second one. The table works without it, so a Stripe failure is logged and
+        the page carries on.
 
         Returns:
-            The single-use client secret of a customer session.
-
-        Raises:
-            stripe.StripeError: When Stripe could not be asked, or refused.
+            The single-use client secret of a customer session, or ``None`` when Stripe
+            could not be asked or refused.
         """
-        session = client().v1.customer_sessions.create(
-            params={
-                "customer": self.stripe_id,
-                "components": {"pricing_table": {"enabled": True}},
-            }
-        )
+        try:
+            session = client().v1.customer_sessions.create(
+                params={
+                    "customer": self.stripe_id,
+                    "components": {"pricing_table": {"enabled": True}},
+                }
+            )
+        except stripe.StripeError as error:
+            # Not logger.exception: Stripe's message can echo part of the secret key.
+            logger.error(  # noqa: TRY400
+                "Could not create a pricing table session for customer %s: %s.",
+                self.stripe_id,
+                type(error).__name__,
+            )
+            return None
         return session.client_secret
 
     def sync(self) -> None:

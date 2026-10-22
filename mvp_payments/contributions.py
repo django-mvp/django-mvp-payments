@@ -37,6 +37,8 @@ class Page:
         view: The view class that renders the page (ADR 0006).
         in_navigation: Whether the page gets an entry in the Account Center's
             navigation. A page left out is still routed and still reverses.
+        login_required: Whether the page sends a visitor who is not signed in to the
+            sign-in page. A page that sets this to ``False`` is open to everyone.
     """
 
     slug: str
@@ -45,6 +47,7 @@ class Page:
     template_name: str
     view: type[PaymentPageView] = PaymentPageView
     in_navigation: bool = True
+    login_required: bool = True
 
 
 @dataclass(frozen=True)
