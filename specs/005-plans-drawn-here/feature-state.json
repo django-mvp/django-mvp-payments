@@ -2,7 +2,7 @@
   "feature": "005-plans-drawn-here",
   "branch": "005-plans-drawn-here",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "REVIEW",
+  "state": "PR_READY",
   "state_history": [
     {
       "state": "PLAN",
@@ -28,6 +28,11 @@
       "state": "REVIEW",
       "at": "2026-10-22T17:17:00Z",
       "note": "convergence complete: ADRs 0013 and 0014 graduated, S5 green"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-10-22T17:32:12Z",
+      "note": "review recorded; walkthrough laid out"
     }
   ],
   "gates": {
@@ -67,6 +72,11 @@
       "self_resolved": [
         "CR-001..CR-007 (3 medium, 4 low) remedied by T012-T018, each repaired test checked against its mutation; editorial notes fixed"
       ]
+    },
+    "walkthrough": {
+      "approved_by": null,
+      "at": "2026-10-22T17:32:11Z",
+      "self_resolved": []
     }
   },
   "stories": [
@@ -444,6 +454,6 @@
   },
   "pr": {
     "number": 62,
-    "draft": true
+    "draft": false
   }
 }
