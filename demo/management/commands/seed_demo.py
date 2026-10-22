@@ -289,23 +289,47 @@ class Command(BaseCommand):
                 "basic",
                 "Basic",
                 "For one person getting started.",
+                ["One project", "Monthly usage report", "Email support"],
                 2000,
                 "price_demo_regular",
             ),
-            ("pro", "Pro", "For a small team that bills every month.", 5000, None),
-            ("team", "Team", "For an organisation with several teams.", 12000, None),
+            (
+                "pro",
+                "Pro",
+                "For people who use it every day.",
+                [
+                    "Up to ten projects",
+                    "Weekly usage reports",
+                    "Priority email support",
+                    "Export to CSV and Excel",
+                ],
+                5000,
+                None,
+            ),
+            (
+                "team",
+                "Team",
+                "For a group working on the same projects, with one bill for everyone.",
+                [
+                    "Unlimited projects",
+                    "Up to 25 team members, each with their own sign-in",
+                    "Daily usage reports",
+                    "Support by email and phone",
+                    "Single sign-on",
+                ],
+                12000,
+                None,
+            ),
         ]
         prices = []
-        for key, name, description, monthly, monthly_id in products:
+        for key, name, description, features, monthly, monthly_id in products:
             product = {
                 "id": f"prod_demo_{key}",
                 "object": "product",
                 "active": True,
                 "name": name,
                 "description": description,
-                "marketing_features": [
-                    {"name": f"{name} feature {number}"} for number in (1, 2, 3)
-                ],
+                "marketing_features": [{"name": feature} for feature in features],
             }
             for interval, amount, price_id in (
                 ("month", monthly, monthly_id or f"price_demo_{key}_month"),
