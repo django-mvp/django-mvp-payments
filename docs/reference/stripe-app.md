@@ -1,4 +1,4 @@
-# The Stripe app
+# Stripe app reference
 
 `mvp_payments.stripe` keeps a small copy of each user's Stripe subscription in your project's
 database. Stripe stays the source of truth: the app records who each user's Stripe customer is
@@ -6,52 +6,8 @@ and that customer's subscriptions, with their status, price and period, and refr
 from Stripe whenever Stripe reports a change. It adds no payment logic. Choosing a plan,
 switching, cancelling and updating a card all happen on Stripe's own hosted pages.
 
-## How to install the Stripe app
-
-1. Install the package with its `stripe-lite` extra, which brings in Stripe's own SDK and nothing
-   else:
-
-   ```bash
-   pip install "django-mvp-payments[stripe-lite]"
-   ```
-
-2. Add the app to `INSTALLED_APPS`:
-
-   ```python
-   INSTALLED_APPS = [
-       ...,
-       "mvp_payments",
-       "mvp_payments.stripe",
-       "mvp",
-   ]
-   ```
-
-3. Put your Stripe secret key and webhook signing secret in your settings, taking them from
-   runtime configuration rather than writing them into the file:
-
-   ```python
-   import os
-
-   MVP_PAYMENTS = {
-       "STRIPE_SECRET_KEY": os.environ["STRIPE_SECRET_KEY"],
-       "STRIPE_WEBHOOK_SECRET": os.environ["STRIPE_WEBHOOK_SECRET"],
-   }
-   ```
-
-4. Create the tables:
-
-   ```bash
-   python manage.py migrate
-   ```
-
-5. Run the project's checks. A missing setting is reported by name:
-
-   ```bash
-   python manage.py check
-   ```
-
-The app is on when it is in `INSTALLED_APPS` and off when it is not. A project that installs the
-extra but leaves the app out gets no tables, no pages and no URLs from it.
+To set it up, see [how to install the Stripe app](../how-to/install-the-stripe-app.md) and
+[how to point Stripe at the webhook](../how-to/point-stripe-at-the-webhook.md).
 
 ## Settings
 
@@ -102,6 +58,8 @@ changed on Stripe.
 
 ### `Subscription`
 
+`Subscription.objects` is a `SubscriptionQuerySet`. It adds no methods yet.
+
 One row per Stripe subscription, reached from a customer as `customer.subscriptions`. A user who
 subscribes twice has two rows. Newest billing period first is the default order.
 
@@ -122,7 +80,7 @@ subscribes twice has two rows. Newest billing period first is the default order.
 
 Records change only from what Stripe reports. Nothing here is edited by hand.
 
-## How records are kept in step
+## `Customer.sync()`
 
 Every record is written by one method, `Customer.sync()`. It asks Stripe for the customer and for
 all of the customer's subscriptions, whatever their status, and writes what comes back:
@@ -147,7 +105,7 @@ from mvp_payments.stripe.models import Customer
 Customer.objects.get(stripe_id="cus_123").sync()
 ```
 
-## Tying a purchase to a user
+## `Customer.client_reference()` and `Customer.from_checkout()`
 
 A purchase is tied to a user only through the identity of the signed-in user, carried through
 Stripe's checkout. Email addresses are never matched.
@@ -176,26 +134,12 @@ returns the customer to sync, or `None`. It returns `None`, and records nothing,
 A user who subscribes again keeps the same customer, and the new subscription is recorded beside
 the old one.
 
-## How to point Stripe at the webhook
+## The webhook
 
-1. Mount the package's URLs once, as the README describes. The webhook comes with them, and only
-   while `mvp_payments.stripe` is in `INSTALLED_APPS`. Mounted at `account/billing/`, its address
-   is `account/billing/stripe/webhook/`, and its URL name is `payments:stripe-webhook`.
-2. In the Stripe Dashboard, under Developers, Webhooks, add an endpoint at that address on your
-   site.
-3. Send it these events:
-
-   - `checkout.session.completed`
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `customer.subscription.paused`
-   - `customer.subscription.resumed`
-   - `customer.deleted`
-
-4. Copy the endpoint's signing secret into `MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]`.
-
-### What the webhook does
+The address is `stripe/webhook/` under wherever you mounted the package's URLs, and its URL name
+is `payments:stripe-webhook`. It exists only while `mvp_payments.stripe` is in `INSTALLED_APPS`.
+The view is `mvp_payments.stripe.views.webhook`. It accepts POST and refuses every other method
+with 405, and it needs no CSRF token.
 
 The signature is verified with Stripe's own SDK before anything in the request is read. A request
 that does not verify, including one signed with a secret you have since replaced, changes nothing.
@@ -205,10 +149,17 @@ subscription event, a deleted customer or a completed checkout makes the app cal
 `Customer.sync()` for the customer it concerns. The same event arriving twice, late, or after a
 newer one about the same subscription therefore leaves the same records.
 
+| Event | Customer synced |
+|---|---|
+| `checkout.session.completed` | The one `Customer.from_checkout()` returns |
+| `customer.subscription.*` | The one whose `stripe_id` is the subscription's customer |
+| `customer.deleted` | The one whose `stripe_id` is the deleted customer |
+| Any other type | None |
+
 | Answer | When |
 |---|---|
 | 400 | The signature is missing, wrong or expired, or the body is not a Stripe event |
 | 500 | Stripe could not be asked, or `STRIPE_WEBHOOK_SECRET` is not set. Stripe sends the event again, and no record has changed |
 | 200 | Everything else, including an event type the app does not keep and a customer that was never tied to a user |
 
-Every answer has an empty body. Requests other than POST are refused with 405.
+Every answer has an empty body.

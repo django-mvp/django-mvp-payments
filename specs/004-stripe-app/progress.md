@@ -50,3 +50,10 @@ Did: views.webhook (csrf_exempt, require_POST function view), urls.py (stripe/we
 Verified: uv run pytest tests/test_stripe tests/test_urls.py tests/test_app.py (121 passed). Mutation probe: swapping construct_event for construct_event_without_verification failed 5 verification tests. The address-absent case runs in a fresh process under tests/settings_without_stripe_app.py.
 Next: full verify and the report.
 Watch: the logger call keeps the error type only and carries a noqa for TRY400, since a StripeError message can echo part of the key.
+
+## 2026-10-22T08:53:26Z · Implementer US1 · T007
+
+Did: acted on the first full verify, which went red on three things. (1) docs/stripe.md sat outside the documentation layout, so it is now docs/how-to/install-the-stripe-app.md, docs/how-to/point-stripe-at-the-webhook.md and docs/reference/stripe-app.md, and the README links all three. (2) tests/test_stripe_fake.py mirrored no source module, so its two classes moved into tests/test_stripe/test_client.py, the module of the client the fake stands under. (3) the docs step named `SubscriptionQuerySet` and `logger` as undocumented public names; the queryset now has an entry on the reference page and the module loggers are private (_logger).
+Verified: uv run pytest tests/test_stripe (112 passed); pre-commit clean.
+Next: second verify run, then the report.
+Watch: later stories add to the reference page rather than to a docs/stripe.md, which no longer exists.

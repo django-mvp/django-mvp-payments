@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Customer
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
@@ -35,14 +35,14 @@ def webhook(request: HttpRequest) -> HttpResponse:
     secret = getattr(settings, "MVP_PAYMENTS", {}).get("STRIPE_WEBHOOK_SECRET")
     if not secret:
         # An empty key would let anyone sign a request, so nothing is verified against it.
-        logger.error("MVP_PAYMENTS['STRIPE_WEBHOOK_SECRET'] is not set.")
+        _logger.error("MVP_PAYMENTS['STRIPE_WEBHOOK_SECRET'] is not set.")
         return HttpResponse(status=500)
     try:
         event = stripe.Webhook.construct_event(
             request.body, request.headers.get("Stripe-Signature"), secret
         )
     except (ValueError, stripe.SignatureVerificationError) as error:
-        logger.warning("Refused a Stripe webhook: %s.", type(error).__name__)
+        _logger.warning("Refused a Stripe webhook: %s.", type(error).__name__)
         return HttpResponse(status=400)
 
     try:
@@ -52,7 +52,7 @@ def webhook(request: HttpRequest) -> HttpResponse:
                 customer.sync()
     except stripe.StripeError as error:
         # Not logger.exception: Stripe's message can echo part of the secret key.
-        logger.error(  # noqa: TRY400
+        _logger.error(  # noqa: TRY400
             "Could not handle Stripe event %s: %s.", event.id, type(error).__name__
         )
         return HttpResponse(status=500)

@@ -17,7 +17,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .client import client
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 #: Keys the HMAC of a checkout reference to this app, so a signature made for another purpose
 #: from the same SECRET_KEY can never pass as one.
@@ -112,7 +112,7 @@ class Customer(models.Model):
         if existing is not None:
             if existing.stripe_id == stripe_id:
                 return existing
-            logger.error(
+            _logger.error(
                 "Checkout %s names Stripe customer %s for user %s, who already has %s.",
                 session_id,
                 stripe_id,
@@ -121,7 +121,7 @@ class Customer(models.Model):
             )
             return None
         if cls.objects.filter(stripe_id=stripe_id).exists():
-            logger.error(
+            _logger.error(
                 "Checkout %s names Stripe customer %s for user %s, but it belongs to another user.",
                 session_id,
                 stripe_id,

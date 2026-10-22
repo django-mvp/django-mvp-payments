@@ -103,8 +103,11 @@ INSTALLED_APPS = [
 
 Then set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `MVP_PAYMENTS` and run
 `python manage.py migrate`.
-[docs/stripe.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/stripe.md)
-has the steps, the settings and the records.
+[How to install the Stripe app](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/how-to/install-the-stripe-app.md)
+has the steps, [how to point Stripe at the webhook](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/how-to/point-stripe-at-the-webhook.md)
+the rest of the setup, and the
+[Stripe app reference](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/stripe-app.md)
+the settings, the records and the webhook.
 
 ## Namespaces
 
