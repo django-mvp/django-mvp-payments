@@ -52,3 +52,49 @@ def _card_context(contribution: Contribution) -> dict:
         "icon": first_page.icon,
         "page_view_name": contribution.view_name(first_page),
     }
+
+
+# SKETCH (FS-005): what the plans components read. The build decides where these live.
+
+
+@register.simple_tag(takes_context=True)
+def stripe_plans(context) -> dict:
+    """The plans on offer and how the current reader can buy each, for any template."""
+    from mvp_payments.namespaces.stripe_plans import PlanChoices
+
+    return PlanChoices.for_request(context["request"])
+
+
+@register.filter
+def price_money(price: dict):
+    """A Stripe price's amount, as Money in its own currency."""
+    from mvp_payments.money import Money
+
+    if not price or price.get("unit_amount") is None:
+        return None
+    return Money(price["unit_amount"], price.get("currency", ""))
+
+
+@register.filter
+def price_frequency(price: dict) -> str:
+    """How often a Stripe price bills, in words: every month, every 3 months."""
+    from mvp_payments.namespaces.stripe_records import CurrentSubscription
+
+    recurring = (price or {}).get("recurring") or {}
+    return CurrentSubscription(
+        status="",
+        name="",
+        amount=None,
+        interval=recurring.get("interval", ""),
+        interval_count=recurring.get("interval_count", 1),
+        period_start=None,
+        period_end=None,
+    ).frequency_display
+
+
+@register.filter
+def price_interval(price: dict) -> str:
+    """One key per billing frequency, the value the interval switch selects."""
+    from mvp_payments.namespaces.stripe_plans import PlanChoices
+
+    return PlanChoices.interval_key(price)

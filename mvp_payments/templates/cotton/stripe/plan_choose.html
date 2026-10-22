@@ -1,0 +1,27 @@
+{% load i18n mvp_payments %}
+{# @description The way to buy one plan: checkout for a signed-in person, sign-in first for anyone else, and the user subscriptions page for a plan they already hold. #}
+{# @prop price:text | description:"A Stripe price, with its product expanded." | required #}
+{# @prop plans:text | description:"What {% stripe_plans %} returns." | required #}
+<c-vars price plans />
+{% if price.id in plans.held %}
+  <c-button href="{{ plans.subscriptions_url }}" text="{% translate 'Manage' %}" outline>
+    <span class="sr-only">{% blocktranslate with name=price.product.name %}your {{ name }} subscription{% endblocktranslate %}</span>
+  </c-button>
+{% elif plans.signed_in %}
+  <form method="post" action="{{ plans.checkout_url }}">
+    {% csrf_token %}
+    <input type="hidden" name="price" value="{{ price.id }}">
+    <input type="hidden" name="return_to" value="{{ plans.return_to }}">
+    <c-button type="submit" variant="primary" text="{% translate 'Choose' %}" icon="external-link"
+              aria-describedby="mvp-payments-checkout-note">
+      <span class="sr-only">{{ price.product.name }}, {{ price|price_frequency }}</span>
+    </c-button>
+  </form>
+{% else %}
+  <c-button href="{{ plans.login_url }}?next={{ plans.return_to|urlencode:'' }}%3Fplan%3D{{ price.id }}%23{{ price.id }}"
+            variant="primary"
+            text="{% translate 'Choose' %}"
+            aria-describedby="mvp-payments-checkout-note">
+    <span class="sr-only">{{ price.product.name }}, {{ price|price_frequency }}</span>
+  </c-button>
+{% endif %}

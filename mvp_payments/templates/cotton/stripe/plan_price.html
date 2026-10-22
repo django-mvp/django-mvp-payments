@@ -1,0 +1,8 @@
+{% load mvp_payments %}
+{# @description A price's amount in its own currency, and how often it is billed. #}
+{# @prop price:text | description:"A Stripe price: unit_amount, currency and recurring are read." | required #}
+<c-vars price />
+<p class="flex flex-wrap items-baseline gap-x-2 py-2">
+  <span class="text-3xl font-bold tabular-nums">{% with money=price|price_money %}<c-stripe.amount :amount="money" />{% endwith %}</span>
+  <span class="text-sm text-base-content/60">{{ price|price_frequency }}</span>
+</p>

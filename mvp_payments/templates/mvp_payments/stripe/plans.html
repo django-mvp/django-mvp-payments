@@ -1,16 +1,28 @@
 {% extends "mvp/account/base.html" %}
+{% load i18n mvp_payments %}
 {% block account.content %}
   <c-mvp.page>
+    {% if checkout_failed %}
+      <c-alert variant="error" icon="error">
+        <span>{% translate "The checkout could not be started. Please try again in a moment." %}</span>
+      </c-alert>
+    {% elif plan_gone %}
+      <c-alert variant="warning" icon="warning">
+        <span>{% translate "That plan is no longer on offer. Please choose another." %}</span>
+      </c-alert>
+    {% endif %}
+    {% if request.GET.sketch_checkout %}
+      <c-alert variant="info" icon="info">
+        <span>Sketch: the build opens Stripe's checkout here, for {{ request.GET.sketch_checkout }}.</span>
+      </c-alert>
+    {% endif %}
     <c-mvp.page.title :title="page.title" />
-    {% if sign_in_url %}
-      <c-stripe.sign-in-notice :url="sign_in_url" />
-    {% elif pricing_table_id and publishable_key %}
-      <c-stripe.pricing-table :table_id="pricing_table_id"
-                              :publishable_key="publishable_key"
-                              :client_reference_id="client_reference_id"
-                              :customer_session_client_secret="customer_session_client_secret" />
-    {% else %}
+    {% if plans.prices is None %}
       <c-stripe.plans-unavailable />
+    {% elif not plans.prices %}
+      <c-stripe.no-plans />
+    {% else %}
+      <c-stripe.plans :plans="plans" />
     {% endif %}
   </c-mvp.page>
 {% endblock account.content %}

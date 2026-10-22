@@ -1,0 +1,40 @@
+{% load i18n mvp_payments %}
+{# @description Every plan on offer, one card per price, behind a switch between billing frequencies when there is more than one. #}
+{# @prop plans:text | description:"What {% stripe_plans %} returns: the prices on offer, their frequencies, and how this reader buys each." | required #}
+{# Without JavaScript every frequency is shown, each under its own heading. #}
+<c-vars plans />
+<div class="flex flex-col gap-6"
+     x-data="{ interval: '{{ plans.first_interval }}' }">
+  {% if plans.intervals|length > 1 %}
+    <c-join class="self-center" role="radiogroup" aria-label="{% translate 'Billing frequency' %}">
+      {% for interval in plans.intervals %}
+        <input class="join-item btn"
+               type="radio"
+               name="mvp-payments-interval"
+               value="{{ interval.key }}"
+               aria-label="{{ interval.label }}"
+               x-model="interval"
+               {% if interval.key == plans.first_interval %}checked{% endif %}>
+      {% endfor %}
+    </c-join>
+  {% endif %}
+  {% for interval in plans.intervals %}
+    <section class="flex flex-col gap-3"
+             x-show="interval === '{{ interval.key }}'"
+             aria-label="{{ interval.label }}">
+      {% if plans.intervals|length > 1 %}
+        <h2 class="text-lg font-semibold" x-show="false">{{ interval.label }}</h2>
+      {% endif %}
+      <c-mvp.grid md="2" xl="3" gap="6">
+        {% for price in plans.prices %}
+          {% if price|price_interval == interval.key %}
+            <c-stripe.plan-card :price="price" :plans="plans" />
+          {% endif %}
+        {% endfor %}
+      </c-mvp.grid>
+    </section>
+  {% endfor %}
+  <p id="mvp-payments-checkout-note" class="text-sm text-base-content/60 text-center">
+    {% translate "Payment is taken on Stripe's secure checkout page." %}
+  </p>
+</div>

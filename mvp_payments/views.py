@@ -9,10 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from django.apps import apps
-from django.conf import settings
 from django.contrib.auth.mixins import AccessMixin
-from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from django.utils.functional import Promise
@@ -142,42 +139,21 @@ class SubscriptionPageView(PaymentPageView):
 
 
 class PlansPageView(PaymentPageView):
-    """The Stripe namespace's plans page: the provider's own pricing table, mounted.
+    """The Stripe namespace's plans page: the plans on offer, drawn from Stripe's catalogue.
 
     Open to every visitor, signed in or not, whatever they are subscribed to.
 
-    Adds to the context:
-
-    - ``pricing_table_id`` and ``publishable_key``: from ``settings.MVP_PAYMENTS`` at render
-      time, ``None`` where not supplied (Article XIII).
-    - ``client_reference_id``: for a signed-in person, the signed reference that ties their
-      purchase to them (ADR 0011). ``None`` for a visitor who is not signed in.
-    - ``customer_session_client_secret``: for a signed-in person who already has a Stripe
-      customer, the secret that makes a purchase land on that customer. ``None`` otherwise.
-    - ``sign_in_url``: for a visitor who is not signed in, the sign-in page, which returns here.
-      ``None`` for a signed-in person.
+    SKETCH (FS-005): adds ``plans``, what the plans components read, and the two notices
+    a return from a failed checkout can carry.
     """
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        """Add the pricing table's settings and what ties a purchase to this person."""
+        """Add the plans, and any notice about a checkout that did not start."""
+        from mvp_payments.namespaces.stripe_plans import PlanChoices
+
         context: dict[str, Any] = super().get_context_data(**kwargs)
-        mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
-        context["pricing_table_id"] = mvp_payments_settings.get(
-            "STRIPE_PRICING_TABLE_ID"
-        )
-        context["publishable_key"] = mvp_payments_settings.get("STRIPE_PUBLISHABLE_KEY")
-        context["client_reference_id"] = None
-        context["customer_session_client_secret"] = None
-        context["sign_in_url"] = None
-        user = self.request.user
-        if not user.is_authenticated:
-            context["sign_in_url"] = redirect_to_login(self.request.get_full_path()).url
-            return context
-        customer_model = apps.get_model("mvp_payments_stripe", "Customer")
-        context["client_reference_id"] = customer_model.client_reference(user)
-        customer = customer_model.for_user(user)
-        if customer is not None:
-            context["customer_session_client_secret"] = (
-                customer.pricing_table_client_secret()
-            )
+        context["plans"] = PlanChoices.for_request(self.request)
+        sketch = self.request.GET.get("sketch", "")
+        context["checkout_failed"] = sketch == "checkout-failed"
+        context["plan_gone"] = sketch == "plan-gone"
         return context

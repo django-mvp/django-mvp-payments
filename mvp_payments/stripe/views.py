@@ -219,3 +219,20 @@ class BillingReturnView(LoginRequiredMixin, View):
                     type(error).__name__,
                 )
         return redirect(reverse(f"{APP_NAMESPACE}:stripe-subscription") + "?returned=1")
+
+
+class CheckoutView(LoginRequiredMixin, View):
+    """SKETCH (FS-005): where a plan's way to buy posts to.
+
+    The build creates a Stripe checkout session here for the chosen price, with the
+    person's signed reference and Stripe customer, and redirects to it (FR-007). The
+    sketch only returns to the page the plan was chosen on, saying so.
+    """
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        """Go back to where the plan was chosen, naming the price that would be bought."""
+        return_to = request.POST.get("return_to") or "/"
+        if not return_to.startswith("/") or return_to.startswith("//"):
+            return_to = "/"
+        price = request.POST.get("price", "")
+        return redirect(f"{return_to}?sketch_checkout={price}")

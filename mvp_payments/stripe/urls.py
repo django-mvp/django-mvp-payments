@@ -2,7 +2,13 @@
 
 from django.urls import path
 
-from .views import BillingPortalView, BillingReturnView, PlanSwitchView, webhook
+from .views import (
+    BillingPortalView,
+    BillingReturnView,
+    CheckoutView,
+    PlanSwitchView,
+    webhook,
+)
 
 urlpatterns = [
     path("stripe/webhook/", webhook, name="stripe-webhook"),
@@ -12,5 +18,6 @@ urlpatterns = [
         name="stripe-billing-portal",
     ),
     path("stripe/plan-switch/", PlanSwitchView.as_view(), name="stripe-plan-switch"),
+    path("stripe/checkout/", CheckoutView.as_view(), name="stripe-checkout"),
     path("stripe/return/", BillingReturnView.as_view(), name="stripe-billing-return"),
 ]
