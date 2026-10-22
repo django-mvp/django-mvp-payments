@@ -16,8 +16,10 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management import call_command
 
+from mvp_payments.stripe.catalogue import Catalogue
 from mvp_payments.stripe.models import Customer as StripeCustomer
 from mvp_payments.stripe.models import Subscription as StripeSubscription
 from tests.factories import StripeSubscriptionFactory
@@ -79,6 +81,26 @@ class TestSidebarMenu:
     def test_every_entry_leads_somewhere(self, home_page):
         assert 'href="None"' not in home_page
 
+    def test_the_plans_page_is_linked(self, sidebar_navigation):
+        assert 'href="/plans/"' in sidebar_navigation
+
+
+class TestDemoCache:
+    def test_the_demo_keeps_its_cache_in_files_in_an_ignored_directory_of_the_repo(
+        self,
+    ):
+        settings = load_demo_settings()
+
+        default = settings.CACHES["default"]
+        location = Path(default["LOCATION"]).resolve()
+        assert (
+            default["BACKEND"] == "django.core.cache.backends.filebased.FileBasedCache"
+        )
+        assert settings.BASE_DIR in location.parents
+        ignored = (settings.BASE_DIR / ".gitignore").read_text().splitlines()
+        relative = location.relative_to(settings.BASE_DIR).as_posix()
+        assert f"/{relative}/" in ignored or f"{relative}/" in ignored
+
 
 class TestThemeSwitching:
     def test_every_configured_theme_is_offered_by_the_control(self, home_page):
@@ -129,6 +151,48 @@ class TestSeedDemoCommand:
 
         for subscription in StripeSubscription.objects.all():
             assert subscription.current_period_start < subscription.current_period_end
+
+    def test_the_plans_are_primed_without_asking_stripe(self, stripe_fake):
+        call_command("seed_demo")
+
+        prices = Catalogue.prices()
+        assert stripe_fake.requests == []
+        assert {price["product"]["name"] for price in prices} == {
+            "Basic",
+            "Pro",
+            "Team",
+        }
+        assert {price["recurring"]["interval"] for price in prices} == {
+            "month",
+            "year",
+        }
+        assert len(prices) == 6
+        assert "price_demo_regular" in {price["id"] for price in prices}
+
+    def test_the_subscription_seeded_for_the_regular_user_is_a_plan_on_offer(self):
+        call_command("seed_demo")
+
+        held = self.subscriptions_of("regular.user").get(product_name="Basic")
+        offered = Catalogue.price(held.price_id)
+        assert offered["product"]["name"] == "Basic"
+        assert offered["unit_amount"] == held.amount
+
+    def test_the_plans_page_shows_them_from_the_cache(self, client, stripe_fake):
+        call_command("seed_demo")
+
+        content = client.get("/plans/").content.decode()
+
+        assert stripe_fake.requests == []
+        for price in Catalogue.prices():
+            assert f'id="{price["id"]}"' in content
+
+    def test_the_regular_users_own_plan_is_marked_as_theirs(self, client, stripe_fake):
+        call_command("seed_demo")
+        client.force_login(get_user_model().objects.get(username="regular.user"))
+
+        response = client.get("/plans/")
+
+        assert "price_demo_regular" in response.context["plans"]["held"]
 
     def test_running_it_twice_leaves_exactly_one_of_each_record(self):
         call_command("seed_demo")
@@ -207,6 +271,13 @@ class TestSeedDemoAgainstTheSandbox:
         call_command("seed_demo")
 
         sandbox.subscription.create.assert_not_called()
+
+    def test_plans_primed_by_an_offline_run_are_forgotten(self, sandbox):
+        cache.set(Catalogue.KEY, [{"id": "price_demo_regular"}], 3600)
+
+        call_command("seed_demo")
+
+        assert cache.get(Catalogue.KEY) is None
 
     def test_super_user_is_left_with_nothing(self, sandbox):
         call_command("seed_demo")

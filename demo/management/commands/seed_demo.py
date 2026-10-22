@@ -14,6 +14,7 @@ import stripe
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
@@ -62,10 +63,14 @@ class Command(BaseCommand):
             verb = "created" if created else "reset"
             self.stdout.write(f"{verb} {username} ({account['email']})")
 
+        catalogue = apps.get_app_config("mvp_payments_stripe").catalogue
         if getattr(settings, "DEV_ENV", {}).get("STRIPE_TEST_SECRET_KEY"):
+            # The plans page reads the sandbox itself, so a catalogue primed offline goes.
+            catalogue.clear()
             self.seed_sandbox_subscriptions(user_model)
         else:
             self.seed_offline_subscriptions(user_model)
+            self.prime_catalogue(catalogue)
 
     def seed_sandbox_subscriptions(self, user_model):
         """Create real subscriptions in the provider's sandbox and read them back.
@@ -267,6 +272,64 @@ class Command(BaseCommand):
             amount=2000,
             currency="usd",
         )
+
+    def prime_catalogue(self, catalogue):
+        """Put a Stripe-shaped catalogue in the cache, so the plans page works without Stripe.
+
+        Basic, Pro and Team, each monthly and yearly. Basic monthly carries the identifier of
+        the subscription ``regular.user`` is given, so that plan shows as theirs. It never
+        expires: without a Stripe account there is nothing to read again, and the entry
+        is removed by ``stripe_sync`` or by seeding against a sandbox.
+
+        Args:
+            catalogue: The Stripe app's catalogue.
+        """
+        products = [
+            (
+                "basic",
+                "Basic",
+                "For one person getting started.",
+                2000,
+                "price_demo_regular",
+            ),
+            ("pro", "Pro", "For a small team that bills every month.", 5000, None),
+            ("team", "Team", "For an organisation with several teams.", 12000, None),
+        ]
+        prices = []
+        for key, name, description, monthly, monthly_id in products:
+            product = {
+                "id": f"prod_demo_{key}",
+                "object": "product",
+                "active": True,
+                "name": name,
+                "description": description,
+                "marketing_features": [
+                    {"name": f"{name} feature {number}"} for number in (1, 2, 3)
+                ],
+            }
+            for interval, amount, price_id in (
+                ("month", monthly, monthly_id or f"price_demo_{key}_month"),
+                ("year", monthly * 10, f"price_demo_{key}_year"),
+            ):
+                prices.append(
+                    {
+                        "id": price_id,
+                        "object": "price",
+                        "active": True,
+                        "type": "recurring",
+                        "billing_scheme": "per_unit",
+                        "unit_amount": amount,
+                        "currency": "usd",
+                        "recurring": {
+                            "interval": interval,
+                            "interval_count": 1,
+                            "usage_type": "licensed",
+                        },
+                        "product": product,
+                    }
+                )
+        cache.set(catalogue.KEY, catalogue.order(prices), None)
+        self.stdout.write("primed the plans page with a demo catalogue")
 
     def invent_subscription(self, user, key, product_name, **fields):
         """Record one invented subscription on the user's customer, creating the customer.

@@ -50,6 +50,7 @@ db.sqlite3-journal
 media/
 /static/
 /*.sqlite3
+/.demo-cache/
 
 # */static/vendor/*
 

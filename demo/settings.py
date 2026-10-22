@@ -138,6 +138,15 @@ DATABASES = {
     }
 }
 
+# The plans page reads its catalogue from the cache. Files, so the primed demo catalogue and the
+# runserver process share it and it survives a restart.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": BASE_DIR / ".demo-cache",
+    }
+}
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = ["daisyui"]
 CRISPY_TEMPLATE_PACK = "daisyui"
 
