@@ -15,3 +15,10 @@ Did: created mvp_payments/stripe/ with apps.py (label mvp_payments_stripe, BigAu
 Verified: uv run pytest tests/test_stripe tests/test_app.py (28 passed); uv run mypy clean. ARCH-003 was real: with mypy_path = "mvp_payments/" mypy reported "Source file found twice under different module names: mvp_payments.stripe and stripe". Removed mypy_path; mypy now resolves import stripe to the SDK and passes.
 Next: T003 models and migration.
 Watch: checks use gettext, not gettext_lazy, because Error's hint is typed str.
+
+## 2026-10-22T08:46:28Z · Implementer US1 · T003
+
+Did: models.py with Customer, Subscription, Subscription.Status and an empty SubscriptionQuerySet; migration 0001_initial; StripeCustomerFactory and StripeSubscriptionFactory in tests/factories.py; docs/stripe.md (install, settings, checks, API version, records) and an install section in the README that links it. The docs directory has no index page, so the README is where its pages are linked.
+Verified: uv run pytest tests/test_stripe tests/test_factories.py tests/test_app.py (64 passed). Tests: one parametrised field contract over every field, makemigrations --check, table names, user deletion cascade, one customer per user, several subscriptions, ordering, an unknown status and a JPY amount stored as given.
+Next: T004 fake Stripe HTTP client.
+Watch: the field-contract test reads field._verbose_name, because Django fills verbose_name in from the field name when none is given.

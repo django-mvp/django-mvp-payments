@@ -92,8 +92,22 @@
         },
         {
           "id": "T003",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py",
+              "tests/test_factories.py::TestStripeAppFactories"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe tests/test_factories.py tests/test_app.py"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:15",
+              "mvp_payments/stripe/migrations/0001_initial.py:9",
+              "docs/stripe.md:1"
+            ]
+          }
         },
         {
           "id": "T004",

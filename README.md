@@ -84,6 +84,28 @@ section of the Account Center's navigation and its own card to the Account Cente
 backend you have not installed contributes nothing. There is no settings block, no flag to turn on
 and no registry to populate — what is in `INSTALLED_APPS` decides what exists.
 
+### The Stripe app
+
+To keep each user's Stripe subscription in your database, install the extra and add the app:
+
+```bash
+pip install "django-mvp-payments[stripe-lite]"
+```
+
+```python
+INSTALLED_APPS = [
+    ...,
+    "mvp_payments",
+    "mvp_payments.stripe",
+    "mvp",
+]
+```
+
+Then set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `MVP_PAYMENTS` and run
+`python manage.py migrate`.
+[docs/stripe.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/stripe.md)
+has the steps, the settings and the records.
+
 ## Namespaces
 
 Components are grouped by the backend they speak to, and the namespace is that backend's name:
