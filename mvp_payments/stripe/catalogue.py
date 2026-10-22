@@ -42,7 +42,8 @@ class Catalogue:
 
         Returns:
             Each price as a plain dictionary with its product expanded, products ordered
-            by their cheapest price and a product's prices by billing length. ``None``
+            by their cheapest price, compared as it stands within a currency with no
+            conversion, and a product's prices by billing length. ``None``
             when Stripe cannot be read: no secret key is set, or Stripe failed within
             the last minute.
         """
@@ -138,6 +139,9 @@ class Catalogue:
     @classmethod
     def order(cls, prices: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Order prices so each product's prices sit together, cheapest product first.
+
+        Amounts are compared in minor units with no currency conversion, so cheapest
+        means cheapest within a currency.
 
         Args:
             prices: Prices on offer.

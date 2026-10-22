@@ -108,7 +108,7 @@ out, because a page cannot show one honest amount for them.
 
 `Catalogue.prices()`
 : Every price on offer, as plain dictionaries with the product expanded. Products come cheapest
-  first, with each product's prices together and the shortest billing period first. Reads every
+  first within a currency (amounts are compared as they stand, with no conversion), with each product's prices together and the shortest billing period first. Reads every
   page from Stripe on a cache miss. Returns `None`, and caches nothing, when
   `STRIPE_SECRET_KEY` is not set. Returns `None` when Stripe cannot be asked, and remembers that
   for 60 seconds under the same key, so an outage does not hold a worker on every request. The

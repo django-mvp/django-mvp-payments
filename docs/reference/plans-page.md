@@ -30,7 +30,9 @@ gives two plans, and the page offers both.
 
 A price is on offer when it is active, recurring, billed per unit with a fixed amount, and
 licensed rather than metered, and its product is active. A tiered or metered price has no single amount to show, so it is left out. Products come cheapest first,
-and a product's prices come shortest billing period first.
+and a product's prices come shortest billing period first. Cheapest is judged on the amount in
+minor units, so it is only meaningful within one currency: with prices in more than one currency
+the amounts are compared as they stand, with no conversion.
 
 Each card shows the product's name, the price's amount in its own currency, how often it bills,
 the product's description and its marketing features. A product with no description or no
