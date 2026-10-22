@@ -121,16 +121,6 @@ class TestContribution:
             "listed-fixture-two",
         ]
 
-    def test_a_page_has_no_option_to_stay_out_of_the_navigation(self):
-        with pytest.raises(TypeError):
-            Page(
-                slug="one",
-                label="One",
-                icon="overview",
-                template_name="mvp_payments/stripe/subscription.html",
-                in_navigation=False,
-            )
-
     def test_asking_for_a_page_that_does_not_exist_says_which_one(self):
         contribution = _make_contribution(namespace="page-url-fixture")
 

@@ -241,8 +241,8 @@ returns `None` for someone who is not signed in or not saved, so it is safe to c
 A purchase is tied to a user only through the identity of the signed-in user, carried through
 Stripe's checkout. Email addresses are never matched.
 
-`Customer.client_reference(user)` returns the value a page passes to Stripe's checkout as its
-`client-reference-id`. It is the user's primary key and a signature of it, joined by `_`, so
+`Customer.client_reference(user)` returns the value every checkout the app starts carries as its
+`client_reference_id`. It is the user's primary key and a signature of it, joined by `_`, so
 it holds only letters, digits and underscores. The signature is made with your `SECRET_KEY` and a
 salt of this app's own. A checkout started with someone else's primary key therefore ties
 nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
@@ -268,7 +268,7 @@ the old one.
 
 ## Handoffs to Stripe's own pages
 
-Three views send a signed-in person to Stripe and bring them back. They are mounted with the
+Four views send a signed-in person to Stripe and bring them back. They are mounted with the
 package's URLs under the same prefix as the webhook, and they exist only while `mvp_payments.stripe`
 is in `INSTALLED_APPS`. Each needs a signed-in person and sends anyone else to the project's sign-in
 page. The user subscriptions page links to them, and a project can too.

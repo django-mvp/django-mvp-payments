@@ -143,8 +143,9 @@ nothing about their navigation entries, their card or their pages.
 [docs/reference/user-subscriptions-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/user-subscriptions-page.md) covers the user subscriptions page: what it puts
 in the template context, the components it is built from, and how to replace it with your own.
 
-[docs/reference/plans-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/plans-page.md) covers the plans page: the component it mounts, the
-settings it reads, and how to replace the component or the page with your own.
+[docs/reference/plans-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/plans-page.md) covers the plans page: where to mount it, the parts
+it is built from and the data each receives, the setting it reads, the `{% stripe_plans %}` tag,
+and how to place the plans on your own pages or replace one part.
 
 [docs/namespaces.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/namespaces.md) is how you add a namespace: what one declares, the two
 questions it answers about itself, and what it may not do.
