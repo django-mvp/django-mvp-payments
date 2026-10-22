@@ -87,3 +87,6 @@ name lands in the task that introduces it.
   with examples, in `docs/reference/plans-page.md`.
 - [ ] T010 [US4] Demo: file-based cache, offline seed priming the demo catalogue, `/plans/`
   mounted, Plans in the sidebar, the landing section kept. `tests/test_demo.py` updated.
+- [ ] T011 [US4] Remove `Page.in_navigation`: the plans page was its only page kept out of the
+  navigation, and it has left the contribution (same reasoning as decisions.md D5). Behaviour of
+  the remaining pages unchanged; the existing navigation tests stay green.
