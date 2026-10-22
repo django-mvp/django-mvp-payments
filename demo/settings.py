@@ -34,8 +34,6 @@ def _dev_env() -> dict[str, str]:
             for key in (
                 "STRIPE_TEST_SECRET_KEY",
                 "STRIPE_TEST_WEBHOOK_SECRET",
-                "STRIPE_TEST_PUBLISHABLE_KEY",
-                "STRIPE_TEST_PRICING_TABLE_ID",
                 "DEMO_BASE_URL",
             )
             if key in os.environ
@@ -85,8 +83,6 @@ INSTALLED_APPS = [
     "django_cotton",
 ]
 
-# The pricing table values come from `demo/.env`, or are obviously fake, and the provider's
-# embed then reports that it could not load.
 MVP_PAYMENTS = {
     # The Stripe app's two secrets. Without `demo/.env` they are obviously fake, which keeps
     # the system checks quiet and makes any call that needs the real ones fail visibly.
@@ -95,12 +91,6 @@ MVP_PAYMENTS = {
     ),
     "STRIPE_WEBHOOK_SECRET": DEV_ENV.get(
         "STRIPE_TEST_WEBHOOK_SECRET", "whsec_not_a_real_secret"
-    ),
-    "STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
-        "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
-    ),
-    "STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
-        "STRIPE_TEST_PUBLISHABLE_KEY", "pk_test_not_a_real_key"
     ),
 }
 

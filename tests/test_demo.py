@@ -40,38 +40,6 @@ class TestHomePage:
         title = re.search(r"<title>(.*?)</title>", home_page, re.S).group(1)
         assert " ".join(title.split()) == "Home | django-mvp-payments"
 
-    def test_the_pricing_table_is_present_with_the_demos_values_for_an_anonymous_visitor(
-        self, home_page
-    ):
-        assert "<stripe-pricing-table" in home_page
-        assert 'pricing-table-id="prctbl_not_a_real_table"' in home_page
-        assert 'publishable-key="pk_test_not_a_real_key"' in home_page
-
-
-class TestUnavailableStateRoutes:
-    def test_the_unconfigured_route_states_plans_are_unavailable(self, client, db):
-        content = client.get("/plans-unconfigured/").content.decode()
-
-        assert "<stripe-pricing-table" not in content
-
-    def test_the_no_library_route_emits_the_mount_point(self, client, db):
-        content = client.get("/no-library/").content.decode()
-
-        assert "<stripe-pricing-table" in content
-        assert 'pricing-table-id="prctbl_not_a_real_table"' in content
-
-    def test_the_no_library_route_drops_the_provider_library_and_keeps_ours(
-        self, client, db
-    ):
-        content = client.get("/no-library/").content.decode()
-
-        assert "js.stripe.com" not in content
-        assert "pricing_table.js" in content
-
-    def test_both_routes_are_reachable_from_the_landing_page(self, home_page):
-        assert "/plans-unconfigured/" in home_page
-        assert "/no-library/" in home_page
-
 
 def load_demo_settings():
     """Run demo/settings.py afresh, so the environment it reads is the one the test set."""

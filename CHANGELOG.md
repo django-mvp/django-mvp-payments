@@ -85,6 +85,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The user subscriptions page lists every subscription a person currently holds, where it could show only
   those the former backend called current. [ADR 0012](docs/adr/0012-the-plans-page-is-open-to-everyone.md)
   records why the plans page is open.
+- The plans page draws every recurring price in your Stripe account, in components of its own:
+  `<c-stripe.plans>`, `<c-stripe.plan-card>`, `<c-stripe.plan-price>`, `<c-stripe.plan-features>`,
+  `<c-stripe.plan-choose>` and `<c-stripe.no-plans>`. It is a public page with an address of its
+  own, mounted with a second include, `path("plans/", include("mvp_payments.plans_urls"))`, as
+  `payments_plans:stripe-plans`. `{% stripe_plans as plans %}` puts the same plans in any template.
+  `docs/reference/plans-page.md` documents the page, the parts and the names they read.
+- `mvp_payments.stripe.catalogue.Catalogue`, which reads the prices on offer from Stripe and keeps
+  them in the project's cache, and `MVP_PAYMENTS["STRIPE_CATALOGUE_TIMEOUT"]`, the seconds it keeps
+  them (an hour by default). A failed read is remembered for 60 seconds.
 
 ### Changed
 
@@ -183,3 +192,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `<c-stripe.plan>`, `<c-stripe.features>` and `<c-stripe.already-subscribed>`, and the plan
   features on the user subscriptions page, which the Stripe app does not record. A plan's quantity is
   not shown either.
+- The pricing table: `<c-stripe.pricing-table>`, `<c-stripe.sign-in-notice>`, `pricing_table.js`,
+  `Customer.pricing_table_client_secret()`, the `MVP_PAYMENTS` settings `STRIPE_PRICING_TABLE_ID` and
+  `STRIPE_PUBLISHABLE_KEY`, and the demo's two pricing-table pages. Plans are drawn from Stripe's
+  catalogue instead, so nothing needs the provider's script. The plans page no longer sits in the
+  Account Center: its address is the one your project chooses for `mvp_payments.plans_urls`, and
+  `payments:stripe-plans` is now `payments_plans:stripe-plans`.
+- `Page.login_required`. Its only user was the plans page, which now has an address of its own, so
+  every contributed page requires a signed-in person.

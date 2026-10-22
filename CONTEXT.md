@@ -12,7 +12,7 @@ all three, and a bug report that mixes them cannot be acted on.
 
 **Payment component**:
 The unit this package ships: one Cotton component rendering one piece of payment or subscription
-interface, configured entirely through its attributes. `<c-stripe.pricing-table>` is a payment
+interface, configured entirely through its attributes. `<c-stripe.plan-card>` is a payment
 component.
 _Avoid_: widget, block, element, partial.
 
@@ -56,7 +56,7 @@ not the contribution itself).
 
 **Namespace**:
 The first segment of a component tag, naming the backend: `stripe` in
-`<c-stripe.pricing-table>`. Cotton resolves it to a directory, so
+`<c-stripe.plan-card>`. Cotton resolves it to a directory, so
 `mvp_payments/templates/cotton/stripe/`. The namespace is the backend rather than this
 package, which is what allows a second backend to be added alongside the first without touching
 it.
@@ -87,9 +87,9 @@ checkout, a component sends them there rather than reproducing it.
 _Avoid_: billing page, account centre, customer centre.
 
 **Plans page**:
-The page showing the plans on offer, through Stripe's own pricing table. Anyone can open it,
-signed in or not, whatever they are already subscribed to. A signed-in visitor's purchase is tied
-to their account.
+The page showing every plan on offer, drawn from the prices in the Stripe account. Anyone can open
+it, signed in or not, whatever they are already subscribed to. It has an address of its own,
+outside the Account Center, which the host project chooses.
 _Avoid_: pricing page, subscribe page, upgrade page.
 
 **User subscriptions page**:

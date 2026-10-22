@@ -751,45 +751,6 @@ class TestCustomerPlanChangeFlow:
 
 
 @pytest.mark.django_db
-class TestCustomerPricingTableSecret:
-    def test_asks_stripe_for_a_pricing_table_session_for_this_customer(
-        self, stripe_fake
-    ):
-        stripe_fake.respond(
-            "POST",
-            "/v1/customer_sessions",
-            {
-                "id": "cuss_1",
-                "object": "customer_session",
-                "client_secret": "cuss_secret_1",
-            },
-        )
-        customer = StripeCustomerFactory(stripe_id="cus_9")
-
-        secret = customer.pricing_table_client_secret()
-
-        assert secret == "cuss_secret_1"
-        ((_, _, params),) = stripe_fake.requests
-        assert params == {
-            "customer": ["cus_9"],
-            "components[pricing_table][enabled]": ["true"],
-        }
-
-    def test_a_stripe_failure_gives_none_and_is_logged_without_its_message(
-        self, stripe_fake, caplog
-    ):
-        stripe_fake.respond_with_message_echoing(
-            "POST", "/v1/customer_sessions", "sk_test_not_a_r********_key"
-        )
-
-        secret = StripeCustomerFactory().pricing_table_client_secret()
-
-        assert secret is None
-        assert "sk_test" not in caplog.text
-        assert [r for r in caplog.records if r.name.startswith("mvp_payments")]
-
-
-@pytest.mark.django_db
 class TestCustomerForUser:
     def test_finds_the_users_own_customer(self, user):
         customer = StripeCustomerFactory(user=user)

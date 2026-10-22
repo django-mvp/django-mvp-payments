@@ -25,15 +25,6 @@ Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there
 : How many seconds the list of plans read from Stripe is kept in your project's cache. Optional,
   `3600` (an hour) when not set. See [The catalogue](#the-catalogue).
 
-Two more settings are read by the plans page, not by the app, and are described in
-[the plans page](plans-page.md#the-page):
-
-`STRIPE_PRICING_TABLE_ID`
-: The id of your pricing table, `prctbl_...`, from Stripe's dashboard.
-
-`STRIPE_PUBLISHABLE_KEY`
-: Your publishable key, `pk_...`. Not a secret.
-
 Neither secret value appears in a template, a log message or an error page. The app also never reads or
 writes the Stripe SDK's own module-level configuration, so another integration in the same
 process cannot change the key or the API version the app uses.
@@ -169,7 +160,7 @@ all of the customer's subscriptions, whatever their status, and writes what come
 
 - A subscription Stripe returns is created, or updated in place by its Stripe identifier. Running
   `sync()` again with nothing changed at Stripe leaves the same rows.
-- A subscription's price and billing period come from its first item. Stripe's pricing table
+- A subscription's price and billing period come from its first item. Stripe's checkout
   creates subscriptions with one item, and subscriptions with several are not supported.
 - A subscription of the customer's that Stripe no longer returns is deleted.
 - A subscription Stripe reports as ended stays, with the status Stripe gave it.
@@ -242,11 +233,11 @@ returns `None` for someone who is not signed in or not saved, so it is safe to c
 A purchase is tied to a user only through the identity of the signed-in user, carried through
 Stripe's checkout. Email addresses are never matched.
 
-`Customer.client_reference(user)` returns the value a page passes to Stripe's pricing table as
-its `client-reference-id`. It is the user's primary key and a signature of it, joined by `_`, so
+`Customer.client_reference(user)` returns the value a page passes to Stripe's checkout as its
+`client-reference-id`. It is the user's primary key and a signature of it, joined by `_`, so
 it holds only letters, digits and underscores. The signature is made with your `SECRET_KEY` and a
-salt of this app's own. Embedding the public pricing table on another page with someone else's
-primary key therefore ties nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
+salt of this app's own. A checkout started with someone else's primary key therefore ties
+nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
 records why.
 
 ```python
@@ -311,11 +302,6 @@ On the customer, three methods do the Stripe calls:
 `Customer.plan_change_flow(return_url)`
 : The `flow_data` that opens the plan-change screen for the customer's one subscribed
   subscription, or `None` when they have none or more than one.
-
-`Customer.pricing_table_client_secret()`
-: Creates a customer session for the pricing table and returns its client secret, which the plans
-  page passes as `customer-session-client-secret`. Returns `None`, and logs the kind of error,
-  when Stripe cannot be asked: the table works without it.
 
 ## The webhook
 

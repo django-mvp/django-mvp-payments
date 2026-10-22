@@ -33,10 +33,9 @@ build and route them.
 Version 0.0.1. The `stripe` namespace contributes one entry to the Account Center, Subscription,
 under a Billing group. That page shows a signed-in person every subscription they currently hold,
 the way to switch plans, and the way through to Stripe's billing portal. The plans page it leads
-to is open to every visitor and mounts Stripe's own pricing table, configured by two settings. It
-ties a signed-in person's purchase to them, asks a visitor who is not signed in to sign in in
-place of the table, and says so plainly when it has not been configured or when Stripe's library never arrived.
-Nothing here is stable.
+to is a public page of its own. It draws every recurring price in your Stripe account, with each
+product's name, description and features, and says so plainly when Stripe cannot be reached or has
+nothing on offer. Nothing here is stable.
 
 ## Requirements
 
@@ -80,7 +79,16 @@ Addresses carry no backend name: a page is at `<your prefix>/subscription/`, nev
 `<your prefix>/stripe/subscription/`, because which library you chose to talk to your
 payment provider is not a person's business while they read their own subscription.
 
-That line is the only wiring. From there, every backend you have installed contributes its own
+To offer the plans page, add a second include at the address you choose, outside the Account Center:
+
+```python
+urlpatterns = [
+    ...,
+    path("plans/", include("mvp_payments.plans_urls")),
+]
+```
+
+Those two lines are the only wiring. From there, every backend you have installed contributes its own
 section of the Account Center's navigation and its own card to the Account Center's overview, and a
 backend you have not installed contributes nothing. There is no settings block, no flag to turn on
 and no registry to populate — what is in `INSTALLED_APPS` decides what exists.
@@ -115,7 +123,7 @@ the settings, the records and the webhook.
 Components are grouped by the backend they speak to, and the namespace is that backend's name:
 
 ```html
-<c-stripe.pricing-table :table_id="pricing_table_id" :publishable_key="publishable_key" />
+<c-stripe.plans :plans="plans" />
 <c-stripe.subscription :subscription="subscription" />
 ```
 
@@ -125,11 +133,10 @@ wearing different names — a subscription in one library is a different record 
 fields from a subscription in the next.
 
 Shipped today: `stripe`, built on the package's own Stripe app. It contributes a user subscriptions page
-and a plans page, of which only the first is in the navigation. The user subscriptions page lists every
-subscription a person currently holds, reading the Stripe app's records, and hands the reader to
-Stripe's own billing portal and plan-change screen through views the app mounts. It also carries
-the way to the plans page, which is open to every visitor and mounts the provider's own pricing
-table from two settings. Namespaces for other backends are welcome and do not need this one's
+to the Account Center. That page lists every subscription a person currently holds, reading the Stripe app's
+records, and hands the reader to Stripe's own billing portal and plan-change screen through views the
+app mounts. It also carries the way to the plans page, a public page of its own that draws every
+price on offer in your Stripe account and that a project mounts with `mvp_payments.plans_urls`. Namespaces for other backends are welcome and do not need this one's
 agreement about anything: adding one is adding it beside the ones already installed, and changes
 nothing about their navigation entries, their card or their pages.
 
@@ -163,8 +170,7 @@ Stripe, `mvp_payments.stripe`.
 The pages look like the rest of your django-mvp site, because they are drawn with the same daisyUI
 classes and follow the same theme. They show a person where they stand. Anything that changes
 what they pay, such as choosing a plan, switching, cancelling or updating a card, is handed to the
-provider's own hosted pages, which already do it well. Where the provider publishes a drop-in,
-such as Stripe's pricing table, a page mounts it rather than rebuilding it.
+provider's own hosted pages, which already do it well.
 
 The Stripe app keeps the least it can: who each user's Stripe customer is, and that customer's
 subscription with its status, price and period. Stripe is the source of truth. The app learns of
@@ -212,7 +218,7 @@ uv run python manage.py runserver 8020
 ```
 
 Sign in as `regular.user`, `staff.user` or `super.user`, password `password`. Out of the box the
-pages run on fake Stripe values, so the billing portal and the pricing table say they could not be
+pages run on fake Stripe values, so the billing portal and the plans say they could not be
 reached. To see them working, copy `demo/.env.example` to `demo/.env` and fill it in from your own
 Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo accounts get real
 sandbox customers and subscriptions, recorded by the Stripe app as well, where `super.user` can

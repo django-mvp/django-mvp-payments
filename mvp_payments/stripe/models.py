@@ -79,18 +79,18 @@ class Customer(models.Model):
 
     @classmethod
     def client_reference(cls, user) -> str:
-        """Build the reference a page hands to Stripe's pricing table for a signed-in user.
+        """Build the reference a page hands to Stripe's checkout for a signed-in user.
 
         Stripe carries it through checkout and returns it on the completed session, which is
-        how a purchase is tied to a user. It is signed, because the public pricing table could
-        otherwise be embedded on another page with someone else's primary key.
+        how a purchase is tied to a user. It is signed, so that a session created with
+        someone else's primary key ties nothing to them.
 
         Args:
             user: The signed-in user.
 
         Returns:
             The user's primary key and an HMAC of it, joined by ``_``. It holds only letters,
-            digits and underscores, which is all the pricing table accepts.
+            digits and underscores, which is all Stripe accepts.
         """
         return f"{user.pk}_{cls.signature(user.pk)}"
 
@@ -204,34 +204,6 @@ class Customer(models.Model):
             },
         }
 
-    def pricing_table_client_secret(self) -> str | None:
-        """Ask Stripe for the secret that lets the pricing table act for this customer.
-
-        Passed to the pricing table, it makes a purchase land on this customer rather than
-        creating a second one. The table works without it, so a Stripe failure is logged and
-        the page carries on.
-
-        Returns:
-            The single-use client secret of a customer session, or ``None`` when Stripe
-            could not be asked or refused.
-        """
-        try:
-            session = client().v1.customer_sessions.create(
-                params={
-                    "customer": self.stripe_id,
-                    "components": {"pricing_table": {"enabled": True}},
-                }
-            )
-        except stripe.StripeError as error:
-            # Not logger.exception: Stripe's message can echo part of the secret key.
-            logger.error(  # noqa: TRY400
-                "Could not create a pricing table session for customer %s: %s.",
-                self.stripe_id,
-                type(error).__name__,
-            )
-            return None
-        return session.client_secret
-
     def sync(self) -> None:
         """Bring this customer's subscriptions into step with what Stripe holds now.
 
@@ -241,7 +213,7 @@ class Customer(models.Model):
         deleted. Rows Stripe did not return are deleted.
 
         Each subscription's price and billing period are read from its first item. Stripe's
-        pricing table creates subscriptions with exactly one item, and a project that builds
+        checkout creates subscriptions with exactly one item, and a project that builds
         subscriptions with several has outgrown this app (ADR 0010).
 
         Raises:

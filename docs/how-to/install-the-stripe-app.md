@@ -47,6 +47,21 @@ user subscribed?" without calling Stripe.
    python manage.py check
    ```
 
+To offer the plans page, add its URLs at the address you choose, beside the single include of
+`mvp_payments.urls`:
+
+```python
+urlpatterns = [
+    ...,
+    path("account/billing/", include("mvp_payments.urls")),
+    path("plans/", include("mvp_payments.plans_urls")),
+]
+```
+
+The page is then at `/plans/`, reachable as `payments_plans:stripe-plans`, and open to every
+visitor. It draws every recurring price in your Stripe account, so there is nothing else to
+configure. See [the plans page](../reference/plans-page.md).
+
 The app is on while it is in `INSTALLED_APPS` and off when it is not. A project that installs the
 extra but leaves the app out gets no tables, no pages and no URLs from it.
 

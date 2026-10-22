@@ -7,157 +7,10 @@ overriding this page's template, or placing one of these components elsewhere, r
 
 import re
 
-from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from mvp_payments.money import Money
 from mvp_payments.namespaces.stripe_records import CurrentSubscription
-
-
-class TestPricingTable:
-    def test_renders_the_providers_element_with_its_table_id_and_publishable_key(
-        self, cotton_render
-    ):
-        html = cotton_render(
-            "stripe.pricing-table",
-            table_id="prctbl_test123",
-            publishable_key="pk_test_456",
-        )
-
-        assert "<stripe-pricing-table" in html
-        assert 'pricing-table-id="prctbl_test123"' in html
-        assert 'publishable-key="pk_test_456"' in html
-        assert "<script" not in html
-        assert not re.search(r"\d[\d,]*\.\d{2,3}", html)
-
-    def test_carries_a_hidden_could_not_be_loaded_message_and_its_marker(
-        self, cotton_render
-    ):
-        html = cotton_render(
-            "stripe.pricing-table",
-            table_id="prctbl_test123",
-            publishable_key="pk_test_456",
-        )
-
-        assert "hidden data-mvp-payments-pricing-table-unavailable" in html
-
-    def test_a_signed_in_person_with_an_address_carries_it_as_customer_email(
-        self, cotton_render_string, rf, user
-    ):
-        user.email = "person@example.com"
-        request = rf.get("/")
-        request.user = user
-
-        html = cotton_render_string(
-            '<c-stripe.pricing-table table_id="prctbl_test123" '
-            'publishable_key="pk_test_456" />',
-            context={"request": request},
-        )
-
-        assert 'customer-email="person@example.com"' in html
-
-    def test_a_signed_in_person_with_no_address_carries_no_customer_email_attribute(
-        self, cotton_render_string, rf, user
-    ):
-        request = rf.get("/")
-        request.user = user
-
-        html = cotton_render_string(
-            '<c-stripe.pricing-table table_id="prctbl_test123" '
-            'publishable_key="pk_test_456" />',
-            context={"request": request},
-        )
-
-        assert "customer-email" not in html
-        assert 'pricing-table-id="prctbl_test123"' in html
-        assert 'publishable-key="pk_test_456"' in html
-
-    def test_an_anonymous_visitor_carries_no_customer_email_attribute(
-        self, cotton_render_string, rf
-    ):
-        request = rf.get("/")
-        request.user = AnonymousUser()
-
-        html = cotton_render_string(
-            '<c-stripe.pricing-table table_id="prctbl_test123" '
-            'publishable_key="pk_test_456" />',
-            context={"request": request},
-        )
-
-        assert "customer-email" not in html
-
-    def test_an_explicit_customer_email_wins_over_the_signed_in_persons_address(
-        self, cotton_render_string, rf, user
-    ):
-        user.email = "person@example.com"
-        request = rf.get("/")
-        request.user = user
-
-        html = cotton_render_string(
-            '<c-stripe.pricing-table table_id="prctbl_test123" '
-            'publishable_key="pk_test_456" customer_email="explicit@example.com" />',
-            context={"request": request},
-        )
-
-        assert 'customer-email="explicit@example.com"' in html
-        assert "person@example.com" not in html
-
-    def test_a_reference_is_carried_as_the_client_reference_id(self, cotton_render):
-        html = cotton_render(
-            "stripe.pricing-table",
-            table_id="prctbl_test123",
-            publishable_key="pk_test_456",
-            client_reference_id="7_abc123",
-        )
-
-        assert 'client-reference-id="7_abc123"' in html
-
-    def test_no_reference_carries_no_client_reference_id_attribute(self, cotton_render):
-        html = cotton_render(
-            "stripe.pricing-table",
-            table_id="prctbl_test123",
-            publishable_key="pk_test_456",
-        )
-
-        assert "client-reference-id" not in html
-        assert "customer-session-client-secret" not in html
-
-    def test_a_customer_session_is_carried_and_replaces_the_customer_email(
-        self, cotton_render_string, rf, user
-    ):
-        user.email = "person@example.com"
-        request = rf.get("/")
-        request.user = user
-
-        html = cotton_render_string(
-            '<c-stripe.pricing-table table_id="prctbl_test123" '
-            'publishable_key="pk_test_456" customer_session_client_secret="cuss_s_1" '
-            'customer_email="explicit@example.com" />',
-            context={"request": request},
-        )
-
-        assert 'customer-session-client-secret="cuss_s_1"' in html
-        assert "customer-email" not in html
-
-    def test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor(
-        self, cotton_render_string, rf, django_assert_num_queries, db
-    ):
-        request = rf.get("/")
-        request.user = AnonymousUser()
-
-        with django_assert_num_queries(0):
-            html = cotton_render_string(
-                "<article><h2>Order summary</h2>"
-                '<c-stripe.pricing-table table_id="prctbl_test123" '
-                'publishable_key="pk_test_456" /></article>',
-                context={"request": request},
-            )
-
-        assert "Order summary" in html
-        assert "<stripe-pricing-table" in html
-        assert 'pricing-table-id="prctbl_test123"' in html
-        assert 'publishable-key="pk_test_456"' in html
-        assert "customer-email" not in html
 
 
 class TestAmount:
@@ -308,18 +161,6 @@ class TestProviderReturn:
 
         assert "Reload this page later." in html
         assert "Confirming your payment" not in html
-
-
-class TestSignInNotice:
-    def test_it_asks_for_a_sign_in_and_leads_to_the_given_address(self, cotton_render):
-        html = cotton_render(
-            "stripe.sign-in-notice", url="/accounts/login/?next=/account/billing/plans/"
-        )
-
-        assert 'href="/accounts/login/?next=/account/billing/plans/"' in html
-
-    def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
-        assert cotton_render("stripe.sign-in-notice", url=None).strip() == ""
 
 
 class TestPortalLink:

@@ -157,9 +157,9 @@ class BillingPortalView(LoginRequiredMixin, View):
 class PlanSwitchView(BillingPortalView):
     """Open the portal on the plan-change screen for this person's subscription.
 
-    The user subscriptions page's "Switch plans" control posts here. The pricing table is the wrong
-    place for a subscriber: buying from it starts a second subscription beside the first
-    (ADR 0008). With several subscriptions there is no one to open on, so the portal's home
+    The user subscriptions page's "Switch plans" control posts here. The plans page is the wrong
+    place for a subscriber to change plan: buying from it starts a second subscription beside the
+    first (ADR 0008). With several subscriptions there is no one to open on, so the portal's home
     lets them pick.
     """
 

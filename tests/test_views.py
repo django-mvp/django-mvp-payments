@@ -86,40 +86,6 @@ print(json.dumps({
 }))
 """
 
-_COMPONENT_TEMPLATE_OVERRIDE_PROBE = """
-import json
-
-import django
-
-django.setup()
-
-from django.contrib.auth.models import AnonymousUser
-from django.db import connection
-from django.template import Context, Template
-from django.test import RequestFactory
-from django.test.utils import CaptureQueriesContext, setup_test_environment
-from django_cotton.compiler_regex import CottonCompiler
-
-setup_test_environment()
-
-compiler = CottonCompiler()
-request = RequestFactory().get("/")
-request.user = AnonymousUser()
-
-compiled = compiler.process(
-    '<c-stripe.pricing-table table_id="prctbl_test123" '
-    'publishable_key="pk_test_456" />'
-)
-template = Template(compiled)
-context = Context({"request": request})
-context.request = request
-
-with CaptureQueriesContext(connection) as captured:
-    html = template.render(context)
-
-print(json.dumps({"html": html, "query_count": len(captured)}))
-"""
-
 _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE = """
 import json
 
@@ -801,18 +767,6 @@ class TestTemplateOverride:
 
 
 class TestPlansPageOverride:
-    def test_a_projects_own_component_renders_with_no_view_and_no_query(self):
-        result = run_probe(
-            _COMPONENT_TEMPLATE_OVERRIDE_PROBE,
-            "tests.settings_with_project_template_override",
-        )
-
-        assert result["query_count"] == 0
-        html = result["html"]
-        assert 'data-testid="the-hosting-projects-own-pricing-table"' in html
-        assert 'data-table-id="prctbl_test123"' in html
-        assert 'data-publishable-key="pk_test_456"' in html
-
     def test_a_projects_own_page_template_receives_the_plans(self):
         result = run_probe(
             _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE,
