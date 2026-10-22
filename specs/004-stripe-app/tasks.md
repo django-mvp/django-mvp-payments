@@ -1,8 +1,8 @@
 # Tasks: Keep each user's Stripe subscription in the project's own database
 
-Ordered, and run one after another: several stories edit `models.py` and `docs/stripe.md`, so
+Ordered, and run one after another: several stories edit `models.py` and the Stripe app's reference page, so
 no two run in parallel. Each task is test-first where it has behaviour. Documentation for a public name lands in
-the task that introduces it, in `docs/stripe.md`.
+the task that introduces it, in `docs/reference/stripe-app.md` (and a how-to under `docs/how-to/` where it is a task a developer performs).
 
 ## Phase 1 — Foundational
 
@@ -76,3 +76,6 @@ Suite green on stripe 16.
 
 - [ ] T012 Secrets appear in no admin page, check message, webhook response or log record
   (SC-008). CHANGELOG entry.
+- [ ] T013 Rename the leading-underscore names the app introduced (`_http_client`, `_customer_for`,
+  `_REQUIRED`, `_REFERENCE_SALT`, `_signature`, `_from_epoch`, `_logger`) to plain names. The
+  repository's convention is no leading underscores. Behaviour unchanged, so no new tests.
