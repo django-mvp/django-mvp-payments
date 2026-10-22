@@ -243,8 +243,19 @@
       "tasks": [
         {
           "id": "T010",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 3,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_admin.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_admin.py"
+            ],
+            "code": [
+              "mvp_payments/stripe/admin.py:51"
+            ]
+          }
         }
       ]
     },

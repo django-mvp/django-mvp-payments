@@ -71,3 +71,10 @@ Did: management command stripe_sync with --user (USERNAME_FIELD value). Customer
 Verified: uv run pytest tests/test_stripe/test_management (9 passed); pre-commit clean. Red first: Unknown command 'stripe_sync'.
 Next: T010 read-only admin.
 Watch: the fake answers by path, so tests with several customers use customers Stripe does not have (resource_missing) rather than distinct subscription lists. Command help text is a plain string because mypy rejects a lazy string for BaseCommand.help.
+
+## 2026-10-22T09:02:24Z · Implementer US4 · T010
+
+Did: admin.py with CustomerAdmin and SubscriptionAdmin over a ReadOnlyAdmin base. No add, no change, and delete refused only on the app's own pages (url name starts with the app label), Django's answer elsewhere, so the user admin still cascades. Django drops delete_selected from a list whose has_delete_permission is False, so no get_actions override (the override signature is deprecated in Django 6.1 and 5.2 is supported). SubscriptionAdmin: list_select_related customer__user, status filter, search on username, email, Stripe ids; the status shows as stored when unknown (a choices field would show a dash), the price goes through mvp_payments.money.Money. Reference section "The admin"; tests use tests/urls_with_admin.py since the demo mounts no admin.
+Verified: uv run pytest tests/test_stripe/test_admin.py (23 passed) and tests/test_app.py (13 passed). Red first: ImportError-free but every admin URL failed to reverse before admin.py existed. Mutation probes: emptying list_select_related fails the query-count test; making has_delete_permission always False fails the user-admin delete test.
+Next: T011 demo webhook forwarding docs.
+Watch: the query-count test warms the first request, which fills a per-process cache and adds a query.
