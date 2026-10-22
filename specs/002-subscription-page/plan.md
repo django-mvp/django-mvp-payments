@@ -81,9 +81,7 @@ specs/002-subscription-page/
 ├── decisions.md         # merged with it; appended to here
 ├── plan.md              # this file
 ├── research.md          # what was read in the dependencies
-├── tasks.md             # the task graph
-├── progress.md          # run narrative
-└── feature-state.json   # the ledger
+└── tasks.md             # the task graph
 ```
 
 No `data-model.md`: the feature defines no data. No `contracts/`: the rendered page is the
