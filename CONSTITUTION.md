@@ -193,8 +193,7 @@ it needs, and the host project loads the script that brings the element to life.
 
 Where a component needs logic of its own, it ships as a small static file in this repository, with
 no build step and no bundler. Components state which global or module they require and fail
-visibly when it is absent. The demo project's CDN tag is a demonstration convenience and is
-labelled as one.
+visibly when it is absent.
 
 ### Article XIII — A page appears because an app is installed, never because someone wired it up
 

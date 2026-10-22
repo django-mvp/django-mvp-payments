@@ -39,8 +39,8 @@ constitution as amended on 2026-10-20 and Stripe's published behaviour. Longer r
 
 - **Q: Stripe allows a customer more than one subscription. Does the app keep one per user or
   all of them?**
-  A: All of them, as Stripe reports them. A person normally has one, but a second can be started
-  by mistake through the pricing table, and a record that kept only one would hide it. Whether a
+  A: All of them, as Stripe reports them. A person normally has one, but a second can be bought
+  separately, and a record that kept only one would hide it. Whether a
   user is subscribed is answered from all of their subscriptions. Recorded as FR-004 and FR-012.
 
 - **Q: Which statuses count as "subscribed"?**
@@ -312,7 +312,7 @@ user, and confirm the subscription is recorded.
 
 - A person normally has one subscription, and may hold several. Switching plans, cancelling and
   updating payment details all happen on Stripe's hosted pages.
-- The plans page's pricing table carries the signed-in user's identity into checkout, and the
+- Every checkout the app starts carries the signed-in user's identity, and the
   subscription and plans pages, the portal and plan-change handoffs and the return from Stripe all
   run on this app.
 - Nothing is migrated from the backend the first pages were built on, because nothing has been
