@@ -2,7 +2,7 @@
   "feature": "005-plans-drawn-here",
   "branch": "005-plans-drawn-here",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "IMPLEMENT",
+  "state": "CONVERGE",
   "state_history": [
     {
       "state": "PLAN",
@@ -18,6 +18,11 @@
       "state": "IMPLEMENT",
       "at": "2026-10-22T16:39:20Z",
       "note": "design review applied; plan gate open; US1 dispatched"
+    },
+    {
+      "state": "CONVERGE",
+      "at": "2026-10-22T17:15:48Z",
+      "note": "every story accepted; entering convergence"
     }
   ],
   "gates": {
@@ -286,7 +291,7 @@
   ],
   "budgets": {
     "converge_cycles": {
-      "used": 0,
+      "used": 1,
       "max": 2
     },
     "review_cycles": {
