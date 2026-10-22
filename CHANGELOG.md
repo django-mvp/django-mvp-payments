@@ -37,6 +37,9 @@ The first release. Nothing was published before it, so everything below is new.
   - `python manage.py stripe_sync` re-syncs every recorded customer, or one with `--user`, after
     missed webhooks.
   - Customers and subscriptions appear in the admin, read-only for everyone, a superuser included.
+  - A request to Stripe gives up after `MVP_PAYMENTS["STRIPE_TIMEOUT"]` seconds, ten by default,
+    and is tried twice more when it times out or Stripe fails.
+  - One person may start ten checkouts, and open the billing portal ten times, in a minute.
 - **The user subscriptions page**, signed-in only. It lists every subscription the person currently
   holds, with its status, plan, amount, billing frequency and current period, and offers "Manage
   subscription" (Stripe's billing portal) and "Switch plans" (Stripe's plan-change screen). Coming

@@ -22,6 +22,7 @@ from stripe.params.billing_portal import SessionCreateParamsFlowData
 from mvp_payments.contributions import APP_NAMESPACE
 
 from .catalogue import Catalogue
+from .limits import RateLimit
 from .models import Customer, Subscription
 
 logger = logging.getLogger(__name__)
@@ -105,7 +106,15 @@ class BillingPortalView(LoginRequiredMixin, View):
     Answers a POST with ``{"url": ...}``, which ``billing_portal.js`` follows. Only a stale
     page or a direct post reaches it without a customer, and creating one for whoever asks is
     what the page's suppression of the control exists to prevent (ADR 0007), so it answers 409.
+
+    Every answer that reaches Stripe creates a portal session there, so a person may ask
+    ``rate_limit.limit`` times in ``rate_limit.seconds`` seconds and is answered 429 after that.
+
+    Attributes:
+        rate_limit: How often one person may open the portal, counted with the plan switch.
     """
+
+    rate_limit = RateLimit("portal", limit=10, seconds=60)
 
     def post(self, request: HttpRequest) -> JsonResponse:
         """Mint a portal session for this person's customer, or say why it could not be.
@@ -114,12 +123,14 @@ class BillingPortalView(LoginRequiredMixin, View):
             request: The signed-in person's POST.
 
         Returns:
-            The portal address; 409 when there is no customer or nothing to open; 502 when
-            Stripe could not be asked.
+            The portal address; 409 when there is no customer or nothing to open; 429 when the
+            person has asked too often; 502 when Stripe could not be asked.
         """
         customer = Customer.for_user(request.user)
         if customer is None or not self.is_offered(customer):
             return JsonResponse({"detail": "Nothing to change."}, status=409)
+        if not self.rate_limit.allows(request.user):
+            return JsonResponse({"detail": "Too many requests."}, status=429)
         return_url = request.build_absolute_uri(
             reverse(f"{APP_NAMESPACE}:stripe-billing-return")
         )
@@ -274,7 +285,15 @@ class CheckoutView(LoginRequiredMixin, View):
     page. The price must be one the catalogue offers. Every way it can fail adds a message
     and sends the reader back to ``return_to``: the plans page is where they chose, and
     ``mvp/base.html`` shows the message above it.
+
+    Every checkout that reaches Stripe creates a session there, and a first one a customer too,
+    so a person may start ``rate_limit.limit`` in ``rate_limit.seconds`` seconds.
+
+    Attributes:
+        rate_limit: How often one person may start a checkout.
     """
+
+    rate_limit = RateLimit("checkout", limit=10, seconds=60)
 
     def post(self, request: HttpRequest) -> HttpResponse:
         """Send the reader to Stripe's checkout for the price, or back with a message.
@@ -284,7 +303,8 @@ class CheckoutView(LoginRequiredMixin, View):
 
         Returns:
             A redirect to Stripe's checkout; to the user subscriptions page when the person
-            already holds the price; otherwise back to ``return_to``.
+            already holds the price; otherwise back to ``return_to``, including when the
+            person has started too many checkouts in the window.
         """
         return_to = self.get_return_to(request)
         if Catalogue.prices() is None:
@@ -304,6 +324,9 @@ class CheckoutView(LoginRequiredMixin, View):
             .exists()
         ):
             return redirect(f"{APP_NAMESPACE}:stripe-subscription")
+        if not self.rate_limit.allows(request.user):
+            messages.warning(request, _("Please wait a moment before trying again."))
+            return redirect(return_to)
         success_url = (
             request.build_absolute_uri(
                 reverse(f"{APP_NAMESPACE}:stripe-billing-return")

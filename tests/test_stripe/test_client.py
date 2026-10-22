@@ -1,13 +1,14 @@
 """The Stripe client the app builds from the project's settings."""
 
 import json
+from unittest import mock
 
 import pytest
 import stripe
 from django.core.exceptions import ImproperlyConfigured
 
 from mvp_payments.stripe import client as client_module
-from mvp_payments.stripe.client import API_VERSION, client
+from mvp_payments.stripe.client import API_VERSION, TIMEOUT, client
 from tests.stripe_fake import (
     WEBHOOK_SECRET,
     customer_payload,
@@ -76,6 +77,41 @@ class TestClient:
             client()
 
         assert "STRIPE_SECRET_KEY" in str(error.value)
+
+
+class TestRequestLimits:
+    def test_a_request_gives_up_after_ten_seconds_unless_configured(self, settings):
+        settings.MVP_PAYMENTS = {"STRIPE_SECRET_KEY": "sk_test_configured"}
+
+        with mock.patch.object(stripe, "RequestsClient") as requests_client:
+            client()
+
+        requests_client.assert_called_once_with(timeout=TIMEOUT)
+        assert TIMEOUT == 10
+
+    def test_a_configured_timeout_is_used(self, settings):
+        settings.MVP_PAYMENTS = {
+            "STRIPE_SECRET_KEY": "sk_test_configured",
+            "STRIPE_TIMEOUT": 25,
+        }
+
+        with mock.patch.object(stripe, "RequestsClient") as requests_client:
+            client()
+
+        requests_client.assert_called_once_with(timeout=25)
+
+    def test_a_request_stripe_failed_is_tried_again(self, stripe_fake):
+        stripe_fake.respond_in_turn(
+            "GET",
+            "/v1/customers/cus_1",
+            [({"error": {"type": "api_error"}}, 500), (customer_payload("cus_1"), 200)],
+        )
+
+        with mock.patch("stripe._http_client.time.sleep"):
+            customer = client().v1.customers.retrieve("cus_1")
+
+        assert customer.id == "cus_1"
+        assert stripe_fake.paths("GET").count("/v1/customers/cus_1") == 2
 
 
 class TestFakeStripe:
