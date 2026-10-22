@@ -161,8 +161,22 @@
         },
         {
           "id": "T007",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_views.py",
+              "tests/test_stripe/test_urls.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe tests/test_urls.py tests/test_app.py"
+            ],
+            "code": [
+              "mvp_payments/stripe/views.py:18",
+              "mvp_payments/stripe/urls.py:7",
+              "mvp_payments/urls.py:27"
+            ]
+          }
         }
       ]
     },

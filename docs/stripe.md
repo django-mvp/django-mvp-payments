@@ -175,3 +175,40 @@ returns the customer to sync, or `None`. It returns `None`, and records nothing,
 
 A user who subscribes again keeps the same customer, and the new subscription is recorded beside
 the old one.
+
+## How to point Stripe at the webhook
+
+1. Mount the package's URLs once, as the README describes. The webhook comes with them, and only
+   while `mvp_payments.stripe` is in `INSTALLED_APPS`. Mounted at `account/billing/`, its address
+   is `account/billing/stripe/webhook/`, and its URL name is `payments:stripe-webhook`.
+2. In the Stripe Dashboard, under Developers, Webhooks, add an endpoint at that address on your
+   site.
+3. Send it these events:
+
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `customer.subscription.paused`
+   - `customer.subscription.resumed`
+   - `customer.deleted`
+
+4. Copy the endpoint's signing secret into `MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]`.
+
+### What the webhook does
+
+The signature is verified with Stripe's own SDK before anything in the request is read. A request
+that does not verify, including one signed with a secret you have since replaced, changes nothing.
+
+A verified event is a reason to ask Stripe for the current state, not the state itself. A
+subscription event, a deleted customer or a completed checkout makes the app call
+`Customer.sync()` for the customer it concerns. The same event arriving twice, late, or after a
+newer one about the same subscription therefore leaves the same records.
+
+| Answer | When |
+|---|---|
+| 400 | The signature is missing, wrong or expired, or the body is not a Stripe event |
+| 500 | Stripe could not be asked, or `STRIPE_WEBHOOK_SECRET` is not set. Stripe sends the event again, and no record has changed |
+| 200 | Everything else, including an event type the app does not keep and a customer that was never tied to a user |
+
+Every answer has an empty body. Requests other than POST are refused with 405.

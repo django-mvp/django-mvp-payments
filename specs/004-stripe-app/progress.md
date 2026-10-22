@@ -43,3 +43,10 @@ Did: Customer.client_reference(user) (pk + "_" + salted_hmac sha256 hexdigest un
 Verified: uv run pytest tests/test_stripe (77 passed). Red first: 18 new tests failed with AttributeError. Covered: allowed characters, bare pk, tampered signature, another user's signature, deleted user, no reference, no customer, payment and setup modes, same customer reused, second customer, customer owned by someone else, Stripe unreachable.
 Next: T007 webhook view and URLs.
 Watch: salted_hmac is given algorithm="sha256" explicitly; the default warns of a change in Django 2028.
+
+## 2026-10-22T08:52:02Z · Implementer US1 · T007
+
+Did: views.webhook (csrf_exempt, require_POST function view), urls.py (stripe/webhook/, name stripe-webhook), and mvp_payments/urls.py includes the app's URLs when apps.is_installed("mvp_payments.stripe"). Signature verified with stripe.Webhook.construct_event before anything is read: ValueError or SignatureVerificationError gives 400. checkout.session.completed goes through Customer.from_checkout, customer.subscription.* and customer.deleted find the Customer by stripe_id, then sync(). The handling runs in one transaction.atomic so a StripeError (500) leaves no half-recorded customer. An unset or empty STRIPE_WEBHOOK_SECRET answers 500 and verifies nothing, because an empty key lets anyone sign. Bodies are empty in every case; only the error type is logged. docs/stripe.md gains the webhook address, events to send and answers.
+Verified: uv run pytest tests/test_stripe tests/test_urls.py tests/test_app.py (121 passed). Mutation probe: swapping construct_event for construct_event_without_verification failed 5 verification tests. The address-absent case runs in a fresh process under tests/settings_without_stripe_app.py.
+Next: full verify and the report.
+Watch: the logger call keeps the error type only and carries a noqa for TRY400, since a StripeError message can echo part of the key.
