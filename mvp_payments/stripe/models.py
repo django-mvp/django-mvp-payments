@@ -199,7 +199,11 @@ class Customer(models.Model):
         try:
             return cls.checkout_url(params)
         except stripe.InvalidRequestError as error:
-            if customer is None or error.code != "resource_missing":
+            gone = error.code == "resource_missing" and error.param in (
+                None,
+                "customer",
+            )
+            if customer is None or not gone:
                 raise
             customer.sync()
             if cls.objects.filter(pk=customer.pk).exists():

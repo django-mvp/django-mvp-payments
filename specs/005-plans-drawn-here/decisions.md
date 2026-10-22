@@ -135,3 +135,17 @@ sign-in-only view of the app. This replaces the pricing table and the rule that 
 visitors who are not signed in, and amends Article XI.
 
 **ADR:** docs/adr/0013-the-plans-are-drawn-from-a-cached-catalogue.md
+
+## FIX-1 T015 — A missing customer is a `resource_missing` that names the customer or names nothing
+
+**Decision:** `Customer.start_checkout` syncs the customer away only when the error is
+`resource_missing` and `error.param` is `"customer"` or absent. A `resource_missing` whose param
+names anything else (a price, for instance) is raised at once.
+
+**Why:** the task text says `param == "customer"`, but the existing test of a vanished customer
+(`test_a_customer_stripe_no_longer_has_is_dropped_and_the_session_made_without_it`) answers with
+no `param` at all, and this fix may not edit it. Accepting an absent param keeps it green and
+still stops a missing price from costing a sync. Stripe sets the param on both errors in practice.
+
+**Revisit if:** that test is given `"param": "customer"` in its error body; the condition can then
+be the strict `== "customer"`.

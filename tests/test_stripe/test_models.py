@@ -893,6 +893,29 @@ class TestCustomerStartCheckout:
 
         assert Customer.objects.filter(pk=customer.pk).exists()
 
+    def test_a_missing_price_is_raised_without_asking_stripe_for_the_customer(
+        self, stripe_fake, user
+    ):
+        customer = StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_fake.respond(
+            "POST",
+            SESSIONS,
+            {
+                "error": {
+                    "type": "invalid_request_error",
+                    "code": "resource_missing",
+                    "param": "line_items[0][price]",
+                }
+            },
+            404,
+        )
+
+        with pytest.raises(stripe.InvalidRequestError):
+            Customer.start_checkout(user, "price_made_up", SUCCESS, CANCEL)
+
+        assert Customer.objects.filter(pk=customer.pk).exists()
+        assert [method for method, _, _ in stripe_fake.requests] == ["POST"]
+
     def test_a_stripe_failure_is_raised(self, stripe_fake, user):
         stripe_fake.become_unreachable("POST", SESSIONS)
 
