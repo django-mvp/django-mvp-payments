@@ -35,8 +35,6 @@ class Page:
         icon: The django-mvp icon name for the page's entry and card.
         template_name: The template the page renders.
         view: The view class that renders the page (ADR 0006).
-        in_navigation: Whether the page gets an entry in the Account Center's
-            navigation. A page left out is still routed and still reverses.
     """
 
     slug: str
@@ -44,7 +42,6 @@ class Page:
     icon: str
     template_name: str
     view: type[PaymentPageView] = PaymentPageView
-    in_navigation: bool = True
 
 
 @dataclass(frozen=True)
@@ -164,7 +161,6 @@ class Contribution:
                         extra_context={"label": page.label, "icon": page.icon},
                     )
                     for page in self.pages
-                    if page.in_navigation
                 ],
             )
         )

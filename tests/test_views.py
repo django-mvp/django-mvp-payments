@@ -211,9 +211,7 @@ class TestPaymentPage:
 
         assert response.status_code == 200
         assert re.search(rf"<h1[^>]*>\s*{page.label}\s*</h1>", content)
-        # django-mvp swaps the sidebar to the Account Center's navigation on a page
-        # that navigation has an entry for, and on no other.
-        assert ('aria-label="Account navigation"' in content) == page.in_navigation
+        assert 'aria-label="Account navigation"' in content
 
     def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
         response = client.get(reverse("payments:stripe-subscription"))

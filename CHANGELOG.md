@@ -28,8 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/reference/user-subscriptions-page.md` documents both.
 - `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, telling the user subscriptions page where a project
   mounted the backend's billing-portal endpoint (`customer-portal/`).
-- `Page.in_navigation`, so a namespace can contribute a page that is routed and reverses without
-  taking an entry in the Account Center's navigation.
 - `<c-drf-stripe.plans-link>`, the control that leads to the plans page, and `plans_url` on the
   user subscriptions page's template context.
 - A page's view now receives its `Contribution` as well as its `Page`, so a page can address a
