@@ -68,6 +68,25 @@ class TestUnavailableStateRoutes:
         assert "/no-library/" in home_page
 
 
+class TestDemoStripeSetup:
+    def test_the_global_api_version_is_the_one_drf_stripe_was_written_against(
+        self, monkeypatch
+    ):
+        import stripe
+
+        monkeypatch.setattr(stripe, "api_version", "2026-09-30.endive")
+
+        apps.get_app_config("demo").ready()
+
+        assert stripe.api_version == "2020-08-27"
+
+    def test_the_demo_does_not_mount_the_backends_url_configuration(self, db):
+        from django.urls import Resolver404, resolve
+
+        with pytest.raises(Resolver404):
+            resolve("/api/stripe/customer-portal/")
+
+
 class TestSidebarMenu:
     def test_the_home_page_is_linked(self, sidebar_navigation):
         assert 'href="/"' in sidebar_navigation

@@ -2,7 +2,7 @@
   "feature": "004-stripe-app",
   "branch": "004-stripe-app",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "DESIGN_REVIEW",
+  "state": "IMPLEMENT",
   "state_history": [
     {
       "state": "PLAN",
@@ -13,6 +13,11 @@
       "state": "DESIGN_REVIEW",
       "at": "2026-10-22T08:29:36Z",
       "note": "plan, research and tasks committed; design reviewer dispatched"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-10-22T08:39:34Z",
+      "note": "design review applied; plan gate open; US1 dispatched"
     }
   ],
   "gates": {
@@ -50,8 +55,20 @@
       "tasks": [
         {
           "id": "T001",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_app.py",
+              "tests/test_demo.py::TestDemoStripeSetup"
+            ],
+            "commands": [
+              "uv run pytest tests/test_app.py tests/test_demo.py"
+            ],
+            "code": [
+              "pyproject.toml:33"
+            ]
+          }
         },
         {
           "id": "T002",

@@ -28,11 +28,10 @@ urlpatterns = [
 ]
 
 if apps.is_installed("drf_stripe"):
-    # Only when the backend is installed: importing its URLconf otherwise raises, because
-    # its models declare no app_label of their own (tests/settings_without_backend.py).
-    urlpatterns.append(path("api/stripe/", include("drf_stripe.urls")))
-    # The demo's own portal handoff, which the page uses instead of the backend's
-    # (demo/views.py says why), mounted beside the backend's rather than over it.
+    # Only when the backend is installed: its models declare no app_label of their own
+    # (tests/settings_without_backend.py). Its own URL configuration is not mounted, because
+    # that module imports `stripe.error`, which the Stripe SDK this project runs on has removed.
+    # These are the demo's own portal handoffs (demo/views.py says why).
     urlpatterns.append(
         path("api/billing-portal/", BillingPortalView.as_view(), name="billing-portal")
     )

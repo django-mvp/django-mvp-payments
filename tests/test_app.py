@@ -1,13 +1,28 @@
 """The package installs and exposes what a consuming project needs from it."""
 
+import ast
+import importlib.metadata
 import re
 from pathlib import Path
 
 from django.apps import apps
+from packaging.requirements import Requirement
 
 import mvp_payments
 from mvp_payments.namespaces.drf_stripe import drf_stripe
 from tests.probes import run_probe
+
+#: The provider app is the one place the interface rules do not reach (Article XI).
+_PROVIDER_APP = Path("stripe")
+
+
+def _interface_files(package: Path, pattern: str = "*"):
+    """Yield the package's files outside the provider app."""
+    for path in package.rglob(pattern):
+        relative = path.relative_to(package)
+        if relative.parts[0] != _PROVIDER_APP.name:
+            yield path
+
 
 _SCRIPT_WITH_HOST_SRC = re.compile(
     r"""<script[^>]*\bsrc\s*=\s*['"](?:https?:)?//""", re.IGNORECASE
@@ -65,40 +80,68 @@ class TestPackagedApp:
     def test_the_app_defines_no_models(self) -> None:
         assert list(apps.get_app_config("mvp_payments").get_models()) == []
 
-    def test_the_package_owns_no_data(self) -> None:
+    def test_the_interface_owns_no_data(self) -> None:
         package = Path(mvp_payments.__file__).parent
         forbidden = {"models", "forms", "admin", "serializers", "signals", "migrations"}
         found = sorted(
             str(path.relative_to(package))
-            for path in package.rglob("*")
+            for path in _interface_files(package)
             if path.stem in forbidden and (path.suffix == ".py" or path.is_dir())
         )
         assert found == []
 
-    def test_no_module_reaches_a_database_or_a_provider(self) -> None:
+    def test_no_interface_module_reaches_a_database_or_a_provider(self) -> None:
         package = Path(mvp_payments.__file__).parent
         banned = ("django.db", "stripe", "paypal", "braintree", "paddle")
         offenders = sorted(
-            f"{path.relative_to(package)}: {line.strip()}"
-            for path in package.rglob("*.py")
-            for line in path.read_text().splitlines()
-            if line.startswith(("import ", "from "))
-            and any(line.split()[1].startswith(name) for name in banned)
+            f"{path.relative_to(package)}: {name}"
+            for path in _interface_files(package, "*.py")
+            for node in ast.walk(ast.parse(path.read_text()))
+            for name in self._imported_names(node)
+            if name.startswith(banned)
         )
         assert offenders == []
 
-    def test_no_payment_backend_is_a_dependency(self) -> None:
-        import importlib.metadata
+    @staticmethod
+    def _imported_names(node: ast.AST) -> list[str]:
+        if isinstance(node, ast.Import):
+            return [alias.name for alias in node.names]
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            return [node.module]
+        return []
 
-        from packaging.requirements import Requirement
+    def test_no_module_outside_the_provider_app_imports_the_sdk(self) -> None:
+        package = Path(mvp_payments.__file__).parent
+        offenders = sorted(
+            str(path.relative_to(package))
+            for path in _interface_files(package, "*.py")
+            for node in ast.walk(ast.parse(path.read_text()))
+            for name in self._imported_names(node)
+            if name == "stripe" or name.startswith("stripe.")
+        )
+        assert offenders == []
 
+    def test_the_base_requirements_are_django_and_django_mvp_only(self) -> None:
         requires = importlib.metadata.requires("django-mvp-payments") or []
-        names = {Requirement(r).name.lower() for r in requires}
+        names = {Requirement(r).name.lower() for r in requires if "extra" not in r}
         assert names == {"django", "django-mvp"}
+
+    def test_the_stripe_lite_extra_requires_only_the_sdk(self) -> None:
+        requires = importlib.metadata.requires("django-mvp-payments") or []
+        extra = [
+            Requirement(r)
+            for r in requires
+            if Requirement(r).marker
+            and 'extra == "stripe-lite"' in str(Requirement(r).marker)
+        ]
+        assert [r.name for r in extra] == ["stripe"]
+        assert str(extra[0].specifier) == "<17,>=16"
 
     def test_the_import_scan_reaches_every_module_this_feature_added(self) -> None:
         package = Path(mvp_payments.__file__).parent
-        scanned = {path.relative_to(package) for path in package.rglob("*.py")}
+        scanned = {
+            path.relative_to(package) for path in _interface_files(package, "*.py")
+        }
         added_by_this_feature = {
             Path("apps.py"),
             Path("contributions.py"),
