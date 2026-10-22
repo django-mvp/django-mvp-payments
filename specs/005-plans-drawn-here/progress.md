@@ -29,3 +29,24 @@ Did: removed the pricing table component, sign-in notice, pricing_table.js, Cust
 Verified: uv run pytest tests/test_demo.py tests/test_components tests/test_stripe/test_models.py tests/test_views.py tests/test_app.py, 208 passed. pre-commit clean.
 Next: the full verify, then the completion report.
 Watch: CONSTITUTION.md Articles XI to XIII, ADRs 0010/0012 and specs/003 still describe the old page; the plan puts them in the documentation set for a later story.
+
+## 2026-10-22T17:03:21Z · Implementer US2 · T005
+
+Did: Customer.start_checkout() (customer or email, signed reference, promotion codes; a customer Stripe no longer has is synced away and the session asked for again) and CheckoutView replacing the sketch, with docs/reference/stripe-app.md rewritten.
+Verified: uv run pytest tests/test_stripe -q -> 256 passed; pre-commit green.
+Next: T006 return view with session_id.
+Watch: success_url braces appended after build_absolute_uri.
+
+## 2026-10-22T17:03:52Z · Implementer US2 · T006
+
+Did: BillingReturnView reads session_id; with no customer it ties the purchase via from_checkout (only when the session was made for this person) before syncing. Docs updated.
+Verified: uv run pytest tests/test_stripe/test_views.py -k TestBillingReturn -> 9 passed.
+Next: T007 buy controls on the cards.
+Watch: none.
+
+## 2026-10-22T17:05:15Z · Implementer US2 · T007
+
+Did: tests and docs for the way to buy on each card (sign-in with next back to the plan, checkout form, Manage for a held plan, picked frequency selected, accessible names and description). The approved markup already did this; no template change.
+Verified: uv run pytest tests/test_views.py -k TestPlansWayToBuy -> 8 passed. Probed by removing aria-describedby, the anchor, the held branch and return_to from plan_choose.html: each failed a test; template restored.
+Next: US2 records, then T008.
+Watch: the held badge is not asserted (wording/appearance).

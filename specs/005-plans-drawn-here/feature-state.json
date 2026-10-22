@@ -151,18 +151,51 @@
       "tasks": [
         {
           "id": "T005",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_views.py::TestCheckout"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe -q"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:161"
+            ]
+          }
         },
         {
           "id": "T006",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_views.py::TestBillingReturn"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_views.py -q"
+            ],
+            "code": [
+              "mvp_payments/stripe/views.py:192"
+            ]
+          }
         },
         {
           "id": "T007",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansWayToBuy"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py -k TestPlansWayToBuy -q"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/stripe/plan_choose.html:1"
+            ]
+          }
         }
       ]
     },
