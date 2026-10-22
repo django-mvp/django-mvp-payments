@@ -7,7 +7,7 @@ Rationale too long to sit in `spec.md`, and the ambiguities resolved while speci
 Keeping Stripe's pricing table as a second way to show plans would leave two components, two sets
 of settings and two documented routes to maintain, and the one being kept is the one that cannot
 stop a signed-out visitor buying a plan tied to no account. The capability the pricing table gave
-a project, plans on a landing page, is kept by making the new plans placeable (User Story 5). The
+a project, plans on a landing page, is kept by making the new plans placeable (User Story 4). The
 package has never been released, so removing the component, `STRIPE_PRICING_TABLE_ID` and the
 plans page's use of `STRIPE_PUBLISHABLE_KEY` costs no project anything (Article XVI).
 

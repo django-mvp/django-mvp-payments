@@ -65,14 +65,17 @@ constitution and Stripe's published behaviour. Longer rationale is in `decisions
 
 Anyone opens the plans page, signed in or not, and sees every plan the project offers: its name,
 its price in its own currency, how often it is billed, and the description and features the
-project gave it in Stripe.
+project gave it in Stripe. When there is nothing to show, because the project has not configured
+Stripe, Stripe cannot be reached or nothing is on offer, they are told so instead of looking at
+an empty page.
 
 **Why this priority**: It is the feature. A visitor deciding whether to sign up can see what
 they would pay before making an account, which the pricing table could not allow.
 
 **Independent Test**: With a catalogue of two products, one with a monthly and a yearly price,
 open the plans page signed out. Every price is on it with its product's name, amount, frequency,
-description and features.
+description and features. Then open it with no secret key configured, with Stripe failing and
+with an empty catalogue. Each says why there is nothing to choose, and none raises.
 
 **Acceptance Scenarios**:
 
@@ -91,73 +94,69 @@ description and features.
    the plans, without being sent to sign in.
 7. **Given** the page renders, **When** its output is read, **Then** it contains no pricing table
    element and no script element pointing at Stripe.
+8. **Given** a project with no Stripe secret key configured, or Stripe cannot be reached and no
+   catalogue is cached, **When** the plans page renders, **Then** it says the plans cannot be
+   shown, nothing raises, and any failure is logged without Stripe's message.
+9. **Given** Stripe cannot be reached but a catalogue is cached, **When** the plans page renders,
+   **Then** the cached plans are shown.
+10. **Given** a catalogue with no price on offer, **When** the plans page renders, **Then** it
+    says no plans are on offer.
 
 ---
 
-### User Story 2 - A signed-in user buys a plan (Priority: P1)
+### User Story 2 - A visitor buys a plan, signing in first if they need to (Priority: P1)
 
-A signed-in person picks a plan and is taken to Stripe's hosted checkout to pay for it. The
-purchase is tied to their account. When they have paid they come back to their user
-subscriptions page and see the subscription they just bought. If they leave checkout without
-paying they come back to the plans page.
+A signed-in person picks a plan and is taken to Stripe's hosted checkout to pay for it, tied to
+their account. A visitor who is not signed in and picks a plan is sent to sign in, or to create
+an account, and comes back to the plans page with that plan ready to buy. After paying, a person
+lands on their user subscriptions page and sees the subscription they just bought. Someone who
+already subscribes sees the plan they hold marked as theirs, leading to their user subscriptions
+page rather than a second checkout for the same price.
 
-**Why this priority**: Without it the plans are something to read and not something to act on.
-It is equal first with the first story because a page that shows plans and cannot sell them has
-not replaced the pricing table.
+**Why this priority**: Without it the plans are something to read and not something to act on,
+and it is the reason they are drawn here at all: the pricing table could not stop a signed-out
+visitor buying a plan tied to no account.
 
-**Independent Test**: Sign in, pick a plan, and confirm the checkout Stripe is asked to create
-is for that price, carries the user's signed reference, and returns to the user subscriptions
-page.
+**Independent Test**: Signed out, pick a plan, sign in, and confirm the plans page comes back
+with that plan ready. Pick it, and confirm the checkout Stripe is asked to create is for that
+price, carries the user's signed reference, and returns to the user subscriptions page. Then try
+to start a checkout signed out without going through the page, and confirm none is created.
 
 **Acceptance Scenarios**:
 
 1. **Given** a signed-in person on the plans page, **When** they pick a plan, **Then** they are
-   sent to a Stripe-hosted checkout for that price.
-2. **Given** that checkout, **When** it is created, **Then** it carries the person's signed
-   reference (ADR 0011).
-3. **Given** a signed-in person who already has a Stripe customer, **When** the checkout is
+   sent to a Stripe-hosted checkout for that price, carrying their signed reference (ADR 0011).
+2. **Given** a signed-in person who already has a Stripe customer, **When** the checkout is
    created, **Then** it is for that customer, so the purchase does not create another one.
-4. **Given** a signed-in person with no Stripe customer whose account has an email address,
+3. **Given** a signed-in person with no Stripe customer whose account has an email address,
    **When** the checkout is created, **Then** Stripe is given that address to fill in.
-5. **Given** the person completes checkout, **When** Stripe sends them back, **Then** they land
+4. **Given** a visitor who is not signed in, **When** they pick a plan, **Then** they are sent
+   to the sign-in page, and no checkout is created.
+5. **Given** that visitor signs in, or creates an account from the sign-in page, **When** they
+   finish, **Then** they are back on the plans page with the plan they picked ready to buy.
+6. **Given** a request to start a checkout from someone who is not signed in, made by any route,
+   **When** it arrives, **Then** no checkout is created.
+7. **Given** the person completes checkout, **When** Stripe sends them back, **Then** they land
    on their user subscriptions page, which shows the subscription they just bought even if
    Stripe's webhook has not arrived yet.
-6. **Given** the person leaves checkout without paying, **When** Stripe sends them back, **Then**
+8. **Given** the person leaves checkout without paying, **When** Stripe sends them back, **Then**
    they land on the plans page.
-7. **Given** a promotion code the project created in Stripe, **When** the person is in checkout,
+9. **Given** a promotion code the project created in Stripe, **When** the person is in checkout,
    **Then** they can enter it there.
-8. **Given** the way to buy a plan, **When** a person reads it with assistive technology,
-   **Then** it announces that it leads off the site.
-9. **Given** Stripe cannot be asked to create the checkout, **When** the person picks a plan,
-   **Then** they are returned to the plans page and told the checkout could not be started, and
-   nothing raises.
+10. **Given** a signed-in person with a current subscription to a price, **When** the plans page
+    renders, **Then** that price is marked as theirs and its way to buy leads to their user
+    subscriptions page, while every other plan starts a checkout as usual.
+11. **Given** a subscription that has ended, **When** the plans page renders, **Then** its price
+    is not marked, and can be bought again.
+12. **Given** the way to buy a plan, **When** a person reads it with assistive technology,
+    **Then** it announces that it leads off the site.
+13. **Given** Stripe cannot be asked to create the checkout, **When** the person picks a plan,
+    **Then** they are returned to the plans page and told the checkout could not be started, and
+    nothing raises.
 
 ---
 
-### User Story 3 - A visitor who is not signed in signs in to buy a plan (Priority: P1)
-
-A visitor who is not signed in picks a plan. They are sent to sign in, or to create an account,
-and come back to the plans page with the plan they picked ready to buy.
-
-**Why this priority**: It is the reason the plans are drawn here at all. The pricing table could
-not stop a signed-out visitor buying a plan tied to no account. This story is what stops it.
-
-**Independent Test**: Signed out, pick a plan, sign in, and confirm the plans page comes back
-with that plan ready. Then try to start a checkout signed out without going through the page,
-and confirm none is created.
-
-**Acceptance Scenarios**:
-
-1. **Given** a visitor who is not signed in, **When** they pick a plan, **Then** they are sent
-   to the sign-in page, and no checkout is created.
-2. **Given** that visitor signs in, or creates an account from the sign-in page, **When** they
-   finish, **Then** they are back on the plans page with the plan they picked ready to buy.
-3. **Given** a request to start a checkout from someone who is not signed in, made by any route,
-   **When** it arrives, **Then** no checkout is created.
-
----
-
-### User Story 4 - A developer changes the plans in Stripe's dashboard (Priority: P2)
+### User Story 3 - A developer changes the plans in Stripe's dashboard (Priority: P2)
 
 A developer adds a price, renames a product, edits its features or archives a plan in Stripe's
 dashboard, and the plans page follows without a deployment or a database change.
@@ -185,104 +184,42 @@ verified webhook, and render it again. The change is on the page.
 
 ---
 
-### User Story 5 - A developer shows the plans on a page of their own (Priority: P2)
+### User Story 4 - A developer puts the plans on their own pages, their own way (Priority: P2)
 
 A developer puts the plans on their public landing page as well as the plans page, with the same
-ways to buy each one.
+ways to buy each one. Where they want one part shown differently, such as a plan's features or
+its price, they replace that part and keep the rest as the package draws it.
 
-**Why this priority**: A landing page is where most projects show their prices. The pricing table
-could be placed there, so removing it must not take that away. It is second because the shipped
+**Why this priority**: A landing page is where most projects show their prices, and the pricing
+table could be placed there, so removing it must not take that away. Replacing one part is what
+makes an opinionated default acceptable rather than a ceiling. It is second because the shipped
 page comes first.
 
 **Independent Test**: Place the plans in an unrelated template of the project's own, render it
-signed out and signed in, and confirm the same plans and ways to buy come out.
+signed out and signed in, and confirm the same plans and ways to buy come out. Override the part
+that shows a product's features and confirm the project's markup appears for every plan and every
+other part is unchanged.
 
 **Acceptance Scenarios**:
 
 1. **Given** the plans placed in a project's own template, **When** that template renders,
-   **Then** it shows the same plans the plans page shows.
+   **Then** it shows the same plans the plans page shows, and the project wrote no view and
+   called nothing in Stripe itself.
 2. **Given** that placement, **When** a visitor who is not signed in picks a plan there, **Then**
    they are sent to sign in and brought back to the page they picked it on, with that plan ready.
 3. **Given** that placement, **When** a signed-in person picks a plan there, **Then** checkout
    starts exactly as it does from the plans page.
-4. **Given** that placement, **When** it renders, **Then** the project wrote no view and called
-   nothing in Stripe itself.
-
----
-
-### User Story 6 - A developer replaces one part of the plans (Priority: P2)
-
-A developer wants a plan's features shown their own way, or its price laid out differently. They
-replace that one part and keep the rest as the package draws it.
-
-**Why this priority**: It is what makes an opinionated default acceptable rather than a ceiling.
-It is second because there is nothing to replace until the default exists.
-
-**Independent Test**: Override the part that shows a product's features, render the plans page,
-and confirm the project's markup appears for every plan and every other part is unchanged.
-
-**Acceptance Scenarios**:
-
-1. **Given** a project supplying its own version of one part of a plan, **When** the plans page
+4. **Given** a project supplying its own version of one part of a plan, **When** the plans page
    renders, **Then** the project's markup appears in that part for every plan, and every other
    part is as the package draws it.
-2. **Given** a part the project replaces, **When** it renders, **Then** it receives the same
+5. **Given** a part the project replaces, **When** it renders, **Then** it receives the same
    Stripe data the package's own version did, under documented names, in Stripe's own field
    names.
-3. **Given** a project placing the plans on one page with its own markup for one part, **When**
+6. **Given** a project placing the plans on one page with its own markup for one part, **When**
    that page renders, **Then** that part is replaced there and nowhere else.
-4. **Given** someone reading the documentation, **When** they look for the parts of a plan, the
+7. **Given** someone reading the documentation, **When** they look for the parts of a plan, the
    data each receives, the settings the page reads and the webhook events it needs, **Then** all
    of them are on a page reachable from the documentation's own navigation.
-
----
-
-### User Story 7 - A visitor is told when there are no plans to show (Priority: P2)
-
-A project has not given the Stripe app its secret key, Stripe cannot be reached, or the catalogue
-has nothing on offer. A visitor is told so, instead of looking at an empty page.
-
-**Why this priority**: It is every project's first run, and the failure it prevents is a page that
-looks broken with nothing in it to say why.
-
-**Independent Test**: Open the plans page with no secret key configured, then with Stripe failing,
-then with an empty catalogue. Each says why there is nothing to choose, and none raises.
-
-**Acceptance Scenarios**:
-
-1. **Given** a project with no Stripe secret key configured, **When** the plans page renders,
-   **Then** it says the plans cannot be shown, and nothing raises.
-2. **Given** Stripe cannot be reached and no catalogue is cached, **When** the plans page renders,
-   **Then** the same applies, and the failure is logged without Stripe's message.
-3. **Given** Stripe cannot be reached but a catalogue is cached, **When** the plans page renders,
-   **Then** the cached plans are shown.
-4. **Given** a catalogue with no price on offer, **When** the plans page renders, **Then** it says
-   no plans are on offer.
-
----
-
-### User Story 8 - A subscriber sees which plan they already hold (Priority: P3)
-
-A signed-in person who already subscribes opens the plans page. The plan they hold is marked as
-theirs, and its way to buy leads to their user subscriptions page, so they do not pay for the same
-price twice. Every other plan can be bought as usual.
-
-**Why this priority**: It prevents a mistake rather than enabling something new. It is last
-because a second purchase of the same price is rare and Stripe's portal can cancel it.
-
-**Independent Test**: Sign in as a user with a current subscription to one price and open the
-plans page. That price is marked and leads to the user subscriptions page. Every other price
-starts a checkout.
-
-**Acceptance Scenarios**:
-
-1. **Given** a signed-in person with a current subscription to a price, **When** the plans page
-   renders, **Then** that price is marked as theirs, and its way to buy leads to their user
-   subscriptions page.
-2. **Given** that person, **When** they pick any other plan, **Then** checkout starts as it does
-   for anyone else.
-3. **Given** a subscription that has ended, **When** the plans page renders, **Then** its price is
-   not marked, and can be bought again.
 
 ---
 
