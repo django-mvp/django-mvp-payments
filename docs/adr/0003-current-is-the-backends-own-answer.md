@@ -4,10 +4,10 @@
 
 ## Decision
 
-`SubscriptionReader` reads a person's current subscriptions through the backend's own
-`StripeUser.current_subscription_items` and groups the rows it returns by subscription. This
-package names no subscription status anywhere, and holds no list of which statuses count as
-current.
+`SubscriptionReader` reads a person's current subscriptions through the Stripe app's own
+`Subscription.objects.for_user(user).current()`: every subscription that has not finished, in
+whatever state Stripe reports. This package's interface layer names no
+subscription status anywhere, and holds no list of which statuses count as current.
 
 ## Why
 
@@ -17,18 +17,17 @@ locked out of a paid feature would be reading a page telling them their subscrip
 the two answers would come from the same installation.
 
 The alternative was to filter subscriptions on the status set ourselves, which means writing that
-set down here. A copy of somebody else's list, in a package with no way to know the original has
-changed, goes stale silently and on their release schedule rather than ours.
+set down a second time in the interface layer. A copy of the list goes stale silently when the
+original moves, and the one place that decides who is subscribed should stay the one place.
 
-Reading the property also disposes of the several-subscriptions question without a rule of our
-own. The backend returns what it returns and the page renders each one, which is simpler than
-choosing between them and is the only answer that cannot quietly hide one.
+Reading the app's answer also disposes of the several-subscriptions question without a rule of our
+own. The app returns every current subscription and the page renders each one, which is simpler
+than choosing between them and is the only answer that cannot quietly hide one.
 
-The accepted cost: a current subscription carrying no priced items would not appear at all, since
-the property is expressed in items rather than subscriptions. The backend records items from the
-provider's own line items, so a subscription without them is not a state the provider produces.
+The page reads `current()` and not `subscribed()`. A person whose payment has failed is not
+subscribed, but they still have a subscription, and the page is where they find out and reach
+Stripe's portal to put it right (Article XV: every state is representable).
 
 ## Revisit if
 
-The backend gains a subscription-level equivalent of that property, or a provider starts producing
-subscriptions with no line items.
+Stripe adds a terminal status beyond `canceled` and `incomplete_expired`.

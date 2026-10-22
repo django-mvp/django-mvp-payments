@@ -6,8 +6,8 @@
 
 The package keeps its own subscription records for Stripe, in an app of its own,
 `mvp_payments.stripe`. A project installs `django-mvp-payments[stripe-lite]` and adds the app to
-`INSTALLED_APPS`. drf-stripe-subscription stops being a supported backend, and the `drf-stripe`
-namespace is replaced by `stripe`.
+`INSTALLED_APPS`. The third-party backend the first pages were built on (ADR 0009) stops being a
+supported backend, and its namespace is replaced by `stripe`.
 
 The app keeps the least it can: who each user's Stripe customer is, and that customer's
 subscription with its status, price and period. It learns about changes from Stripe's webhooks
@@ -17,8 +17,8 @@ a plan, and updating payment details, stay on Stripe's hosted pages, as they wer
 
 ## Why
 
-drf-stripe-subscription was chosen because it kept local records and left everything else to
-Stripe's hosted pages. Building on it showed what that costs:
+The first backend was chosen because it kept local records and left everything else to Stripe's
+hosted pages. Building on it showed what that costs:
 
 - **It has stopped moving.** Its last release was 1.2.2, in November 2024. It imports
   `stripe.error`, which the stripe SDK removed at version 8, so a project using it is held on
@@ -53,9 +53,9 @@ support for a fuller Stripe integration such as dj-stripe. The app's Django labe
 - **Scope has to be held.** Taxes, invoice lists, metered billing, one-off payments and billing
   for teams are each a reason to grow the app, and none of them is needed to show a person where
   they stand.
-- **The `drf-stripe` work is replaced.** The pages, components and specifications carry over to
-  the new app. The code that read drf-stripe-subscription's records, and the demo's workaround
-  views, are removed.
+- **The first namespace is replaced.** The pages, components and specifications carry over to the
+  new app. The code that read the first backend's records, and the demo's workaround views, are
+  removed.
 
 ## Revisit if
 

@@ -17,7 +17,7 @@ them, and is tracked as issues rather than planned here in advance.
 | `0.1.0` | R1 and R2 delivered: Stripe fully supported by the package's own app. The first publish. |
 | `0.x` | Fixes and additions that projects using the package ask for. |
 | `1.0.0` | The package's settings, components and context names have held steady through at least one real project using it. |
-| `1.x` | Stable line: non-breaking fixes and additive features only. |
+| `1.x` | Stable line: non-breaking fixes and additive changes only. |
 | `2.0` | Next major, where breaking changes go. |
 
 A second provider (R3) is aspirational. It can arrive in any `0.x` or `1.x` release, since adding a
@@ -42,7 +42,7 @@ still runs, on obviously fake values, which is what a fresh clone and CI see.
 Everything a subscriber needs, for projects using Stripe, looking like the rest of their
 django-mvp site, with the records behind it kept by `mvp_payments.stripe`.
 [ADR 0010](adr/0010-the-package-ships-its-own-stripe-app.md) records why the package keeps them
-itself rather than relying on drf-stripe-subscription. The pages show a person where they stand.
+itself rather than relying on a third-party package. The pages show a person where they stand.
 Anything that changes what they pay is handed to Stripe's own hosted pages.
 
 **Done when a developer can:**
@@ -55,14 +55,11 @@ Anything that changes what they pay is handed to Stripe's own hosted pages.
 
 **And a subscriber can:**
 
-- see their plan, what it costs, how often they pay and the current billing period, in any state
-  Stripe reports
-- choose a plan if they have none, through Stripe's pricing table
+- see every plan they hold, what it costs, how often they pay and the current billing period
+- read the plans on offer, signed in or not, through Stripe's pricing table, and have a purchase
+  made while signed in tied to them
 - switch plans, cancel, or update their payment details, through Stripe's customer portal
 - come back from Stripe and see what they just did, not the state from before it
-
-The pages, components and specifications built against drf-stripe-subscription carry over.
-drf-stripe-subscription itself stops being supported.
 
 ## Aspirational goals
 

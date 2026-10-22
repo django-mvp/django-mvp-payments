@@ -568,6 +568,7 @@ class TestCustomerFromCheckout:
 
 
 COUNTS_AS_SUBSCRIBED = {"active", "trialing"}
+HAS_ENDED = {"canceled", "incomplete_expired"}
 
 
 @pytest.mark.django_db
@@ -589,6 +590,20 @@ class TestSubscriptionQuerySet:
         )
 
         assert answer is (status in COUNTS_AS_SUBSCRIBED)
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            *Subscription.Status.values,
+            pytest.param("a_status_not_yet_invented", id="unknown"),
+        ],
+    )
+    def test_current_keeps_every_subscription_that_has_not_ended(self, status):
+        subscription = StripeSubscriptionFactory(status=status)
+
+        current = Subscription.objects.for_user(subscription.customer.user).current()
+
+        assert current.exists() is (status not in HAS_ENDED)
 
     def test_a_subscription_set_to_cancel_at_period_end_still_counts(self):
         subscription = StripeSubscriptionFactory(
@@ -659,3 +674,133 @@ class TestSubscriptionQuerySet:
         )
 
         assert current is None
+
+
+@pytest.mark.django_db
+class TestCustomerPortalUrl:
+    def test_asks_stripe_for_a_portal_session_for_this_customer_and_returns_its_url(
+        self, stripe_fake
+    ):
+        stripe_fake.respond(
+            "POST",
+            "/v1/billing_portal/sessions",
+            {"id": "bps_1", "object": "billing_portal.session", "url": "https://x/p"},
+        )
+        customer = StripeCustomerFactory(stripe_id="cus_9")
+
+        url = customer.portal_url("https://site.example/back/")
+
+        assert url == "https://x/p"
+        ((_, _, params),) = stripe_fake.requests
+        assert params == {
+            "customer": ["cus_9"],
+            "return_url": ["https://site.example/back/"],
+        }
+
+    def test_a_flow_is_passed_through_to_stripe(self, stripe_fake):
+        stripe_fake.respond(
+            "POST",
+            "/v1/billing_portal/sessions",
+            {"id": "bps_1", "object": "billing_portal.session", "url": "https://x/p"},
+        )
+        customer = StripeCustomerFactory()
+
+        customer.portal_url(
+            "https://site.example/back/", {"type": "payment_method_update"}
+        )
+
+        ((_, _, params),) = stripe_fake.requests
+        assert params["flow_data[type]"] == ["payment_method_update"]
+
+    def test_a_stripe_failure_is_raised(self, stripe_fake):
+        stripe_fake.become_unreachable("POST", "/v1/billing_portal/sessions")
+
+        with pytest.raises(stripe.StripeError):
+            StripeCustomerFactory().portal_url("https://site.example/back/")
+
+
+@pytest.mark.django_db
+class TestCustomerPlanChangeFlow:
+    def test_a_customer_with_one_subscription_is_led_to_changing_that_one(self):
+        customer = StripeCustomerFactory()
+        subscription = StripeSubscriptionFactory(customer=customer, status="active")
+
+        flow = customer.plan_change_flow("https://site.example/back/")
+
+        assert flow == {
+            "type": "subscription_update",
+            "subscription_update": {"subscription": subscription.stripe_id},
+            "after_completion": {
+                "type": "redirect",
+                "redirect": {"return_url": "https://site.example/back/"},
+            },
+        }
+
+    def test_a_subscription_that_does_not_count_is_not_led_to(self):
+        customer = StripeCustomerFactory()
+        StripeSubscriptionFactory(customer=customer, status="canceled")
+
+        assert customer.plan_change_flow("https://site.example/back/") is None
+
+    def test_several_subscriptions_leave_the_choice_to_the_portal(self):
+        customer = StripeCustomerFactory()
+        StripeSubscriptionFactory(customer=customer, status="active")
+        StripeSubscriptionFactory(customer=customer, status="trialing")
+
+        assert customer.plan_change_flow("https://site.example/back/") is None
+
+
+@pytest.mark.django_db
+class TestCustomerPricingTableSecret:
+    def test_asks_stripe_for_a_pricing_table_session_for_this_customer(
+        self, stripe_fake
+    ):
+        stripe_fake.respond(
+            "POST",
+            "/v1/customer_sessions",
+            {
+                "id": "cuss_1",
+                "object": "customer_session",
+                "client_secret": "cuss_secret_1",
+            },
+        )
+        customer = StripeCustomerFactory(stripe_id="cus_9")
+
+        secret = customer.pricing_table_client_secret()
+
+        assert secret == "cuss_secret_1"
+        ((_, _, params),) = stripe_fake.requests
+        assert params == {
+            "customer": ["cus_9"],
+            "components[pricing_table][enabled]": ["true"],
+        }
+
+    def test_a_stripe_failure_gives_none_and_is_logged_without_its_message(
+        self, stripe_fake, caplog
+    ):
+        stripe_fake.respond_with_message_echoing(
+            "POST", "/v1/customer_sessions", "sk_test_not_a_r********_key"
+        )
+
+        secret = StripeCustomerFactory().pricing_table_client_secret()
+
+        assert secret is None
+        assert "sk_test" not in caplog.text
+        assert [r for r in caplog.records if r.name.startswith("mvp_payments")]
+
+
+@pytest.mark.django_db
+class TestCustomerForUser:
+    def test_finds_the_users_own_customer(self, user):
+        customer = StripeCustomerFactory(user=user)
+        StripeCustomerFactory()
+
+        assert Customer.for_user(user) == customer
+
+    def test_a_user_with_no_customer_has_none(self, user):
+        StripeCustomerFactory()
+
+        assert Customer.for_user(user) is None
+
+    def test_someone_not_signed_in_has_none(self):
+        assert Customer.for_user(AnonymousUser()) is None

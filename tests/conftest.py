@@ -6,9 +6,8 @@ from django.urls import reverse
 
 from mvp_payments.stripe import client as stripe_client_module
 from tests.factories import (
-    StripeUserFactory,
-    SubscriptionFactory,
-    SubscriptionItemFactory,
+    StripeCustomerFactory,
+    StripeSubscriptionFactory,
     UserFactory,
 )
 from tests.stripe_fake import FakeStripe
@@ -47,19 +46,17 @@ def logged_in_client(client, user):
 
 
 @pytest.fixture
-def stripe_user(user):
-    return StripeUserFactory(user=user)
+def stripe_customer(user):
+    return StripeCustomerFactory(user=user)
 
 
 @pytest.fixture
-def current_subscription(stripe_user):
-    subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
-    SubscriptionItemFactory(subscription=subscription)
-    return subscription
+def stripe_subscription(stripe_customer):
+    return StripeSubscriptionFactory(customer=stripe_customer, status="active")
 
 
 @pytest.fixture
-def subscriber_client(client, user, current_subscription):
+def subscribed_client(client, user, stripe_subscription):
     client.force_login(user)
     return client
 

@@ -12,7 +12,7 @@ all three, and a bug report that mixes them cannot be acted on.
 
 **Payment component**:
 The unit this package ships: one Cotton component rendering one piece of payment or subscription
-interface, configured entirely through its attributes. `<c-drf-stripe.plan-grid>` is a payment
+interface, configured entirely through its attributes. `<c-stripe.pricing-table>` is a payment
 component.
 _Avoid_: widget, block, element, partial.
 
@@ -23,9 +23,7 @@ _Avoid_: gateway, processor, vendor.
 
 **Backend**:
 The code that talks to a provider and keeps the local records a page reads. In this package a
-backend is a provider app, and `mvp_payments.stripe` is the first. It replaces
-drf-stripe-subscription, which the `drf-stripe` namespace reads until its pages move across. A
-backend is chosen by the template author per component, by picking a namespace, and is never
+backend is a provider app, and `mvp_payments.stripe` is the first. A backend is chosen by the template author per component, by picking a namespace, and is never
 swapped by configuration.
 _Avoid_: integration, adapter, driver, provider (that is the company, above).
 
@@ -57,9 +55,9 @@ _Avoid_: integration (see Backend, above), registration (the mechanism that adds
 not the contribution itself).
 
 **Namespace**:
-The first segment of a component tag, naming the backend: `drf-stripe` in
-`<c-drf-stripe.plan-grid>`. Cotton resolves it to a directory, so
-`mvp_payments/templates/cotton/drf_stripe/`. The namespace is the backend rather than this
+The first segment of a component tag, naming the backend: `stripe` in
+`<c-stripe.pricing-table>`. Cotton resolves it to a directory, so
+`mvp_payments/templates/cotton/stripe/`. The namespace is the backend rather than this
 package, which is what allows a second backend to be added alongside the first without touching
 it.
 _Avoid_: prefix, module, family.
@@ -67,8 +65,8 @@ _Avoid_: prefix, module, family.
 **Plan**:
 What a customer chooses — a named thing at a price, on a billing frequency. It is a presentation
 term, and deliberately not a data term: no backend has a `Plan` record, and Stripe retired the
-word in favour of prices. `plan-grid` and `plan-card` are named for what a person is looking at.
-The records behind them are the backend's, named in the backend's own words.
+word in favour of prices. The user subscriptions page shows a plan because that is what a person is
+looking at. The record behind it is the backend's, named in the backend's own words.
 _Avoid_: tier, package (means this distribution), SKU, product (which is a specific record in some
 backends and must keep that meaning).
 
@@ -87,6 +85,17 @@ _Avoid_: purchase, cart, payment form, payment flow.
 The provider-hosted page where a customer changes payment method, reads invoices and cancels. Like
 checkout, a component sends them there rather than reproducing it.
 _Avoid_: billing page, account centre, customer centre.
+
+**Plans page**:
+The page showing the plans on offer, through Stripe's own pricing table. Anyone can open it,
+signed in or not, whatever they are already subscribed to. A signed-in visitor's purchase is tied
+to their account.
+_Avoid_: pricing page, subscribe page, upgrade page.
+
+**User subscriptions page**:
+The page showing a signed-in person the subscriptions they hold, each with its status, and the
+way through to Stripe's portal. Only that person's own subscriptions, and only when signed in.
+_Avoid_: subscription page, billing page, account page, my plan.
 
 **Billing**:
 The Account Center section this package's pages sit under, and nothing else. It is a navigation

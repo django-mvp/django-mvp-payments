@@ -83,24 +83,10 @@ INSTALLED_APPS = [
     "django_filters",
     "flex_menu",
     "django_cotton",
-    "rest_framework",
-    "drf_stripe",
 ]
 
-# Without a secret in `demo/.env` the handoff reports the portal unreachable, as a
-# misconfigured project would. The return address replaces the backend's default of a
-# frontend on port 3000, and is overridable because the server's hostname varies.
-DRF_STRIPE = {
-    "STRIPE_API_SECRET": DEV_ENV.get(
-        "STRIPE_TEST_SECRET_KEY", "sk_test_not_a_real_key"
-    ),
-    "STRIPE_WEBHOOK_SECRET": "whsec_not_a_real_secret",
-    "FRONT_END_BASE_URL": DEV_ENV.get("DEMO_BASE_URL", "http://localhost:8020"),
-}
-
-# The portal endpoints are this project's own, not the backend's, which raises for anybody
-# who has used it before (demo/views.py). The pricing table values come from `demo/.env`,
-# or are obviously fake, and the provider's embed then reports that it could not load.
+# The pricing table values come from `demo/.env`, or are obviously fake, and the provider's
+# embed then reports that it could not load.
 MVP_PAYMENTS = {
     # The Stripe app's two secrets. Without `demo/.env` they are obviously fake, which keeps
     # the system checks quiet and makes any call that needs the real ones fail visibly.
@@ -110,12 +96,10 @@ MVP_PAYMENTS = {
     "STRIPE_WEBHOOK_SECRET": DEV_ENV.get(
         "STRIPE_TEST_WEBHOOK_SECRET", "whsec_not_a_real_secret"
     ),
-    "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
-    "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
-    "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
+    "STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
         "STRIPE_TEST_PRICING_TABLE_ID", "prctbl_not_a_real_table"
     ),
-    "DRF_STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
+    "STRIPE_PUBLISHABLE_KEY": DEV_ENV.get(
         "STRIPE_TEST_PUBLISHABLE_KEY", "pk_test_not_a_real_key"
     ),
 }

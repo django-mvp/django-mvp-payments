@@ -11,7 +11,7 @@ To set it up, see [how to install the Stripe app](../how-to/install-the-stripe-a
 
 ## Settings
 
-Both settings live in the `MVP_PAYMENTS` dictionary and are read only from there.
+Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there.
 
 `STRIPE_SECRET_KEY`
 : Your Stripe secret key, `sk_...` or `rk_...`. Required. Every call the app makes to Stripe is
@@ -21,7 +21,16 @@ Both settings live in the `MVP_PAYMENTS` dictionary and are read only from there
 : The signing secret of the webhook endpoint Stripe sends events to, `whsec_...`. Required. Every
   webhook is verified against it.
 
-Neither value appears in a template, a log message or an error page. The app also never reads or
+Two more settings are read by the plans page, not by the app, and are described in
+[the plans page](plans-page.md#the-page):
+
+`STRIPE_PRICING_TABLE_ID`
+: The id of your pricing table, `prctbl_...`, from Stripe's dashboard.
+
+`STRIPE_PUBLISHABLE_KEY`
+: Your publishable key, `pk_...`. Not a secret.
+
+Neither secret value appears in a template, a log message or an error page. The app also never reads or
 writes the Stripe SDK's own module-level configuration, so another integration in the same
 process cannot change the key or the API version the app uses.
 
@@ -99,6 +108,12 @@ Records change only from what Stripe reports. Nothing here is edited by hand.
   the end of its period still has one of those statuses until the period ends, so it counts.
   `past_due`, `unpaid`, `incomplete`, `incomplete_expired`, `paused`, `canceled`, and any status
   this version does not know, do not.
+
+`current()`
+: Every subscription that has not finished: every status except `canceled` and
+  `incomplete_expired`, including any status this version does not know. This is what the user
+  subscriptions page lists, so that a payment that has failed is shown and can be put right. It is
+  not an answer to whether someone is subscribed.
 
 ```python
 from mvp_payments.stripe.models import Subscription
@@ -180,6 +195,12 @@ delete pages are refused. Nothing is changed on Stripe.
 
 The package does not mount the admin. Your project does, as it does for its own models.
 
+## `Customer.for_user()`
+
+`Customer.for_user(user)` returns the user's customer, or `None` when they have none. It also
+returns `None` for someone who is not signed in or not saved, so it is safe to call with
+`request.user`.
+
 ## `Customer.client_reference()` and `Customer.from_checkout()`
 
 A purchase is tied to a user only through the identity of the signed-in user, carried through
@@ -209,6 +230,56 @@ returns the customer to sync, or `None`. It returns `None`, and records nothing,
 
 A user who subscribes again keeps the same customer, and the new subscription is recorded beside
 the old one.
+
+## Handoffs to Stripe's own pages
+
+Three views send a signed-in person to Stripe and bring them back. They are mounted with the
+package's URLs under the same prefix as the webhook, and they exist only while `mvp_payments.stripe`
+is in `INSTALLED_APPS`. Each needs a signed-in person and sends anyone else to the project's sign-in
+page. The user subscriptions page links to them, and a project can too.
+
+| View | URL name | Address | Method |
+|---|---|---|---|
+| `BillingPortalView` | `payments:stripe-billing-portal` | `stripe/billing-portal/` | POST |
+| `PlanSwitchView` | `payments:stripe-plan-switch` | `stripe/plan-switch/` | POST |
+| `BillingReturnView` | `payments:stripe-billing-return` | `stripe/return/` | GET |
+
+`BillingPortalView` and `PlanSwitchView` answer with `{"url": ...}`, the address of a Stripe
+billing-portal session for the person's customer, which a script follows. They answer:
+
+| Answer | When |
+|---|---|
+| 200 | A portal session was created |
+| 409 | The person has no Stripe customer, or, for the plan switch, nothing subscribed. Stripe is not asked and nothing is created |
+| 502 | Stripe could not be asked or refused. The log names the kind of error and never Stripe's message |
+
+The portal view opens the portal's home. The plan-switch view opens the plan-change screen for the
+person's subscription, or the portal's home when they have several. Both send the reader back
+through the return view.
+
+`BillingReturnView` runs `Customer.sync()` for the signed-in person's customer, so a change made in
+the portal is already recorded, and redirects to the user subscriptions page with `?returned=1`. It
+redirects whatever happens: a person with no customer is not sent to Stripe, and a Stripe failure
+is logged and leaves the page to wait for the webhook. A development server, which Stripe cannot
+reach, relies on this to show a change at once.
+
+The views are classes with hooks `is_offered(customer)` and `get_flow_data(customer, return_url)`,
+so a project can subclass them.
+
+On the customer, three methods do the Stripe calls:
+
+`Customer.portal_url(return_url, flow_data=None)`
+: Creates a billing-portal session and returns its address. Raises `stripe.StripeError` when
+  Stripe cannot be asked.
+
+`Customer.plan_change_flow(return_url)`
+: The `flow_data` that opens the plan-change screen for the customer's one subscribed
+  subscription, or `None` when they have none or more than one.
+
+`Customer.pricing_table_client_secret()`
+: Creates a customer session for the pricing table and returns its client secret, which the plans
+  page passes as `customer-session-client-secret`. Returns `None`, and logs the kind of error,
+  when Stripe cannot be asked: the table works without it.
 
 ## The webhook
 
@@ -252,6 +323,9 @@ undescribed.
 `mvp_payments.stripe.models.from_epoch(seconds)`
 : Turns a Stripe timestamp in epoch seconds into an aware UTC datetime, or `None` when Stripe
   reported none.
+
+`mvp_payments.stripe.views.BillingPortalView`, `PlanSwitchView` and `BillingReturnView`
+: The handoff views described above.
 
 `mvp_payments.stripe.views.customer_for(event)`
 : Finds the `Customer` a verified webhook event is about, or `None`.

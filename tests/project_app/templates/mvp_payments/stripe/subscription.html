@@ -4,9 +4,7 @@
     <h1>Your subscription, our way</h1>
     {% for subscription in subscriptions %}
       <p>Status: {{ subscription.status }}</p>
-      {% for plan in subscription.plans %}
-        <p>{{ plan.name }} — <c-drf-stripe.amount :amount="plan.amount" /> ({{ plan.frequency_display }})</p>
-      {% endfor %}
+      <p>{{ subscription.name }} — <c-stripe.amount :amount="subscription.amount" /> ({{ subscription.frequency_display }})</p>
     {% empty %}
       <p>Nothing subscribed yet.</p>
     {% endfor %}

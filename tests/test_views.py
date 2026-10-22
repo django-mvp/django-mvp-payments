@@ -3,22 +3,18 @@
 import re
 
 import pytest
-from django.conf import settings
 from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
-from mvp_payments.namespaces.drf_stripe import drf_stripe
+from mvp_payments.namespaces.stripe import stripe_contribution
+from mvp_payments.stripe.models import Customer
 from mvp_payments.views import SubscriptionPageView
 from tests.factories import (
-    FeatureFactory,
-    PriceFactory,
-    ProductFeatureFactory,
-    StripeUserFactory,
-    SubscriptionFactory,
-    SubscriptionItemFactory,
+    StripeCustomerFactory,
+    StripeSubscriptionFactory,
     UserFactory,
 )
 from tests.markup import account_center_cards_region, account_navigation_regions
@@ -64,25 +60,25 @@ from django.test import Client
 from django.test.utils import setup_test_environment
 from django.urls import reverse
 
-from tests.factories import (
-    PriceFactory,
-    StripeUserFactory,
-    SubscriptionFactory,
-    SubscriptionItemFactory,
-)
+from tests.factories import StripeSubscriptionFactory
 
 setup_test_environment()
 call_command("migrate", verbosity=0, run_syncdb=True)
 
 user = User.objects.create_user(username="person", password="password")
-stripe_user = StripeUserFactory(user=user)
-subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
-price = PriceFactory(product__name="Premium", price=2000, currency="USD", freq="month_1")
-SubscriptionItemFactory(subscription=subscription, price=price)
+StripeSubscriptionFactory(
+    customer__user=user,
+    status="active",
+    product_name="Premium",
+    amount=2000,
+    currency="usd",
+    interval="month",
+    interval_count=1,
+)
 
 client = Client()
 client.login(username="person", password="password")
-response = client.get(reverse("payments:drf-stripe-subscription"))
+response = client.get(reverse("payments:stripe-subscription"))
 
 print(json.dumps({
     "status_code": response.status_code,
@@ -111,7 +107,7 @@ request = RequestFactory().get("/")
 request.user = AnonymousUser()
 
 compiled = compiler.process(
-    '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+    '<c-stripe.pricing-table table_id="prctbl_test123" '
     'publishable_key="pk_test_456" />'
 )
 template = Template(compiled)
@@ -146,11 +142,11 @@ client.login(username="person", password="password")
 
 with override_settings(
     MVP_PAYMENTS={
-        "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-        "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+        "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+        "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
     }
 ):
-    response = client.get(reverse("payments:drf-stripe-plans"))
+    response = client.get(reverse("payments:stripe-plans"))
 
 print(json.dumps({
     "status_code": response.status_code,
@@ -160,11 +156,13 @@ print(json.dumps({
 
 
 class TestPaymentPage:
-    @pytest.mark.parametrize("page", drf_stripe.pages, ids=lambda page: page.slug)
+    @pytest.mark.parametrize(
+        "page", stripe_contribution.pages, ids=lambda page: page.slug
+    )
     def test_signed_in_person_sees_the_page_inside_the_account_center(
         self, logged_in_client, page
     ):
-        response = logged_in_client.get(reverse(drf_stripe.view_name(page)))
+        response = logged_in_client.get(reverse(stripe_contribution.view_name(page)))
         content = response.content.decode()
 
         assert response.status_code == 200
@@ -174,10 +172,15 @@ class TestPaymentPage:
         assert ('aria-label="Account navigation"' in content) == page.in_navigation
 
     def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
-        response = client.get(reverse("payments:drf-stripe-subscription"))
+        response = client.get(reverse("payments:stripe-subscription"))
 
         assert response.status_code == 302
         assert response.url.startswith(reverse("account_login"))
+
+    def test_a_page_may_be_declared_open_to_everyone(self, client, db):
+        response = client.get(reverse("payments:stripe-plans"))
+
+        assert response.status_code == 200
 
 
 def _content_region(content: str) -> str:
@@ -197,11 +200,11 @@ class TestPlansPage:
     def test_context_and_content_carry_both_settings_values(self, logged_in_client):
         with override_settings(
             MVP_PAYMENTS={
-                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+                "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
             }
         ):
-            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+            response = logged_in_client.get(reverse("payments:stripe-plans"))
 
         assert response.status_code == 200
         assert response.context["pricing_table_id"] == "prctbl_test123"
@@ -220,43 +223,135 @@ class TestPlansPage:
 
         with override_settings(
             MVP_PAYMENTS={
-                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
+                "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
+                "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
             }
         ):
-            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+            response = logged_in_client.get(reverse("payments:stripe-plans"))
 
         content = _content_region(response.content.decode())
         assert 'customer-email="person@example.com"' in content
 
-    def test_a_subscriber_is_sent_to_their_subscription_instead_of_the_table(
-        self, subscriber_client
-    ):
-        with override_settings(
-            MVP_PAYMENTS={
-                "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-                "DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456",
-            }
-        ):
-            response = subscriber_client.get(reverse("payments:drf-stripe-plans"))
+    def test_a_subscriber_sees_the_pricing_table(self, subscribed_client):
+        response = subscribed_client.get(reverse("payments:stripe-plans"))
 
         content = _content_region(response.content.decode())
         assert response.status_code == 200
-        assert "stripe-pricing-table" not in content
-        assert f'href="{reverse("payments:drf-stripe-subscription")}"' in content
+        assert "<stripe-pricing-table" in content
+        assert "You already have a subscription" not in content
 
-    def test_an_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
-        response = client.get(reverse("payments:drf-stripe-plans"))
+    def test_a_signed_in_person_has_their_purchase_tied_to_them(
+        self, logged_in_client, user
+    ):
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        reference = Customer.client_reference(user)
+        assert response.context["client_reference_id"] == reference
+        content = _content_region(response.content.decode())
+        assert f'client-reference-id="{reference}"' in content
+        assert "customer-session-client-secret" not in content
+
+    def test_a_signed_in_person_with_no_customer_causes_no_request_to_stripe(
+        self, logged_in_client, stripe_fake
+    ):
+        logged_in_client.get(reverse("payments:stripe-plans"))
+
+        assert stripe_fake.requests == []
+
+    def test_a_signed_in_customer_has_the_purchase_land_on_their_stripe_customer(
+        self, logged_in_client, stripe_customer, stripe_fake
+    ):
+        stripe_fake.respond(
+            "POST",
+            "/v1/customer_sessions",
+            {"id": "cuss_1", "object": "customer_session", "client_secret": "cuss_s_1"},
+        )
+        stripe_customer.user.email = "person@example.com"
+        stripe_customer.user.save()
+
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert 'customer-session-client-secret="cuss_s_1"' in content
+        assert (
+            f'client-reference-id="{Customer.client_reference(stripe_customer.user)}"'
+            in content
+        )
+        assert "customer-email" not in content
+        ((method, path, params),) = stripe_fake.requests
+        assert (method, path) == ("POST", "/v1/customer_sessions")
+        assert params["customer"] == [stripe_customer.stripe_id]
+
+    def test_a_subscriber_gets_the_session_of_their_own_customer_and_nobody_elses(
+        self, subscribed_client, stripe_customer, stripe_fake
+    ):
+        StripeCustomerFactory(stripe_id="cus_somebody_else")
+        stripe_fake.respond(
+            "POST",
+            "/v1/customer_sessions",
+            {"id": "cuss_1", "object": "customer_session", "client_secret": "cuss_s_1"},
+        )
+
+        subscribed_client.get(reverse("payments:stripe-plans"))
+
+        ((_, _, params),) = stripe_fake.requests
+        assert params["customer"] == [stripe_customer.stripe_id]
+
+    def test_stripe_being_unreachable_still_shows_the_table_with_the_reference(
+        self, logged_in_client, stripe_customer, stripe_fake
+    ):
+        stripe_fake.become_unreachable("POST", "/v1/customer_sessions")
+
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "<stripe-pricing-table" in content
+        assert "client-reference-id" in content
+        assert "customer-session-client-secret" not in content
+
+    def test_an_anonymous_visitor_is_given_no_way_to_buy(self, client, db, stripe_fake):
+        response = client.get(reverse("payments:stripe-plans"))
+
+        content = _content_region(response.content.decode())
+        assert response.status_code == 200
+        assert "<stripe-pricing-table" not in content
+        assert response.context["client_reference_id"] is None
+        assert stripe_fake.requests == []
+
+    def test_an_anonymous_visitor_is_told_to_sign_in_before_choosing_a_plan(
+        self, client, db
+    ):
+        plans = reverse("payments:stripe-plans")
+
+        response = client.get(plans)
+
+        sign_in = f"{reverse('account_login')}?next={plans}"
+        assert response.context["sign_in_url"] == sign_in
+        content = _content_region(response.content.decode())
+        assert f'href="{sign_in}"' in content
+
+    def test_a_signed_in_person_is_not_told_to_sign_in(self, logged_in_client):
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
+
+        assert response.context["sign_in_url"] is None
+        assert reverse("account_login") not in _content_region(
+            response.content.decode()
+        )
+
+    def test_an_anonymous_visitor_can_still_not_open_the_subscription_page(
+        self, client, db
+    ):
+        response = client.get(reverse("payments:stripe-subscription"))
 
         assert response.status_code == 302
-        assert response.url.startswith(reverse("account_login"))
 
     def test_renders_with_mvp_payments_absent_from_settings_entirely(
         self, logged_in_client, settings
     ):
         del settings.MVP_PAYMENTS
 
-        response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
 
         assert response.status_code == 200
         assert response.context["pricing_table_id"] is None
@@ -272,10 +367,8 @@ class TestPlansPage:
     def test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id(
         self, logged_in_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_PUBLISHABLE_KEY": "pk_test_456"}
-        ):
-            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+        with override_settings(MVP_PAYMENTS={"STRIPE_PUBLISHABLE_KEY": "pk_test_456"}):
+            response = logged_in_client.get(reverse("payments:stripe-plans"))
 
         content = _content_region(response.content.decode())
         assert response.status_code == 200
@@ -286,9 +379,9 @@ class TestPlansPage:
         self, logged_in_client
     ):
         with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_PRICING_TABLE_ID": "prctbl_test123"}
+            MVP_PAYMENTS={"STRIPE_PRICING_TABLE_ID": "prctbl_test123"}
         ):
-            response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+            response = logged_in_client.get(reverse("payments:stripe-plans"))
 
         content = _content_region(response.content.decode())
         assert response.status_code == 200
@@ -300,11 +393,11 @@ class TestPlansPage:
     ):
         del settings.MVP_PAYMENTS
 
-        response = logged_in_client.get(reverse("payments:drf-stripe-plans"))
+        response = logged_in_client.get(reverse("payments:stripe-plans"))
         content = response.content.decode()
 
         assert response.status_code == 200
-        plans_label = drf_stripe.pages[1].label
+        plans_label = stripe_contribution.pages[1].label
         assert re.search(rf"<h1[^>]*>\s*{plans_label}\s*</h1>", content)
         assert "stripe-pricing-table" not in content
         assert "Plans not available" in _content_region(content)
@@ -334,7 +427,7 @@ class TestAccountCenterOverview:
         assert result["status_code"] == 200
         cards = account_center_cards_region(result["content"])
 
-        expected_url = reverse("payments:drf-stripe-subscription")
+        expected_url = reverse("payments:stripe-subscription")
         assert cards.count(f'href="{expected_url}"') == 1
         assert cards.count('data-testid="other-app-card"') == 1
 
@@ -354,125 +447,115 @@ class TestURLsNotMounted:
         assert 'aria-label="Account navigation"' in content
 
         # No navigation entry: covers every one of the backend's pages.
-        for page in drf_stripe.pages:
+        for page in stripe_contribution.pages:
             assert f"<span>{page.label}</span>" not in content
 
         # The group goes with its pages. django-flex-menus hides a container
         # left with no visible children, so the label cannot outlive the
         # entries it was heading.
         for region in account_navigation_regions(content):
-            assert f">{drf_stripe.group_label}<" not in region
+            assert f">{stripe_contribution.group_label}<" not in region
 
         # No card: its link would need a URL name that cannot reverse here.
         cards = account_center_cards_region(content)
         assert "<a href" not in cards
-        for page in drf_stripe.pages:
+        for page in stripe_contribution.pages:
             assert f">{page.label}<" not in cards
 
 
 @pytest.mark.django_db
 class TestSubscriptionPage:
     def test_renders_the_plan_name_amount_frequency_and_status(
-        self, subscriber_client, user
+        self, subscribed_client, stripe_subscription
     ):
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        stripe_subscription.product_name = "Premium monthly"
+        stripe_subscription.save()
+
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
         content = response.content.decode()
 
         assert response.status_code == 200
         assert "active" in content
-        assert "20.00" in content or "10.00" in content  # sanity: some amount renders
-        assert _AMOUNT_PATTERN.search(content)
+        assert "Premium monthly" in content
+        assert "20.00 USD" in content
+        assert "every month" in content
 
-    def test_a_recorded_period_appears(self, subscriber_client, current_subscription):
-        current_subscription.period_start = timezone.now()
-        current_subscription.period_end = timezone.now()
-        current_subscription.save()
+    def test_a_recorded_period_appears(self, subscribed_client, stripe_subscription):
+        stripe_subscription.current_period_start = timezone.now()
+        stripe_subscription.current_period_end = timezone.now()
+        stripe_subscription.save()
 
-        content = subscriber_client.get(
-            reverse("payments:drf-stripe-subscription")
+        content = subscribed_client.get(
+            reverse("payments:stripe-subscription")
         ).content.decode()
 
-        assert str(current_subscription.period_start.year) in content
+        assert str(stripe_subscription.current_period_start.year) in content
 
     def test_a_subscription_with_no_period_recorded_still_renders_the_rest(
-        self, subscriber_client, current_subscription
+        self, subscribed_client, stripe_subscription
     ):
-        current_subscription.period_start = None
-        current_subscription.period_end = None
-        current_subscription.save()
+        stripe_subscription.current_period_start = None
+        stripe_subscription.current_period_end = None
+        stripe_subscription.save()
 
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
 
         assert response.status_code == 200
         assert "active" in response.content.decode()
 
-    def test_two_priced_items_show_both_amounts_and_no_third_figure(
-        self, user, client_for
-    ):
-        stripe_user = StripeUserFactory(user=user)
-        subscription = SubscriptionFactory(stripe_user=stripe_user, status="active")
-        first_price = PriceFactory(price=2000, currency="USD", freq="month_1")
-        second_price = PriceFactory(price=3000, currency="EUR", freq="month_1")
-        SubscriptionItemFactory(subscription=subscription, price=first_price)
-        SubscriptionItemFactory(subscription=subscription, price=second_price)
+    def test_every_subscription_the_person_holds_is_listed(self, user, client_for):
+        customer = StripeCustomerFactory(user=user)
+        StripeSubscriptionFactory(
+            customer=customer, product_name="Basic", amount=2000, currency="usd"
+        )
+        StripeSubscriptionFactory(
+            customer=customer,
+            product_name="Extras",
+            amount=3000,
+            currency="eur",
+            status="trialing",
+        )
 
-        client = client_for(user)
-        content = client.get(
-            reverse("payments:drf-stripe-subscription")
-        ).content.decode()
+        content = (
+            client_for(user)
+            .get(reverse("payments:stripe-subscription"))
+            .content.decode()
+        )
 
+        assert "Basic" in content
+        assert "Extras" in content
         assert set(_AMOUNT_PATTERN.findall(content)) == {"20.00 USD", "30.00 EUR"}
+        assert "trialing" in content
 
-    def test_an_unrecognised_status_renders_as_itself(self, user, client_for):
-        stripe_user = StripeUserFactory(user=user)
-        subscription = SubscriptionFactory(stripe_user=stripe_user, status="past_due")
-        SubscriptionItemFactory(subscription=subscription)
-
-        client = client_for(user)
-        content = client.get(
-            reverse("payments:drf-stripe-subscription")
-        ).content.decode()
-
-        assert "past_due" in content
-
-    def test_another_persons_subscription_never_appears(self, subscriber_client):
-        other_stripe_user = StripeUserFactory()
-        other_subscription = SubscriptionFactory(
-            stripe_user=other_stripe_user, status="active"
+    def test_another_persons_subscription_never_appears(self, subscribed_client):
+        StripeSubscriptionFactory(
+            status="active",
+            product_name="Nobody Else's Plan",
+            amount=999999,
+            currency="gbp",
         )
-        other_price = PriceFactory(
-            price=999999, currency="GBP", product__name="Nobody Else's Plan"
-        )
-        SubscriptionItemFactory(subscription=other_subscription, price=other_price)
 
-        content = subscriber_client.get(
-            reverse("payments:drf-stripe-subscription")
+        content = subscribed_client.get(
+            reverse("payments:stripe-subscription")
         ).content.decode()
 
         assert "Nobody Else's Plan" not in content
         assert "9,999.99 GBP" not in content
 
-    def test_a_fixed_number_of_queries_whatever_the_number_of_items(
+    def test_a_fixed_number_of_queries_whatever_the_number_of_subscriptions(
         self, user, client_for
     ):
-        one_item_user = user
-        stripe_user_one = StripeUserFactory(user=one_item_user)
-        subscription_one = SubscriptionFactory(
-            stripe_user=stripe_user_one, status="active"
-        )
-        SubscriptionItemFactory(subscription=subscription_one)
+        one_subscription_user = user
+        StripeSubscriptionFactory(customer__user=one_subscription_user)
 
-        many_items_user = UserFactory()
-        stripe_user_many = StripeUserFactory(user=many_items_user)
-        subscription_many = SubscriptionFactory(
-            stripe_user=stripe_user_many, status="active"
-        )
+        many_subscriptions_user = UserFactory()
+        customer = StripeCustomerFactory(user=many_subscriptions_user)
         for _ in range(4):
-            SubscriptionItemFactory(subscription=subscription_many)
+            StripeSubscriptionFactory(customer=customer)
 
-        client_one = client_for(one_item_user)
-        client_many = client_for(many_items_user)
-        page_url = reverse("payments:drf-stripe-subscription")
+        client_one = client_for(one_subscription_user)
+        client_many = client_for(many_subscriptions_user)
+        page_url = reverse("payments:stripe-subscription")
 
         # A first request warms process-wide caches (the site, content types), so both
         # clients are primed to keep the comparison about the page's own queries.
@@ -486,66 +569,46 @@ class TestSubscriptionPage:
 
         assert len(captured_one) == len(captured_many)
 
-    def test_the_page_loads_the_portal_script(self, subscriber_client):
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+    def test_the_page_loads_the_portal_script(self, subscribed_client):
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
         content = response.content.decode()
 
         assert response.status_code == 200
         assert "data-mvp-payments-portal-link" in content
-        assert 'src="/static/mvp_payments/drf_stripe/billing_portal.js"' in content
+        assert 'src="/static/mvp_payments/stripe/billing_portal.js"' in content
 
-    def test_a_subscriber_switches_through_the_plan_change_endpoint(
-        self, subscriber_client
+    def test_a_subscriber_switches_through_the_apps_plan_switch_view(
+        self, subscribed_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
-        ):
-            response = subscriber_client.get(
-                reverse("payments:drf-stripe-subscription")
-            )
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
         content = _content_region(response.content.decode())
+        endpoint = reverse("payments:stripe-plan-switch")
 
-        assert response.context["plan_switch_endpoint"] == "/api/plan-switch/"
-        assert 'data-endpoint="/api/plan-switch/"' in content
-        assert f'href="{reverse("payments:drf-stripe-plans")}"' not in content
+        assert response.context["plan_switch_endpoint"] == endpoint
+        assert f'data-endpoint="{endpoint}"' in content
+        assert f'href="{reverse("payments:stripe-plans")}"' not in content
 
-    def test_without_a_plan_change_endpoint_a_subscriber_is_offered_no_switch(
-        self, subscriber_client
+    def test_the_plan_switch_view_is_withheld_from_somebody_with_no_subscription(
+        self, logged_in_client
     ):
-        with override_settings(MVP_PAYMENTS={}):
-            response = subscriber_client.get(
-                reverse("payments:drf-stripe-subscription")
-            )
-        content = _content_region(response.content.decode())
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         assert response.context["plan_switch_endpoint"] is None
-        assert "data-mvp-payments-portal-link" not in content
-
-    def test_the_plan_change_endpoint_is_withheld_from_somebody_with_no_subscription(
-        self, user, client_for
-    ):
-        client = client_for(user)
-        with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
-        ):
-            response = client.get(reverse("payments:drf-stripe-subscription"))
-
-        assert response.context["plan_switch_endpoint"] is None
-        assert "/api/plan-switch/" not in response.content.decode()
+        assert reverse("payments:stripe-plan-switch") not in response.content.decode()
 
     def test_someone_with_no_subscription_is_invited_to_choose_one(
         self, user, client_for
     ):
         client = client_for(user)
 
-        response = client.get(reverse("payments:drf-stripe-subscription"))
+        response = client.get(reverse("payments:stripe-subscription"))
         content = response.content.decode()
 
-        assert f'href="{reverse("payments:drf-stripe-plans")}"' in content
+        assert f'href="{reverse("payments:stripe-plans")}"' in content
         assert "data-mvp-payments-portal-link" not in content
 
-    def test_the_portal_control_carries_a_usable_csrf_token(self, subscriber_client):
-        response = subscriber_client.get(reverse("payments:drf-stripe-subscription"))
+    def test_the_portal_control_carries_a_usable_csrf_token(self, subscribed_client):
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
         content = response.content.decode()
 
         token = re.search(r'data-csrf-token="([^"]*)"', content)
@@ -562,7 +625,7 @@ class TestComingBackFromTheProvider:
     """
 
     def _page(self, client, query=""):
-        return client.get(reverse("payments:drf-stripe-subscription") + query)
+        return client.get(reverse("payments:stripe-subscription") + query)
 
     def _region(self, response):
         """The subscription region's opening tag, where the polling is declared."""
@@ -594,7 +657,7 @@ class TestComingBackFromTheProvider:
         """Only the region is fetched and swapped, not the whole page reloaded."""
         region = self._region(self._page(logged_in_client, "?returned=1"))
 
-        page = reverse("payments:drf-stripe-subscription")
+        page = reverse("payments:stripe-subscription")
         assert f'hx-get="{page}?returned=2"' in region
         assert 'hx-trigger="every 3s"' in region
         assert 'hx-select="#mvp-payments-subscription"' in region
@@ -612,14 +675,14 @@ class TestComingBackFromTheProvider:
         assert "You don't have an active subscription." not in content
 
     def test_with_a_subscription_showing_there_is_nothing_to_wait_for(
-        self, subscriber_client
+        self, subscribed_client
     ):
         """The poll that finds the payment stops polling, and a reload says nothing more.
 
         This is also what somebody back from the portal sees: the page cannot tell whether a
         change made there has landed yet, so it shows the subscription as it stands.
         """
-        response = self._page(subscriber_client, "?returned=3")
+        response = self._page(subscribed_client, "?returned=3")
 
         assert response.context["provider_return"] is None
         assert "hx-trigger" not in self._region(response)
@@ -638,46 +701,24 @@ class TestComingBackFromTheProvider:
 
 @pytest.mark.django_db
 class TestBillingPortalEndpoint:
-    def test_carries_the_endpoint_from_settings_for_a_current_subscriber(
-        self, subscriber_client
+    def test_is_the_apps_billing_portal_view_for_a_current_subscriber(
+        self, subscribed_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
-        ):
-            response = subscriber_client.get(
-                reverse("payments:drf-stripe-subscription")
-            )
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
 
-        assert (
-            response.context["billing_portal_endpoint"]
-            == "/api/stripe/customer-portal/"
-        )
+        endpoint = reverse("payments:stripe-billing-portal")
+        assert response.context["billing_portal_endpoint"] == endpoint
+        assert f'data-endpoint="{endpoint}"' in response.content.decode()
 
-    def test_is_none_when_the_setting_is_absent(self, subscriber_client):
-        with override_settings(MVP_PAYMENTS={}):
-            response = subscriber_client.get(
-                reverse("payments:drf-stripe-subscription")
-            )
-
-        assert response.context["billing_portal_endpoint"] is None
-
-    def test_is_none_for_a_person_with_no_current_subscription_even_when_set(
-        self, logged_in_client
-    ):
-        with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
-        ):
-            response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+    def test_is_none_for_a_person_with_no_current_subscription(self, logged_in_client):
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         assert response.context["billing_portal_endpoint"] is None
 
     def test_says_nothing_about_a_subscription_to_someone_who_has_none(
         self, logged_in_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
-        ):
-            response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         content = response.content.decode()
         assert "data-mvp-payments-portal-link" not in content
@@ -687,28 +728,23 @@ class TestBillingPortalEndpoint:
 
 @pytest.mark.django_db
 class TestNoCurrentSubscription:
-    def test_a_person_whose_subscription_has_ended_is_told_there_is_none(
-        self, user, client_for
+    @pytest.mark.parametrize("status", ["canceled", "incomplete_expired"])
+    def test_a_person_whose_subscription_has_finished_is_told_there_is_none(
+        self, user, client_for, status
     ):
-        stripe_user = StripeUserFactory(user=user)
-        ended_subscription = SubscriptionFactory(
-            stripe_user=stripe_user, status="canceled"
+        ended_subscription = StripeSubscriptionFactory(
+            customer__user=user,
+            status=status,
+            product_name="Nobody's Plan Anymore",
+            amount=999999,
+            currency="gbp",
+            interval="year",
+            current_period_start=timezone.now(),
+            current_period_end=timezone.now(),
         )
-        ended_subscription.period_start = timezone.now()
-        ended_subscription.period_end = timezone.now()
-        ended_subscription.save()
-        feature = FeatureFactory(description="Priority support")
-        price = PriceFactory(
-            product__name="Nobody's Plan Anymore",
-            price=999999,
-            currency="GBP",
-            freq="year_1",
-        )
-        ProductFeatureFactory(product=price.product, feature=feature)
-        SubscriptionItemFactory(subscription=ended_subscription, price=price)
 
         client = client_for(user)
-        response = client.get(reverse("payments:drf-stripe-subscription"))
+        response = client.get(reverse("payments:stripe-subscription"))
         content = response.content.decode()
 
         assert response.status_code == 200
@@ -716,15 +752,28 @@ class TestNoCurrentSubscription:
         assert "Nobody's Plan Anymore" not in content
         assert "9,999.99 GBP" not in content
         assert "every year" not in content
-        assert "canceled" not in content
-        assert str(ended_subscription.period_start.year) not in content
-        assert "Priority support" not in content
+        assert status not in content
+        assert str(ended_subscription.current_period_start.year) not in content
         assert "data-mvp-payments-portal-link" not in content
+
+    @pytest.mark.parametrize("status", ["past_due", "unpaid", "incomplete", "paused"])
+    def test_a_subscription_needing_attention_is_shown_with_its_status_and_the_portal(
+        self, user, client_for, status
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, status=status, product_name="Needs Attention Plan"
+        )
+
+        content = client_for(user).get(reverse("payments:stripe-subscription")).content
+        content = content.decode()
+
+        assert "Needs Attention Plan" in content
+        assert "data-mvp-payments-portal-link" in content
 
     def test_a_person_with_no_customer_record_at_all_reaches_the_same_page(
         self, logged_in_client
     ):
-        response = logged_in_client.get(reverse("payments:drf-stripe-subscription"))
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         assert response.status_code == 200
         content = response.content.decode()
@@ -750,10 +799,7 @@ class TestTemplateOverride:
         assert "Premium" in content
         assert "20.00 USD" in content
         assert "every month" in content
-        # Read from the configuration rather than written out here: which endpoint a
-        # project hands a reader to is the project's to choose, and what this proves is
-        # that the value reaches the project's own template, not what the value is.
-        assert settings.MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"] in content
+        assert reverse("payments:stripe-billing-portal") in content
 
 
 class TestPlansPageOverride:

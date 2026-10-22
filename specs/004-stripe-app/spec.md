@@ -33,8 +33,8 @@ constitution as amended on 2026-10-20 and Stripe's published behaviour. Longer r
 - **Q: A person buys on Stripe's hosted checkout, which the app never sees. What makes the
   subscription theirs?**
   A: The identity of the signed-in person, carried through checkout by Stripe and returned with
-  the completed checkout. Matching on email address alone, as drf-stripe-subscription did, attaches
-  a purchase to nobody when the person types a different address at checkout. A Stripe customer
+  the completed checkout. Matching on email address alone attaches a purchase to nobody when the
+  person types a different address at checkout. A Stripe customer
   the app cannot tie to a user is not recorded against anyone. Recorded as FR-006 and FR-007.
 
 - **Q: Stripe allows a customer more than one subscription. Does the app keep one per user or
@@ -310,13 +310,13 @@ user, and confirm the subscription is recorded.
 
 ## Assumptions
 
-- A person normally has one subscription. Switching plans, cancelling and updating payment
-  details all happen on Stripe's hosted pages.
-- The plans page's pricing table will carry the signed-in user's identity into checkout. That
-  change, and moving the subscription and plans pages, the portal and plan-change handoffs and the
-  return from Stripe onto this app, is the separate work that follows this feature. Until then the
-  `drf-stripe` pages keep working as they do today.
-- Nothing is migrated from drf-stripe-subscription, because nothing has been released.
+- A person normally has one subscription, and may hold several. Switching plans, cancelling and
+  updating payment details all happen on Stripe's hosted pages.
+- The plans page's pricing table carries the signed-in user's identity into checkout, and the
+  subscription and plans pages, the portal and plan-change handoffs and the return from Stripe all
+  run on this app.
+- Nothing is migrated from the backend the first pages were built on, because nothing has been
+  released.
 - Trials appear only as a status. Taxes, invoices, metered billing, one-off payments, coupons
   beyond Stripe's hosted pages, and billing for teams or organisations are out of scope.
 - Stripe is the source of truth. Where the app's records and Stripe disagree, Stripe is right.

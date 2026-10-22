@@ -44,7 +44,9 @@ and the test settings install.
 for a Django user with:
 
 ```python
-django_user_query_filters = {drf_stripe_settings.DJANGO_USER_EMAIL_FIELD: customer.email}
+django_user_query_filters = {
+    drf_stripe_settings.DJANGO_USER_EMAIL_FIELD: customer.email
+}
 ```
 
 The email address is the entire lookup. No other identifier is read anywhere on that path, and in

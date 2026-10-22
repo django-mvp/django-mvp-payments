@@ -11,11 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from mvp_payments.money import Money
-from mvp_payments.namespaces.drf_stripe_records import (
-    CurrentSubscription,
-    Plan,
-    PlanFeature,
-)
+from mvp_payments.namespaces.stripe_records import CurrentSubscription
 
 
 class TestPricingTable:
@@ -23,7 +19,7 @@ class TestPricingTable:
         self, cotton_render
     ):
         html = cotton_render(
-            "drf-stripe.pricing-table",
+            "stripe.pricing-table",
             table_id="prctbl_test123",
             publishable_key="pk_test_456",
         )
@@ -38,7 +34,7 @@ class TestPricingTable:
         self, cotton_render
     ):
         html = cotton_render(
-            "drf-stripe.pricing-table",
+            "stripe.pricing-table",
             table_id="prctbl_test123",
             publishable_key="pk_test_456",
         )
@@ -53,7 +49,7 @@ class TestPricingTable:
         request.user = user
 
         html = cotton_render_string(
-            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            '<c-stripe.pricing-table table_id="prctbl_test123" '
             'publishable_key="pk_test_456" />',
             context={"request": request},
         )
@@ -67,7 +63,7 @@ class TestPricingTable:
         request.user = user
 
         html = cotton_render_string(
-            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            '<c-stripe.pricing-table table_id="prctbl_test123" '
             'publishable_key="pk_test_456" />',
             context={"request": request},
         )
@@ -83,7 +79,7 @@ class TestPricingTable:
         request.user = AnonymousUser()
 
         html = cotton_render_string(
-            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            '<c-stripe.pricing-table table_id="prctbl_test123" '
             'publishable_key="pk_test_456" />',
             context={"request": request},
         )
@@ -98,13 +94,50 @@ class TestPricingTable:
         request.user = user
 
         html = cotton_render_string(
-            '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+            '<c-stripe.pricing-table table_id="prctbl_test123" '
             'publishable_key="pk_test_456" customer_email="explicit@example.com" />',
             context={"request": request},
         )
 
         assert 'customer-email="explicit@example.com"' in html
         assert "person@example.com" not in html
+
+    def test_a_reference_is_carried_as_the_client_reference_id(self, cotton_render):
+        html = cotton_render(
+            "stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+            client_reference_id="7_abc123",
+        )
+
+        assert 'client-reference-id="7_abc123"' in html
+
+    def test_no_reference_carries_no_client_reference_id_attribute(self, cotton_render):
+        html = cotton_render(
+            "stripe.pricing-table",
+            table_id="prctbl_test123",
+            publishable_key="pk_test_456",
+        )
+
+        assert "client-reference-id" not in html
+        assert "customer-session-client-secret" not in html
+
+    def test_a_customer_session_is_carried_and_replaces_the_customer_email(
+        self, cotton_render_string, rf, user
+    ):
+        user.email = "person@example.com"
+        request = rf.get("/")
+        request.user = user
+
+        html = cotton_render_string(
+            '<c-stripe.pricing-table table_id="prctbl_test123" '
+            'publishable_key="pk_test_456" customer_session_client_secret="cuss_s_1" '
+            'customer_email="explicit@example.com" />',
+            context={"request": request},
+        )
+
+        assert 'customer-session-client-secret="cuss_s_1"' in html
+        assert "customer-email" not in html
 
     def test_renders_completely_from_its_attributes_alone_for_an_anonymous_visitor(
         self, cotton_render_string, rf, django_assert_num_queries, db
@@ -115,7 +148,7 @@ class TestPricingTable:
         with django_assert_num_queries(0):
             html = cotton_render_string(
                 "<article><h2>Order summary</h2>"
-                '<c-drf-stripe.pricing-table table_id="prctbl_test123" '
+                '<c-stripe.pricing-table table_id="prctbl_test123" '
                 'publishable_key="pk_test_456" /></article>',
                 context={"request": request},
             )
@@ -128,155 +161,80 @@ class TestPricingTable:
 
 
 class TestAmount:
+    def test_no_amount_renders_nothing(self, cotton_render):
+        html = cotton_render("stripe.amount", amount=None)
+
+        assert html.strip() == ""
+
     def test_renders_the_amount_it_was_given(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.amount", amount=Money(minor_units=2000, currency="USD")
+            "stripe.amount", amount=Money(minor_units=2000, currency="USD")
         )
 
         assert "20.00 USD" in html
 
     def test_a_currencyless_amount_renders_nothing_for_the_figure(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.amount", amount=Money(minor_units=2000, currency="")
+            "stripe.amount", amount=Money(minor_units=2000, currency="")
         )
 
         assert "2000" not in html
         assert "20.00" not in html
 
 
-class TestPlan:
-    def test_renders_the_name_amount_and_frequency_it_was_given(self, cotton_render):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
+def current_subscription(**overrides):
+    fields = {
+        "status": "active",
+        "name": "Premium monthly",
+        "amount": Money(minor_units=2500, currency="USD"),
+        "interval": "month",
+        "interval_count": 1,
+        "period_start": None,
+        "period_end": None,
+    }
+    return CurrentSubscription(**{**fields, **overrides})
 
-        html = cotton_render("drf-stripe.plan", plan=plan)
 
+class TestSubscription:
+    def test_renders_the_status_name_amount_and_frequency(self, cotton_render):
+        html = cotton_render("stripe.subscription", subscription=current_subscription())
+
+        assert "active" in html
         assert "Premium monthly" in html
         assert "25.00 USD" in html
         assert "every month" in html
 
-    def test_a_quantity_above_one_is_shown(self, cotton_render):
-        plan = Plan(
-            name="Seats",
-            amount=Money(minor_units=500, currency="USD"),
-            frequency="month_1",
-            quantity=3,
-        )
-
-        html = cotton_render("drf-stripe.plan", plan=plan)
-
-        assert "3" in html
-
-    def test_an_unrecognised_frequency_renders_as_itself(self, cotton_render):
-        plan = Plan(
-            name="Odd billing",
-            amount=Money(minor_units=500, currency="USD"),
-            frequency="fortnight_1",
-            quantity=1,
-        )
-
-        html = cotton_render("drf-stripe.plan", plan=plan)
-
-        assert "fortnight_1" in html
-
-    def test_its_features_render_beneath_it(self, cotton_render):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-            features=(
-                PlanFeature(identifier="reports", description="Advanced reports"),
-            ),
-        )
-
-        html = cotton_render("drf-stripe.plan", plan=plan)
-
-        assert "Advanced reports" in html
-
-    def test_no_features_renders_no_heading_or_list(self, cotton_render):
-        plan = Plan(
-            name="Basic",
-            amount=Money(minor_units=500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
-
-        html = cotton_render("drf-stripe.plan", plan=plan)
-
-        assert "<ul" not in html
-        assert "<li" not in html
-
-
-class TestSubscription:
-    def test_renders_the_status_and_its_plans(self, cotton_render):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
-        subscription = CurrentSubscription(
-            status="active",
-            period_start=None,
-            period_end=None,
-            plans=(plan,),
-        )
-
-        html = cotton_render("drf-stripe.subscription", subscription=subscription)
-
-        assert "active" in html
-        assert "Premium monthly" in html
-
     def test_renders_a_recorded_period(self, cotton_render):
         now = timezone.now()
-        subscription = CurrentSubscription(
-            status="active", period_start=now, period_end=now, plans=()
-        )
+        subscription = current_subscription(period_start=now, period_end=now)
 
-        html = cotton_render("drf-stripe.subscription", subscription=subscription)
+        html = cotton_render("stripe.subscription", subscription=subscription)
 
         assert str(now.year) in html
 
     def test_an_unrecognised_status_renders_as_itself_with_no_special_variant(
         self, cotton_render
     ):
-        subscription = CurrentSubscription(
-            status="paused", period_start=None, period_end=None, plans=()
+        html = cotton_render(
+            "stripe.subscription", subscription=current_subscription(status="paused")
         )
-
-        html = cotton_render("drf-stripe.subscription", subscription=subscription)
 
         assert "paused" in html
 
+    def test_an_unrecognised_interval_renders_as_itself(self, cotton_render):
+        subscription = current_subscription(interval="fortnight")
 
-class TestFeatures:
-    def test_lists_the_features_it_is_given(self, cotton_render):
-        features = (
-            PlanFeature(identifier="reports", description="Advanced reports"),
-            PlanFeature(identifier="seats", description="Unlimited seats"),
+        html = cotton_render("stripe.subscription", subscription=subscription)
+
+        assert "fortnight_1" in html
+
+    def test_a_price_with_no_fixed_amount_shows_no_figure(self, cotton_render):
+        html = cotton_render(
+            "stripe.subscription", subscription=current_subscription(amount=None)
         )
 
-        html = cotton_render("drf-stripe.features", features=features)
-
-        assert "Advanced reports" in html
-        assert "Unlimited seats" in html
-
-    def test_shows_the_identifier_where_there_is_no_description(self, cotton_render):
-        features = (PlanFeature(identifier="priority_support", description=""),)
-
-        html = cotton_render("drf-stripe.features", features=features)
-
-        assert "priority_support" in html
-
-    def test_renders_nothing_at_all_when_given_none(self, cotton_render):
-        html = cotton_render("drf-stripe.features", features=())
-
-        assert html.strip() == ""
+        assert "None" not in html
+        assert "Premium monthly" in html
 
 
 class TestPlansLink:
@@ -284,7 +242,7 @@ class TestPlansLink:
         self, cotton_render
     ):
         html = cotton_render(
-            "drf-stripe.plans-link",
+            "stripe.plans-link",
             url="/account/billing/plans/",
             subscribed=True,
             switch_endpoint="/api/plan-switch/",
@@ -308,34 +266,34 @@ class TestPlansLink:
         self, cotton_render
     ):
         html = cotton_render(
-            "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=True
+            "stripe.plans-link", url="/account/billing/plans/", subscribed=True
         )
 
         assert html.strip() == ""
 
     def test_somebody_on_no_plan_is_offered_a_choice(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.plans-link", url="/account/billing/plans/", subscribed=False
+            "stripe.plans-link", url="/account/billing/plans/", subscribed=False
         )
 
         assert 'href="/account/billing/plans/"' in html
         assert "data-mvp-payments-portal-link" not in html
 
     def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
-        html = cotton_render("drf-stripe.plans-link", url=None)
+        html = cotton_render("stripe.plans-link", url=None)
 
         assert html.strip() == ""
 
 
 class TestProviderReturn:
-    """``<c-drf-stripe.provider-return>`` — waiting on a payment to arrive."""
+    """``<c-stripe.provider-return>`` — waiting on a payment to arrive."""
 
     def test_renders_nothing_without_a_state(self, cotton_render):
-        assert cotton_render("drf-stripe.provider-return", state=None).strip() == ""
+        assert cotton_render("stripe.provider-return", state=None).strip() == ""
 
     def test_while_polling_it_says_the_payment_is_being_confirmed(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.provider-return",
+            "stripe.provider-return",
             state={"attempt": 1, "poll_url": "/billing/?returned=2"},
         )
 
@@ -344,7 +302,7 @@ class TestProviderReturn:
 
     def test_out_of_polls_it_says_to_reload_later(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.provider-return",
+            "stripe.provider-return",
             state={"attempt": 5, "poll_url": None},
         )
 
@@ -352,21 +310,16 @@ class TestProviderReturn:
         assert "Confirming your payment" not in html
 
 
-class TestAlreadySubscribed:
-    def test_it_says_so_and_leads_to_the_subscription_page(self, cotton_render):
+class TestSignInNotice:
+    def test_it_asks_for_a_sign_in_and_leads_to_the_given_address(self, cotton_render):
         html = cotton_render(
-            "drf-stripe.already-subscribed", url="/account/billing/subscription/"
+            "stripe.sign-in-notice", url="/accounts/login/?next=/account/billing/plans/"
         )
 
-        assert "You already have a subscription" in html
-        assert 'href="/account/billing/subscription/"' in html
-        assert "stripe-pricing-table" not in html
+        assert 'href="/accounts/login/?next=/account/billing/plans/"' in html
 
-    def test_given_no_address_it_still_says_so_without_a_dead_link(self, cotton_render):
-        html = cotton_render("drf-stripe.already-subscribed", url=None)
-
-        assert "You already have a subscription" in html
-        assert "href" not in html
+    def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
+        assert cotton_render("stripe.sign-in-notice", url=None).strip() == ""
 
 
 class TestPortalLink:
@@ -374,7 +327,7 @@ class TestPortalLink:
         self, cotton_render
     ):
         html = cotton_render(
-            "drf-stripe.portal-link", endpoint="/api/stripe/customer-portal/"
+            "stripe.portal-link", endpoint="/api/stripe/customer-portal/"
         )
 
         assert 'data-endpoint="/api/stripe/customer-portal/"' in html
@@ -393,7 +346,7 @@ class TestPortalLink:
     def test_given_no_endpoint_it_states_the_provider_manages_it_and_renders_no_control(
         self, cotton_render
     ):
-        html = cotton_render("drf-stripe.portal-link", endpoint=None)
+        html = cotton_render("stripe.portal-link", endpoint=None)
 
         assert "<button" not in html
         assert "provider" in html.lower()
@@ -402,14 +355,14 @@ class TestPortalLink:
 
 class TestNoSubscription:
     def test_renders_one_line_given_nothing(self, cotton_render):
-        html = cotton_render("drf-stripe.no-subscription")
+        html = cotton_render("stripe.no-subscription")
 
         assert "You don't have an active subscription." in html
 
 
 class TestPlansUnavailable:
     def test_renders_its_sentence_given_nothing(self, cotton_render):
-        html = cotton_render("drf-stripe.plans-unavailable")
+        html = cotton_render("stripe.plans-unavailable")
 
         assert "Plans not available" in html
         assert "This project has not configured its plans yet." in html
@@ -418,63 +371,32 @@ class TestPlansUnavailable:
 class TestStandalone:
     def test_amount_renders_inside_an_unrelated_template(self, cotton_render_string):
         html = cotton_render_string(
-            '<article><h2>Order summary</h2><c-drf-stripe.amount :amount="amount" /></article>',
+            '<article><h2>Order summary</h2><c-stripe.amount :amount="amount" /></article>',
             context={"amount": Money(minor_units=2000, currency="USD")},
         )
 
         assert "Order summary" in html
         assert "20.00 USD" in html
 
-    def test_plan_renders_inside_an_unrelated_template(self, cotton_render_string):
-        plan = Plan(
-            name="Premium monthly",
-            amount=Money(minor_units=2500, currency="USD"),
-            frequency="month_1",
-            quantity=1,
-        )
-
-        html = cotton_render_string(
-            '<section><h1>Pricing</h1><c-drf-stripe.plan :plan="plan" /></section>',
-            context={"plan": plan},
-        )
-
-        assert "Pricing" in html
-        assert "Premium monthly" in html
-        assert "25.00 USD" in html
-
     def test_subscription_renders_inside_an_unrelated_template(
         self, cotton_render_string
     ):
-        subscription = CurrentSubscription(
-            status="active", period_start=None, period_end=None, plans=()
-        )
+        subscription = current_subscription()
 
         html = cotton_render_string(
             "<aside><h3>Dashboard widget</h3>"
-            '<c-drf-stripe.subscription :subscription="subscription" /></aside>',
+            '<c-stripe.subscription :subscription="subscription" /></aside>',
             context={"subscription": subscription},
         )
 
         assert "Dashboard widget" in html
         assert "active" in html
 
-    def test_features_renders_inside_an_unrelated_template(self, cotton_render_string):
-        features = (PlanFeature(identifier="reports", description="Advanced reports"),)
-
-        html = cotton_render_string(
-            "<footer><p>What's included</p>"
-            '<c-drf-stripe.features :features="features" /></footer>',
-            context={"features": features},
-        )
-
-        assert "What's included" in html
-        assert "Advanced reports" in html
-
     def test_portal_link_renders_inside_an_unrelated_template(
         self, cotton_render_string
     ):
         html = cotton_render_string(
-            '<nav><span>Account</span><c-drf-stripe.portal-link :endpoint="endpoint" /></nav>',
+            '<nav><span>Account</span><c-stripe.portal-link :endpoint="endpoint" /></nav>',
             context={"endpoint": "/api/stripe/customer-portal/"},
         )
 
@@ -486,7 +408,7 @@ class TestStandalone:
         self, cotton_render_string
     ):
         html = cotton_render_string(
-            "<main><h1>Welcome</h1><c-drf-stripe.no-subscription /></main>"
+            "<main><h1>Welcome</h1><c-stripe.no-subscription /></main>"
         )
 
         assert "Welcome" in html

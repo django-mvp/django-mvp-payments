@@ -32,9 +32,8 @@ provider's SDK is declared only in its provider app's extra, `stripe-lite` for t
 and imported nowhere else (Article XII). Secret keys come from the host project's settings and
 never reach a template, a context, a log or a fixture. No card details pass through any of it.
 
-The Stripe app replaces drf-stripe-subscription ([ADR 0010](docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
-Until its pages move across, the `drf-stripe` namespace still reads drf-stripe-subscription's
-records through the application registry.
+The package keeps its own Stripe app ([ADR 0010](docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
+The `stripe` namespace's pages read its records through the application registry.
 
 ## Stack & commands
 
@@ -54,8 +53,8 @@ migrations, and a raw invocation reports findings in paths the gate does not cov
 ## Component layout
 
 Components live at `mvp_payments/templates/cotton/<backend>/<component>.html`. Cotton maps a tag's
-first segment onto that directory and hyphens onto underscores, so `<c-drf-stripe.plan-grid>`
-resolves to `cotton/drf_stripe/plan_grid.html`.
+first segment onto that directory and hyphens onto underscores, so `<c-stripe.pricing-table>`
+resolves to `cotton/stripe/pricing_table.html`.
 
 The directory is named for the **backend**, not for this package — unlike most packages in this
 organisation, which namespace by package name. That is deliberate: the namespace is how a template

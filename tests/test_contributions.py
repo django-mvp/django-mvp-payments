@@ -6,7 +6,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from mvp_payments.contributions import Contribution, Page
-from mvp_payments.namespaces.drf_stripe import drf_stripe
+from mvp_payments.namespaces.stripe import stripe_contribution
 from mvp_payments.views import PaymentPageView
 from tests.markup import account_navigation_regions
 from tests.probes import run_probe
@@ -17,10 +17,10 @@ class _CustomPageView(PaymentPageView):
     """A throwaway view, standing in for a page that needs its own."""
 
 
-def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
+def _make_contribution(app_label="mvp_payments.stripe", namespace="fixture-namespace"):
     """A throwaway contribution for exercising the mechanism itself.
 
-    Gated on ``drf_stripe`` by default because that backend is actually
+    Gated on ``mvp_payments.stripe`` by default because that backend is actually
     installed in the test settings, so ``is_available()`` has something real
     to answer against without this package importing it.
     """
@@ -32,13 +32,13 @@ def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
                 slug="one",
                 label="One",
                 icon="overview",
-                template_name="mvp_payments/drf_stripe/subscription.html",
+                template_name="mvp_payments/stripe/subscription.html",
             ),
             Page(
                 slug="two",
                 label="Two",
                 icon="overview",
-                template_name="mvp_payments/drf_stripe/plans.html",
+                template_name="mvp_payments/stripe/plans.html",
             ),
         ),
         card_template="mvp_payments/card.html",
@@ -46,9 +46,25 @@ def _make_contribution(app_label="drf_stripe", namespace="fixture-namespace"):
     )
 
 
+class TestPage:
+    def test_a_page_requires_a_signed_in_visitor_unless_it_says_otherwise(self):
+        page = Page(slug="a", label="A", icon="a", template_name="a.html")
+
+        assert page.login_required is True
+
+    def test_the_stripe_namespace_opens_only_its_plans_page_to_everyone(self):
+        open_pages = [
+            page.slug for page in stripe_contribution.pages if not page.login_required
+        ]
+
+        assert open_pages == ["plans"]
+
+
 class TestContribution:
     def test_reports_available_when_its_backend_is_installed(self):
-        assert _make_contribution(app_label="drf_stripe").is_available() is True
+        assert (
+            _make_contribution(app_label="mvp_payments.stripe").is_available() is True
+        )
 
     def test_reports_unavailable_when_its_backend_is_not_installed(self):
         assert (
@@ -86,20 +102,20 @@ class TestContribution:
         self, account_center_menu
     ):
         contribution = Contribution(
-            backend_app_name="drf_stripe",
+            backend_app_name="mvp_payments.stripe",
             namespace="unnavigated-fixture",
             pages=(
                 Page(
                     slug="one",
                     label="One",
                     icon="overview",
-                    template_name="mvp_payments/drf_stripe/subscription.html",
+                    template_name="mvp_payments/stripe/subscription.html",
                 ),
                 Page(
                     slug="two",
                     label="Two",
                     icon="overview",
-                    template_name="mvp_payments/drf_stripe/plans.html",
+                    template_name="mvp_payments/stripe/plans.html",
                     in_navigation=False,
                 ),
             ),
@@ -124,7 +140,7 @@ class TestContribution:
             contribution.page_url("three")
 
     def test_the_shipped_namespace_offers_one_entry_under_one_group(self):
-        navigated = [page for page in drf_stripe.pages if page.in_navigation]
+        navigated = [page for page in stripe_contribution.pages if page.in_navigation]
 
         assert [page.slug for page in navigated] == ["subscription"]
 
@@ -135,10 +151,10 @@ class TestPageView:
             slug="one",
             label="One",
             icon="overview",
-            template_name="mvp_payments/drf_stripe/subscription.html",
+            template_name="mvp_payments/stripe/subscription.html",
         )
         contribution = Contribution(
-            backend_app_name="drf_stripe",
+            backend_app_name="mvp_payments.stripe",
             namespace="page-view-fixture-default",
             pages=(page,),
             card_template="mvp_payments/card.html",
@@ -154,11 +170,11 @@ class TestPageView:
             slug="one",
             label="One",
             icon="overview",
-            template_name="mvp_payments/drf_stripe/subscription.html",
+            template_name="mvp_payments/stripe/subscription.html",
             view=_CustomPageView,
         )
         contribution = Contribution(
-            backend_app_name="drf_stripe",
+            backend_app_name="mvp_payments.stripe",
             namespace="page-view-fixture-custom",
             pages=(page,),
             card_template="mvp_payments/card.html",
@@ -174,17 +190,17 @@ class TestPageView:
             slug="one",
             label="One",
             icon="overview",
-            template_name="mvp_payments/drf_stripe/subscription.html",
+            template_name="mvp_payments/stripe/subscription.html",
         )
         custom_page = Page(
             slug="two",
             label="Two",
             icon="overview",
-            template_name="mvp_payments/drf_stripe/plans.html",
+            template_name="mvp_payments/stripe/plans.html",
             view=_CustomPageView,
         )
         contribution = Contribution(
-            backend_app_name="drf_stripe",
+            backend_app_name="mvp_payments.stripe",
             namespace="page-view-fixture-mixed",
             pages=(default_page, custom_page),
             card_template="mvp_payments/card.html",
@@ -200,10 +216,10 @@ class TestPageView:
 class TestRepeatedRegistration:
     @pytest.mark.django_db
     def test_registering_twice_does_not_duplicate_entries(self, logged_in_client):
-        from mvp_payments.namespaces.drf_stripe import drf_stripe
+        from mvp_payments.namespaces.stripe import stripe_contribution
 
-        drf_stripe.register()
-        drf_stripe.register()
+        stripe_contribution.register()
+        stripe_contribution.register()
 
         content = logged_in_client.get(reverse("account-center")).content.decode()
         # Counting inside the navigation rather than across the page keeps
@@ -212,15 +228,13 @@ class TestRepeatedRegistration:
         regions = account_navigation_regions(content)
         assert len(regions) == 1
         for region in regions:
-            for page in drf_stripe.pages:
+            for page in stripe_contribution.pages:
                 # A navigated page renders once per region; one kept out of
                 # the navigation renders in neither, however often the
                 # contribution registered.
                 expected = 1 if page.in_navigation else 0
                 assert (
-                    region.count(
-                        f'href="{reverse(f"payments:drf-stripe-{page.slug}")}"'
-                    )
+                    region.count(f'href="{reverse(f"payments:stripe-{page.slug}")}"')
                     == expected
                 )
 
@@ -280,8 +294,8 @@ response = client.get(reverse("account-center"))
 
 reverses = {}
 for name in (
-    "payments:drf-stripe-subscription",
-    "payments:drf-stripe-plans",
+    "payments:stripe-subscription",
+    "payments:stripe-plans",
     "payments:second-namespace-overview",
 ):
     try:
@@ -308,7 +322,7 @@ class TestNamespaceIndependence:
             "tests.settings_with_second_namespace"
         )
 
-        for page in drf_stripe.pages:
+        for page in stripe_contribution.pages:
             marker = f"<span>{page.label}</span>"
             assert alongside["content"].count(marker) == alone["content"].count(marker)
 
@@ -317,8 +331,8 @@ class TestNamespaceIndependence:
         assert card_href in alongside["content"]
 
         for name in (
-            "payments:drf-stripe-subscription",
-            "payments:drf-stripe-plans",
+            "payments:stripe-subscription",
+            "payments:stripe-plans",
         ):
             assert alongside["reverses"][name] == alone["reverses"][name]
 
@@ -333,7 +347,7 @@ class TestNamespaceIndependence:
     def test_no_two_declared_contributions_share_a_url_name(self) -> None:
         names = [
             pattern.name
-            for contribution in (drf_stripe, second_namespace)
+            for contribution in (stripe_contribution, second_namespace)
             for pattern in contribution.url_patterns()
         ]
         assert len(names) == len(set(names))
