@@ -21,6 +21,10 @@ Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there
 : The signing secret of the webhook endpoint Stripe sends events to, `whsec_...`. Required. Every
   webhook is verified against it.
 
+`STRIPE_CATALOGUE_TIMEOUT`
+: How many seconds the list of plans read from Stripe is kept in your project's cache. Optional,
+  `3600` (an hour) when not set. See [The catalogue](#the-catalogue).
+
 Two more settings are read by the plans page, not by the app, and are described in
 [the plans page](plans-page.md#the-page):
 
@@ -93,6 +97,38 @@ subscribes twice has two rows. Newest billing period first is the default order.
 | `updated` | When the row was last written from Stripe |
 
 Records change only from what Stripe reports. Nothing here is edited by hand.
+
+## The catalogue
+
+`mvp_payments.stripe.catalogue.Catalogue` reads the plans a project offers from Stripe and keeps
+them in Django's default cache, under the key `mvp_payments_stripe:catalogue`. Nothing is stored in
+the database. Your project's default cache decides how widely the list is shared: a local-memory
+cache keeps one copy per process, and a shared cache (Redis, Memcached, a database or file cache)
+keeps one copy for all of them.
+
+A price is on offer when it is active, recurring, billed per unit with a fixed amount, licensed
+(not metered), and its product is active. Tiered, metered, one-off and no-amount prices are left
+out, because a page cannot show one honest amount for them.
+
+`Catalogue.prices()`
+: Every price on offer, as plain dictionaries with the product expanded. Products come cheapest
+  first, with each product's prices together and the shortest billing period first. Reads every
+  page from Stripe on a cache miss. Returns `None`, and caches nothing, when
+  `STRIPE_SECRET_KEY` is not set. Returns `None` when Stripe cannot be asked, and remembers that
+  for 60 seconds under the same key, so an outage does not hold a worker on every request. The
+  log names the kind of error and never Stripe's message.
+
+`Catalogue.price(price_id)`
+: The price on offer with that id, or `None`.
+
+`Catalogue.clear()`
+: Forgets the list and any remembered failure, so the next read asks Stripe.
+
+`Catalogue.timeout()`
+: The seconds a list is kept, from `STRIPE_CATALOGUE_TIMEOUT`.
+
+The interface reaches the catalogue through `apps.get_app_config("mvp_payments_stripe").catalogue`
+and never imports it.
 
 ## Asking whether a user is subscribed
 

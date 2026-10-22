@@ -28,6 +28,8 @@ DATABASES = {
     }
 }
 
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
 # A developer's own `demo/.env` holds real sandbox credentials. The suite runs
 # as a fresh clone and CI do, on the demo's obviously fake values, so a local
 # run never reaches the provider and never depends on whose machine it is.
