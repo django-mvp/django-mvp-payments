@@ -2,7 +2,7 @@
 
 A namespace is one payment backend's corner of this package: the pages it contributes to
 django-mvp's Account Center, the navigation entries that lead to them, and its card on the Account
-Center's overview. `drf-stripe` is the first one. A second backend gets a namespace beside it
+Center's overview. `stripe` is the first one. A second backend gets a namespace beside it
 rather than underneath it, and the two share no markup and no data shape.
 
 Nothing here is configured. A namespace contributes when its backend is in the project's
@@ -34,10 +34,10 @@ acme_payments = Contribution(
 )
 ```
 
-- **`backend_app_name`** is the backend's full dotted application name — `"drf_stripe"` for a
-  package installed at the top level, `"some.vendor.app"` for one installed as a sub-package. It is
-  the string Django's application registry matches, and it is never imported: the package declares
-  no payment backend as a dependency and must not gain one.
+- **`backend_app_name`** is the backend's full dotted application name — `"acme_payments"` for a
+  package installed at the top level, `"mvp_payments.stripe"` for one installed as a sub-package.
+  It is the string Django's application registry matches, and it is never imported: the package
+  declares no third-party payment backend as a dependency and must not gain one.
 - **`namespace`** is the backend's short name. It prefixes every URL *name* the contribution
   declares, which is what keeps two namespaces from colliding. It does not appear in the address
   a reader sees: pages are addressed by slug alone, under whatever prefix the project mounted
@@ -53,6 +53,9 @@ acme_payments = Contribution(
   only answers the second. django-mvp shows the Account Center's navigation in the sidebar only on
   a page that navigation has an entry for, so a page kept out of it is drawn with the project's own
   sidebar.
+- **`Page.login_required`** decides whether a visitor who is not signed in is sent to the sign-in
+  page. It defaults to `True`. Set it `False` for a page that is open to everyone — the shipped
+  namespace's plans page is, because the plans on offer are not private.
 - **`card_template`** renders this namespace's card on the Account Center's overview.
 - **`group_label`** heads the section this namespace's pages sit under in the Account Center's
   navigation, and must be translatable. Label it for what a reader will find there, not for the
@@ -60,12 +63,12 @@ acme_payments = Contribution(
   "Email & Authentication", and nobody reading their own subscription page has a use for the name
   of a Python package.
 
-The shipped namespace follows exactly that shape: `drf_stripe`, in
-`mvp_payments/namespaces/drf_stripe.py`, declaring a subscription page and a plans page against
-the `drf_stripe` application name, under a `Billing` group. Only the subscription page is in the
-navigation. One entry rather than several is a deliberate choice about what an adopter's readers
-see: the plans page is reached from the subscription page, because somebody choosing a plan is
-already looking at the one they are on.
+The shipped namespace follows exactly that shape: `stripe_contribution`, in
+`mvp_payments/namespaces/stripe.py`, declaring a subscription page and a plans page against the
+`mvp_payments.stripe` application name, under a `Billing` group. Only the subscription page is in
+the navigation, and only the plans page is open to everyone. One entry rather than several is a
+deliberate choice about what an adopter's readers see: the plans page is reached from the
+subscription page.
 
 Register a new contribution by adding it to `CONTRIBUTIONS` in
 `mvp_payments/namespaces/__init__.py`. Everything else follows from that: the URL configuration
@@ -91,8 +94,8 @@ disagree about what is installed.
 ## Pages
 
 Every contributed page is served by `PaymentPageView`, which takes its template and heading from
-the `Page` it was built for. It requires a signed-in person and makes no finer access decision than
-that: who among the signed-in people may see what is the host project's to enforce, because this
+the `Page` it was built for. It requires a signed-in person, unless the `Page` sets
+`login_required=False`, and makes no finer access decision than that: who among the signed-in people may see what is the host project's to enforce, because this
 package holds no entitlement information.
 
 A page template extends `mvp/account/base.html` and fills its content block, so the page renders
@@ -108,6 +111,7 @@ in the menu.
 
 The boundaries in [CONSTITUTION.md](../CONSTITUTION.md) apply to every namespace: no models, no
 migrations, no forms or admin or serializers, no secret keys, no field a card number could be typed
-into, no call to a payment provider from the server, and no arithmetic that decides what a person
-is charged. A page may read the records an installed backend keeps, through Django's application
+into, no call to a payment provider from the interface layer (a provider's own app, such as
+`mvp_payments.stripe`, is where that happens), and no arithmetic that decides what a person is
+charged. A page may read the records an installed backend keeps, through Django's application
 registry, and render them.

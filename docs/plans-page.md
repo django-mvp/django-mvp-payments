@@ -1,116 +1,144 @@
 # The plans page
 
-The `drf-stripe` namespace contributes a page offering a signed-in person the plans they can choose
-from. It arrives with the package: install this alongside
-[drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), mount this
-package's URLs once, and the page is routed and reached from the subscription page. There is no
-view to write. It has no entry in the Account Center's navigation, so it is drawn with the
-project's own sidebar.
+The `stripe` namespace contributes a page offering every visitor the plans they can choose from.
+It arrives with the package: add `mvp_payments.stripe` to `INSTALLED_APPS`, mount this package's
+URLs once, and the page is routed and reached from the subscription page. There is no view to
+write. It has no entry in the Account Center's navigation, so it is drawn with the project's own
+sidebar.
 
-Unlike the subscription page, this page shows nothing of the backend's own records. It mounts the
-provider's own embeddable pricing table — [Stripe's pricing
+The page is open to everyone. A visitor who is not signed in sees it, a signed-in person sees it,
+and a person who already has a subscription sees it, with the same pricing table. Signing in
+changes what the table is given, not whether it is shown.
+
+Unlike the subscription page, this page shows nothing of the Stripe app's own records. It mounts
+the provider's own embeddable pricing table — [Stripe's pricing
 table](https://docs.stripe.com/payments/checkout/pricing-table) — and reads two settings to
 configure it. No amount, currency, billing frequency or plan name is produced anywhere by this
 package; the provider renders every price inside its own frame.
 
 ## The component
 
-`<c-drf-stripe.pricing-table>` emits the provider's `<stripe-pricing-table>` custom element.
+`<c-stripe.pricing-table>` emits the provider's `<stripe-pricing-table>` custom element.
 
 ```html
-<c-drf-stripe.pricing-table :table_id="pricing_table_id" :publishable_key="publishable_key" />
+<c-stripe.pricing-table :table_id="pricing_table_id" :publishable_key="publishable_key" />
 ```
 
-It declares three attributes:
+It declares five attributes:
 
 | Attribute | What it does |
 |---|---|
 | `table_id` | Carried into the element's `pricing-table-id` attribute. Required. |
 | `publishable_key` | Carried into the element's `publishable-key` attribute. Required — and not a secret: it identifies the account, and the provider prints it in its own copy-paste examples. |
-| `customer_email` | Carried into the element's `customer-email` attribute when there is an address to carry. Optional — see below for where it comes from. |
+| `client_reference_id` | Carried into the element's `client-reference-id` attribute when there is one. Optional. |
+| `customer_session_client_secret` | Carried into the element's `customer-session-client-secret` attribute when there is one. Optional. |
+| `customer_email` | Carried into the element's `customer-email` attribute when there is an address to carry and no customer session. Optional. |
 
 The component reads no settings and imposes no sign-in requirement, so it can be placed on any
 page of your own project, whether or not this package's Account Center pages are in use.
 
-### Where the address comes from
+### What ties a purchase to a person
 
-The installed backend matches a provider customer to an application user by email address alone.
-A purchase made under a different address than the signed-in person's own attaches to nobody, so
-the component passes one wherever it can.
+Stripe's checkout is hosted by Stripe, so the package never sees it. What makes the subscription
+that results belong to a user is a reference that goes out with the pricing table and comes back
+on the completed checkout, where the Stripe app's webhook checks it
+([ADR 0011](adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)).
 
-An address supplied as the `customer_email` attribute wins. Otherwise the component reads
-`request.user` from the context and uses that person's address when they are signed in and hold
-one. Where there is neither — an anonymous visitor, or a signed-in person whose account carries no
-address — the `customer-email` attribute is omitted entirely rather than emitted empty: an empty
-`customer-email` is not the same instruction to the provider as an absent one.
+The plans page passes the pricing table two things for a signed-in person:
+
+- **`client-reference-id`** is `Customer.client_reference(request.user)`: the person's primary key
+  and a signature of it. The signature stops anyone embedding your public pricing table with
+  someone else's key.
+- **`customer-session-client-secret`** is passed when the person already has a Stripe customer. The
+  Stripe app creates a customer session for that customer on the server, so a second purchase
+  lands on the customer they have instead of creating another. If Stripe cannot be asked, the
+  page logs the kind of error, leaves the session out, and shows the table anyway. The reference
+  still ties the purchase to them.
+
+For a person with no Stripe customer yet, the page passes no session, and the component passes the
+address on their account, if they have one, as `customer-email`, so Stripe can prefill it. An
+address supplied as the `customer_email` attribute wins over the account's. The provider accepts a
+customer session or an email address, not both, so the component omits the address whenever a
+session is passed. Where there is no address, the attribute is omitted rather than emitted empty.
 
 ```html
-<c-drf-stripe.pricing-table :table_id="pricing_table_id"
-                             :publishable_key="publishable_key"
-                             customer_email="someone@example.com" />
+<c-stripe.pricing-table :table_id="pricing_table_id"
+                        :publishable_key="publishable_key"
+                        :client_reference_id="client_reference_id"
+                        :customer_session_client_secret="customer_session_client_secret" />
 ```
+
+A visitor who is not signed in gets none of these. A purchase made then is tied to nobody: the
+Stripe app's webhook finds no reference to verify and records nothing, and the package does not
+try to match the buyer by email. The page says so before it happens (see below).
 
 ## The page
 
-`PlansPageView` adds four names to the template context. The first two are read from your
+`PlansPageView` adds five names to the template context. The first two are read from your
 settings at render time:
 
 `pricing_table_id`
-: `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` — the pricing table's id, from the provider's
+: `MVP_PAYMENTS["STRIPE_PRICING_TABLE_ID"]` — the pricing table's id, from the provider's
   dashboard. `None` when the setting is absent.
 
 `publishable_key`
-: `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]` — the account's publishable key. `None` when the
+: `MVP_PAYMENTS["STRIPE_PUBLISHABLE_KEY"]` — the account's publishable key. `None` when the
   setting is absent.
 
-`subscriptions`
-: The person's current subscriptions, as the subscription page reads them.
+`client_reference_id`
+: The signed reference for the signed-in person. `None` for a visitor who is not signed in.
 
-`subscription_url`
-: Where the subscription page is mounted.
+`customer_session_client_secret`
+: The secret of a customer session for the signed-in person's Stripe customer. `None` when they
+  have none, when Stripe could not be asked, and for a visitor who is not signed in.
+
+`sign_in_url`
+: For a visitor who is not signed in, the project's sign-in page with `next` set to the plans
+  page, so signing in brings them back. `None` for a signed-in person.
 
 ```python
 MVP_PAYMENTS = {
-    "DRF_STRIPE_PRICING_TABLE_ID": "prctbl_...",
-    "DRF_STRIPE_PUBLISHABLE_KEY": "pk_...",
+    "STRIPE_PRICING_TABLE_ID": "prctbl_...",
+    "STRIPE_PUBLISHABLE_KEY": "pk_...",
 }
 ```
 
 The shipped page renders the component when both values are present, and a plain sentence in
-their place when either is absent. Somebody who already has a subscription gets neither. They see
-`<c-drf-stripe.already-subscribed>` instead, which says they already have one and links to their
-subscription page. The pricing table cannot show which plan they are on, and buying from it starts
-a second subscription beside the first. Changing plan happens on the provider's plan-change screen,
-reached from the subscription page's "Switch plans" control.
+their place when either is absent. Above the component, a visitor who is not signed in gets
+`<c-stripe.sign-in-notice>`, which says to sign in before choosing a plan and links to
+`sign_in_url`. It takes one attribute, `url`, and renders nothing without it.
 
 Where a buyer goes after paying is set on the pricing table in the provider's dashboard. Send them
 to the subscription page with `?returned=1` on the address, so the page waits for the payment to
-reach the backend instead of telling them they have no subscription. See
-[Coming back from the provider](subscription-page.md#coming-back-from-the-provider). It keeps `LoginRequiredMixin`, so an anonymous visitor is sent
-to sign in rather than shown the page.
+reach the Stripe app instead of telling them they have no subscription. See
+[Coming back from the provider](subscription-page.md#coming-back-from-the-provider).
 
 ```html
 {% extends "mvp/account/base.html" %}
 {% block account.content %}
   <c-mvp.page>
     <c-mvp.page.title :title="page.title" />
-    {% if subscriptions %}
-      <c-drf-stripe.already-subscribed :url="subscription_url" />
-    {% elif pricing_table_id and publishable_key %}
-      <c-drf-stripe.pricing-table :table_id="pricing_table_id"
-                                   :publishable_key="publishable_key" />
+    {% if pricing_table_id and publishable_key %}
+      <c-stripe.sign-in-notice :url="sign_in_url" />
+      <c-stripe.pricing-table :table_id="pricing_table_id"
+                              :publishable_key="publishable_key"
+                              :client_reference_id="client_reference_id"
+                              :customer_session_client_secret="customer_session_client_secret" />
     {% else %}
-      <c-drf-stripe.plans-unavailable />
+      <c-stripe.plans-unavailable />
     {% endif %}
   </c-mvp.page>
 {% endblock account.content %}
 ```
 
+The page extends `mvp/account/base.html`, which draws the project's own base layout and does not
+need a signed-in person.
+
 ## Before it is configured
 
-A project that has not yet supplied `DRF_STRIPE_PRICING_TABLE_ID`, `DRF_STRIPE_PUBLISHABLE_KEY`,
-or `MVP_PAYMENTS` at all, gets a page that says plans are not available — never an empty region
-with nothing to explain it. `<c-drf-stripe.plans-unavailable>` renders that sentence and takes no
+A project that has not yet supplied `STRIPE_PRICING_TABLE_ID`, `STRIPE_PUBLISHABLE_KEY`, or
+`MVP_PAYMENTS` at all, gets a page that says plans are not available — never an empty region
+with nothing to explain it. `<c-stripe.plans-unavailable>` renders that sentence and takes no
 props of its own.
 
 ## Loading the provider's library
@@ -141,13 +169,13 @@ The component carries a message for exactly this, rendered hidden in the same ma
 element rather than injected by JavaScript — the message is translatable this way, and revealing
 it needs no string in a `.js` file (`FR-010`).
 
-`mvp_payments/static/mvp_payments/drf_stripe/pricing_table.js` is what reveals it: after your
+`mvp_payments/static/mvp_payments/stripe/pricing_table.js` is what reveals it: after your
 page's `load` event, it checks `customElements.get("stripe-pricing-table")`. Undefined means the
 library never arrived, and the hidden message is shown. Load this file the way you load the
 provider's own library — it emits no message of its own and fetches nothing:
 
 ```html
-<script defer src="{% static 'mvp_payments/drf_stripe/pricing_table.js' %}"></script>
+<script defer src="{% static 'mvp_payments/stripe/pricing_table.js' %}"></script>
 ```
 
 ## Replacing the component or the page
@@ -156,19 +184,19 @@ Two different things can be replaced, and what each keeps differs.
 
 ### Replacing the component
 
-Supply your own `cotton/drf_stripe/pricing_table.html`, earlier on the template search path than
-this package, and every `<c-drf-stripe.pricing-table>` tag renders it instead — no view and no
-query of your own is needed. The shipped page still calls the component with the same two
+Supply your own `cotton/stripe/pricing_table.html`, earlier on the template search path than
+this package, and every `<c-stripe.pricing-table>` tag renders it instead — no view and no
+query of your own is needed. The shipped page still calls the component with the same
 attributes, so this changes only what the tag itself renders; the page's URL, its
-`LoginRequiredMixin`, its context and its unavailable-state branch all stay the shipped page's.
+context and its unavailable-state branch all stay the shipped page's.
 
 ### Replacing the page
 
-Supply your own template at `mvp_payments/drf_stripe/plans.html`, earlier on the template search
+Supply your own template at `mvp_payments/stripe/plans.html`, earlier on the template search
 path than this package, and it is used instead — no view, no context processor and no query of
-your own is needed, and `pricing_table_id` and `publishable_key` are already in the context. This
-replaces everything the template decides, including whether to use the component at all; only the
-view underneath it — the URL, `LoginRequiredMixin`, and the two names it puts in the context —
+your own is needed, and every name listed above is already in the context. This replaces
+everything the template decides, including whether to use the component at all; only the view
+underneath it — the URL, the page being open to everyone, and the names it puts in the context —
 stays the shipped page's.
 
 Django's app-directories template loader checks `INSTALLED_APPS` in order and uses the first

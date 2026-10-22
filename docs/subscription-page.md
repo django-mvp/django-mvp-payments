@@ -1,9 +1,8 @@
 # The subscription page
 
-The `drf-stripe` namespace contributes a page showing a signed-in person what they are currently
-subscribed to. It arrives with the package: install this alongside
-[drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), mount this
-package's URLs once, and the page is in the Account Center's navigation. There is no view to
+The `stripe` namespace contributes a page showing a signed-in person every subscription they
+currently hold. It arrives with the package: add `mvp_payments.stripe` to `INSTALLED_APPS`, mount
+this package's URLs once, and the page is in the Account Center's navigation. There is no view to
 write and no template to supply.
 
 This page describes what that page puts in its template context, the components it is built from,
@@ -11,34 +10,32 @@ and how to replace it with one of your own.
 
 ## What counts as current
 
-The page shows the subscriptions the backend itself treats as current, and does not apply a
-definition of its own. The backend grants access on a fixed set of statuses and answers every
-other question about a person from that same set, so a subscription that has been cancelled, has
-ended or has gone unpaid does not appear here, and a person with none of them reads as having no
-current subscription.
+The page shows the subscriptions the Stripe app counts as subscribed, and does not apply a
+definition of its own. That is `Subscription.objects.for_user(user).subscribed()`: a subscription
+whose status is `active` or `trialing`, including one set to end with its period. A subscription
+in any other status does not appear here, and a person with none of the first kind reads as having
+no current subscription. A person who holds several subscriptions sees every one of them.
 
 That matters if you are deciding where to show something. A page that drew its own line would
-disagree with the rest of your application on the day the backend's line moved.
+disagree with the rest of your application on the day the app's line moved. See
+[Asking whether a user is subscribed](reference/stripe-app.md#asking-whether-a-user-is-subscribed).
 
 ## The context
 
 `SubscriptionPageView` adds five names to the template context:
 
 `subscriptions`
-: A tuple of `CurrentSubscription`, newest first, for the person making the request. Empty for
-  someone the backend holds no customer record for, which is not an error.
+: A tuple of `CurrentSubscription`, newest billing period first, for the person making the
+  request. Empty for someone with no customer, or nothing subscribed, which is not an error.
 
 `billing_portal_endpoint`
-: Where the backend's own billing-portal endpoint is mounted, read from
-  `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` in your settings. `None` when that setting is
-  absent, and `None` for a person with no current subscription even when it is set — the backend's
-  endpoint creates a customer at the provider for whoever posts to it, so it is never offered to
-  someone with nothing to manage.
+: Where the Stripe app's billing-portal view is mounted, the reverse of
+  `payments:stripe-billing-portal`. `None` for a person with no current subscription: there is
+  nothing to manage until one exists.
 
 `plan_switch_endpoint`
-: Where your project mounted an endpoint that opens the provider's plan-change screen for this
-  person's subscription, read from `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`. `None` when that
-  setting is absent, and `None` for a person with no current subscription. See
+: Where the Stripe app's plan-switch view is mounted, the reverse of
+  `payments:stripe-plan-switch`. `None` for a person with no current subscription. See
   [Switching plans](#switching-plans).
 
 `plans_url`
@@ -57,41 +54,23 @@ have all of it, and you need no view, no context processor and no query of your 
 
 ### `CurrentSubscription`
 
-One subscription the backend currently grants access for.
+One subscription the Stripe app counts as subscribed. It carries the plan the person is paying
+for, since the Stripe app records one price per subscription.
 
 | Attribute | What it holds |
 |---|---|
-| `status` | The status exactly as the backend recorded it, such as `active`, `trialing` or `past_due`. Providers add statuses over time, so treat this as an open set rather than a fixed one. |
-| `period_start` | When the current billing period began, or `None` where the backend recorded nothing. |
+| `status` | The status exactly as Stripe reported it: `active` or `trialing` on the shipped page. The component renders any status it is given, as itself, since Stripe adds statuses over time. |
+| `name` | The name of the product the subscription is for. |
+| `amount` | A `Money` for what it costs per billing interval, or `None` for a price with no fixed amount. |
+| `interval` | The unit it bills in, as Stripe reports it: `day`, `week`, `month` or `year`. |
+| `interval_count` | How many intervals pass between bills. |
+| `frequency_display` | The billing frequency in words, such as "every month" or "every 3 months", under the active language. An interval this table does not recognise is returned as `interval_count`'s raw form, such as `quarter_1`, rather than dropped. |
+| `period_start` | When the current billing period began, or `None` where nothing is recorded. |
 | `period_end` | When it ends, or `None`. |
-| `plans` | A tuple of `Plan`, one per priced item the subscription covers. |
 
-### `Plan`
-
-One priced item on a subscription. A subscription can cover several.
-
-| Attribute | What it holds |
-|---|---|
-| `name` | The price's nickname where the project set one, and the product's name otherwise. |
-| `amount` | A `Money`. |
-| `frequency` | The backend's own encoding of the billing frequency, such as `month_1`. |
-| `frequency_display` | The same in words, such as "every month" or "every 3 months", under the active language. An encoding this table does not recognise is returned unchanged rather than dropped. |
-| `quantity` | How many of this item the subscription covers. |
-| `features` | A tuple of `PlanFeature` recorded against this plan's product, empty where the project recorded none. |
-
-### `PlanFeature`
-
-Something a plan grants inside your application, recorded by you against the product in the
-provider's dashboard rather than held here.
-
-| Attribute | What it holds |
-|---|---|
-| `identifier` | The feature id you set on the product. |
-| `description` | Your description of it, falling back to the identifier where you gave none. |
-
-drf-stripe-subscription reads a product's features from a space-delimited `features` key in that
-product's Stripe metadata, and syncs each id into its own record, with a description you set
-separately. A product you have set none on is normal, and its plan's `features` is simply empty.
+The Stripe app records no features, so there is nothing here about what a plan grants inside your
+application. If you keep that record yourself, look it up from `name` in a template of your own and
+place it beside the plan.
 
 ### `Money`
 
@@ -100,8 +79,8 @@ code.
 
 | Member | What it does |
 |---|---|
-| `minor_units` | The integer the backend recorded. Stripe's `2000` is £20.00. |
-| `currency` | The three-letter code, held upper-case whatever case it arrived in. The provider reports it lower-case and the backend stores that verbatim, so the value you read here is not always the value in the database column. |
+| `minor_units` | The integer the Stripe app recorded. Stripe's `2000` is £20.00. |
+| `currency` | The three-letter code, held upper-case whatever case it arrived in. Stripe reports it lower-case and the app stores that verbatim, so the value you read here is not always the value in the database column. |
 | `amount` | The same figure in the currency's own unit, as a `Decimal`. |
 | `exponent` | How many decimal places this currency's minor unit sits at. |
 | `str(money)` | The amount under the active locale, followed by its currency code. |
@@ -112,76 +91,62 @@ by a factor of a hundred in one direction or ten in the other. `Money` knows whi
 those are. A `Money` with no currency renders as nothing at all, because an integer with no
 currency has no honest reading.
 
-No figure here is calculated. There is no total across a subscription's items, no proration and
-no conversion between currencies, because the backend records none of those and a number this
+No figure here is calculated. There is no total across subscriptions, no proration and no
+conversion between currencies, because the Stripe app records none of those and a number this
 package worked out is a number the provider never stood behind.
 
 ## The components
 
-Eight components render the page. You can place any of them in a template of your own, and each
+Six components render the page. You can place any of them in a template of your own, and each
 renders from the attributes you give it — with one exception, noted against the component it
 applies to.
 
 ```html
-<c-drf-stripe.subscription :subscription="subscription" />
-<c-drf-stripe.plan :plan="plan" />
-<c-drf-stripe.amount :amount="plan.amount" />
-<c-drf-stripe.features :features="plan.features" />
-<c-drf-stripe.plans-link :url="plans_url" :subscribed="subscriptions"
-                         :switch_endpoint="plan_switch_endpoint" />
-<c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
-<c-drf-stripe.provider-return :state="provider_return" />
-<c-drf-stripe.no-subscription />
+<c-stripe.subscription :subscription="subscription" />
+<c-stripe.amount :amount="subscription.amount" />
+<c-stripe.plans-link :url="plans_url" :subscribed="subscriptions"
+                     :switch_endpoint="plan_switch_endpoint" />
+<c-stripe.portal-link :endpoint="billing_portal_endpoint" />
+<c-stripe.provider-return :state="provider_return" />
+<c-stripe.no-subscription />
 ```
 
-`<c-drf-stripe.subscription>`
+`<c-stripe.subscription>`
 : One subscription as a card: its status as a badge, its current billing period where there is
-  one, and each of its plans. A status the component has no colour for still renders, as itself,
-  with a neutral badge.
+  one, and its plan's name, amount and billing frequency. A status the component has no colour for
+  still renders, as itself, with a neutral badge.
 
-`<c-drf-stripe.plan>`
-: One priced item: its name, its quantity where more than one, its amount, its billing frequency,
-  and its features beneath it.
+`<c-stripe.amount>`
+: A `Money`, rendered in its own currency. Given `None`, renders nothing.
 
-`<c-drf-stripe.amount>`
-: A `Money`, rendered in its own currency.
-
-`<c-drf-stripe.features>`
-: A plan's `features`, one line each, its description where the project gave one and its
-  identifier otherwise. Given none, renders nothing at all — no heading and no empty list.
-
-`<c-drf-stripe.plans-link>`
+`<c-stripe.plans-link>`
 : The way to another plan, which depends on `subscribed`. Somebody on no plan gets "Choose a
   plan", a link to `url`, the plans page. Somebody on a plan gets "Switch plans", which posts to
   `switch_endpoint` and follows the provider's plan-change screen, the same way the portal control
-  works. A subscriber is never sent to the plans page, because the pricing table there cannot show
-  which plan they are on, and buying from it starts a second subscription beside the first. With no
-  `url` for the first case, or no `switch_endpoint` for the second, it renders nothing at all
-  rather than a control leading nowhere. The subscriber's control reads `{{ csrf_token }}` from
-  context, as the portal control does.
+  works. With no `url` for the first case, or no `switch_endpoint` for the second, it renders
+  nothing at all rather than a control leading nowhere. The subscriber's control reads
+  `{{ csrf_token }}` from context, as the portal control does.
 
-`<c-drf-stripe.portal-link>`
-: Given an `endpoint`, a control that posts to it and follows the address the backend answers
+`<c-stripe.portal-link>`
+: Given an `endpoint`, a control that posts to it and follows the address the Stripe app answers
   with, carrying the endpoint and a CSRF token as data. Given `None`, a statement that the
   subscription is managed by the provider and the portal cannot be reached, with no control, since
-  there is nowhere for it to lead. Place it only where the reader has a subscription: that second
-  wording addresses somebody who has one and whose project has not set the endpoint, and the
-  shipped page renders the component only when there is a subscription for exactly that reason.
+  there is nowhere for it to lead. Place it only where the reader has a subscription: the shipped
+  page renders the component only when there is one.
 
     This is the one component that needs more than its attributes. It reads `csrf_token` from the
     template context, the way every CSRF-protected form in Django does, so render it from a view
     rather than from a context you assembled yourself. Rendered without one the control looks
     right and every post it makes is rejected.
 
-`<c-drf-stripe.provider-return>`
+`<c-stripe.provider-return>`
 : Given the page's `provider_return`, a notice that the payment is being confirmed while the page
   polls for it, or that it has not arrived yet once the polls run out. Renders nothing when given
   `None`.
 
-`<c-drf-stripe.no-subscription>`
+`<c-stripe.no-subscription>`
 : Takes no attributes. States that there is no current subscription, for someone who never had one
-  and for someone whose subscription has ended alike — the backend reports both the same way, and
-  this package has no information that would let it say more. The shipped page renders it as the
+  and for someone whose subscription has ended alike. The shipped page renders it as the
   `{% empty %}` branch of its loop over `subscriptions`, in place of the portal control and every
   region a current subscription would have shown.
 
@@ -190,35 +155,14 @@ stylesheet of their own.
 
 ## Reaching the billing portal
 
-The page hands a reader to an endpoint that answers a `POST` with `{"url": ...}`. It carries no
-route name of its own, so it cannot be linked to directly or reversed — you tell the page where
-you mounted it:
+The Stripe app mounts a billing-portal view with the package's URLs, at `stripe/billing-portal/`
+under wherever you mounted them, named `payments:stripe-billing-portal`. It answers a `POST` from
+a signed-in person with `{"url": ...}`, the address of a Stripe billing-portal session for that
+person's customer, and the page's script follows it. It answers 409 to a person with no customer,
+302 to someone not signed in, and 502 when Stripe cannot be asked. Nothing needs configuring.
 
-```python
-MVP_PAYMENTS = {
-    "DRF_STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/",
-}
-```
-
-### The backend's own endpoint raises after its first use
-
-`drf-stripe-subscription` ships that endpoint at `customer-portal/`, and today it succeeds exactly
-once per person. `get_or_create_stripe_user(user_id=...)` looks a customer record up by
-`(user_id, customer_id=None)`. The first call creates that record and then fills the second field
-in, so every call after it matches nothing, tries to insert a second record for a person who
-already has one, and the database refuses with a unique-constraint error. It is open on the
-backend's own tracker.
-
-Until that is fixed, point this setting at an endpoint of your own that does the same two things
-either side of the broken lookup — read the customer identifier the backend already keeps, and ask
-the provider for a session. `demo/views.py` has a working one, at about twenty lines.
-
-This package cannot ship that endpoint for you. It reaches a provider only through a backend's
-HTTP endpoints and imports no provider SDK at all, which Article XI of the constitution makes
-absolute and `tests/test_app.py` enforces. A project of your own is bound by neither.
-
-`<c-drf-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
-JavaScript behaviour — so a small static file does it: `mvp_payments/static/mvp_payments/drf_stripe/billing_portal.js`.
+`<c-stripe.portal-link>` cannot do the posting itself — Cotton components render markup, not
+JavaScript behaviour — so a small static file does it: `mvp_payments/static/mvp_payments/stripe/billing_portal.js`.
 It binds every portal-link control on the page, posts, and follows the address a successful answer
 carries.
 
@@ -227,7 +171,7 @@ Signing in again replaces the token, so a page left open in one tab while the pe
 back in in another would otherwise post a token Django refuses. The rendered token is the fallback
 for a project that keeps its token in the session (`CSRF_USE_SESSIONS`).
 
-It never sends the reader nowhere. If the post is refused, or the endpoint redirects to the sign-in
+It never sends the reader nowhere. If the post is refused, or the view redirects to the sign-in
 page, the control says the page is out of date and to reload it. On any other failure it says the
 portal could not be reached.
 
@@ -239,51 +183,36 @@ You load that file yourself, the way you already load your project's other stati
 package emits no `<script>` tag of its own:
 
 ```html
-<script defer src="{% static 'mvp_payments/drf_stripe/billing_portal.js' %}"></script>
+<script defer src="{% static 'mvp_payments/stripe/billing_portal.js' %}"></script>
 ```
 
-The demo project does both of these in `demo/settings.py` and `demo/templates/base.html`, and
-points the setting at its own endpoint rather than the backend's for the reason above.
+The demo project does this in `demo/templates/base.html`.
 
 ## Switching plans
 
-A subscriber changes plan on the provider's own plan-change screen, not on the plans page. That
-screen shows the plan they are on, what the change costs and when it takes effect, and it changes
-the subscription they already have. The provider's pricing table knows none of that, and a
-purchase through it starts a second subscription.
+A subscriber changes plan on the provider's own plan-change screen. That screen shows the plan they
+are on, what the change costs and when it takes effect, and it changes the subscription they
+already have.
 
-Neither the backend nor this package ships an endpoint that opens that screen. The backend has
-none, and this package may not call a provider. So, as with the portal, your project mounts one and
-tells the page where it is:
-
-```python
-MVP_PAYMENTS = {
-    "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
-}
-```
-
-It answers a `POST` with `{"url": ...}`, like the portal endpoint, and `billing_portal.js` binds
-the control the same way. The endpoint creates a billing portal session for the person's customer
-record with `flow_data` of type `subscription_update`, naming their current subscription.
-`PlanSwitchView` in `demo/views.py` is a working one.
+The Stripe app mounts the view that opens it, at `stripe/plan-switch/`, named
+`payments:stripe-plan-switch`. It works like the portal view and answers 409 to a person with
+nothing subscribed. With exactly one current subscription it opens the plan-change screen for that
+subscription. With several it opens the portal's home instead, since there is no one subscription
+to open on, and the person picks.
 
 Two things are set in the provider's dashboard, not here:
 
 - **Which plans can be switched to.** The customer portal's settings list the products and prices a
   subscriber may move between. With none listed, the plan-change screen has nothing to offer.
-- **Where the change reaches your records.** The provider reports the change through webhooks,
-  which the backend handles. Until they arrive, your records still show the old plan. The demo has
-  no webhooks, so it sends the reader back through a view that asks the provider for the current
-  state first.
-
-Without the setting, a subscriber is offered no "Switch plans" control. The portal control still
-reaches the portal, which offers the same change if the portal's settings allow it.
+- **Where the change reaches your records.** Stripe reports the change through the webhook (see
+  [how to point Stripe at the webhook](how-to/point-stripe-at-the-webhook.md)). Until it arrives,
+  your records still show the old plan. The return view below covers the gap.
 
 ## Coming back from the provider
 
-The provider sends a person back to your site separately from telling the backend what they
-bought, so the page they land on can be reached before the backend has heard. Somebody who has
-just paid could be told they have no subscription.
+Stripe sends a person back to your site separately from telling the Stripe app what they bought,
+so the page they land on can be reached before the app has heard. Somebody who has just paid could
+be told they have no subscription.
 
 So have the provider's checkout send them back to the subscription page with `?returned=1` on the
 address. In the provider's dashboard, set the pricing table to redirect to your website after
@@ -298,17 +227,22 @@ counts up `returned`, and the polling stops by itself as soon as a subscription 
 has not reached the site yet and to reload later.
 
 Once a subscription is showing, `?returned` changes nothing. Reloading the page afterwards shows
-it as normal, and so does coming back from the portal. The page cannot tell whether a change made
-in the portal has landed yet, so it shows the subscription as the backend currently has it.
+it as normal.
 
-What makes a payment or a change arrive is the provider's webhooks reaching the backend, and this
-only covers the seconds in between. The demo has no webhooks, so its return address is a view that
-asks the provider for the current state first and then redirects here with `?returned=1`.
+What makes a payment or a change arrive is Stripe's webhook reaching the Stripe app, and this only
+covers the seconds in between.
+
+The billing portal is sent back to a view of the Stripe app instead, at `stripe/return/`, named
+`payments:stripe-billing-return`. It runs `Customer.sync()` for the signed-in person, so the plan
+they just chose in the portal is already recorded, and redirects to this page with `?returned=1`.
+When Stripe cannot be asked it redirects anyway, and the page waits for the webhook. A person with
+no customer is redirected without Stripe being asked. This is what lets a development server,
+which Stripe cannot reach, show a change straight away.
 
 ## Replacing the page
 
 The shipped page is a starting point rather than a limit. Supply your own template at
-`mvp_payments/drf_stripe/subscription.html`, earlier on the template search path than this
+`mvp_payments/stripe/subscription.html`, earlier on the template search path than this
 package, and it is used instead. Everything above is already in its context — no view, no
 context processor and no query of your own.
 
@@ -326,21 +260,21 @@ precede `mvp` (see the README's Install step).
     <div id="mvp-payments-subscription"
          class="flex flex-col gap-6"
          {% if provider_return.poll_url %}hx-get="{{ provider_return.poll_url }}" hx-trigger="every 3s" hx-select="#mvp-payments-subscription" hx-swap="outerHTML"{% endif %}>
-      <c-drf-stripe.provider-return :state="provider_return" />
+      <c-stripe.provider-return :state="provider_return" />
       {% for subscription in subscriptions %}
-        <c-drf-stripe.subscription :subscription="subscription" />
+        <c-stripe.subscription :subscription="subscription" />
       {% empty %}
         {% if not provider_return %}
-          <c-drf-stripe.no-subscription />
+          <c-stripe.no-subscription />
         {% endif %}
       {% endfor %}
       <div class="flex flex-wrap items-start gap-3"
            data-mvp-payments-subscription-actions>
-        <c-drf-stripe.plans-link :url="plans_url"
-                                 :subscribed="subscriptions"
-                                 :switch_endpoint="plan_switch_endpoint" />
+        <c-stripe.plans-link :url="plans_url"
+                           :subscribed="subscriptions"
+                           :switch_endpoint="plan_switch_endpoint" />
         {% if subscriptions %}
-          <c-drf-stripe.portal-link :endpoint="billing_portal_endpoint" />
+          <c-stripe.portal-link :endpoint="billing_portal_endpoint" />
         {% endif %}
       </div>
     </div>
@@ -358,8 +292,8 @@ Two classes do the work, and you only need them if you are building something be
 
 `SubscriptionReader`
 : `SubscriptionReader.for_user(user)` returns the tuple of `CurrentSubscription` described above.
-  It reaches the backend through Django's application registry and imports nothing from it, so
-  this package carries no dependency on the backend and never has to be replaced alongside it.
+  It reaches the Stripe app's `Subscription` model through Django's application registry and
+  imports nothing from it.
 
 `SubscriptionPageView`
 : The page's view, built on `PaymentPageView`. It requires a signed-in person and makes no finer

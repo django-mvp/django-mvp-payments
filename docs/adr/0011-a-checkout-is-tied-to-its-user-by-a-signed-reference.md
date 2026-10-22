@@ -13,7 +13,7 @@ checkout for a signed-in user, the plans page included, passes that value as the
 
 ## Why
 
-- **Email matching loses purchases.** drf-stripe-subscription matched on email address, so a
+- **Email matching loses purchases.** The first backend (ADR 0009) matched on email address, so a
   person who typed a different address at checkout paid for a subscription that was attached to
   nobody.
 - **A bare id can be forged.** A pricing table's id and publishable key are public by design. If

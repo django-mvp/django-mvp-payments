@@ -6,7 +6,7 @@
 
 Every page this package routes is named under a single application namespace, `payments`, and every
 name within it carries the namespace of the backend that declared it:
-`payments:drf-stripe-subscription`. `Contribution.url_name()` and `Contribution.view_name()` build
+`payments:stripe-subscription`. `Contribution.url_name()` and `Contribution.view_name()` build
 both halves, and `mvp_payments/urls.py` takes its `app_name` from the same constant they do.
 
 A project includes `mvp_payments.urls` once, at a prefix of its choosing, and every installed

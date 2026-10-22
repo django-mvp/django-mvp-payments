@@ -166,10 +166,9 @@ change that would alter that is a change to this constitution.
 
 ### Article XII — No third-party backend is a dependency, and no provider script is emitted
 
-The package depends on no third-party payment backend, such as drf-stripe-subscription or
-dj-stripe, and imports none. A provider's own SDK is a dependency of its provider app only: it is
-declared in that app's extra, `stripe-lite` for `mvp_payments.stripe`, and imported nowhere
-outside that app. A project that installs the package without the extra gets the interface and
+The package depends on no third-party payment backend, such as dj-stripe, and imports none. A
+provider's own SDK is a dependency of its provider app only: it is declared in that app's extra,
+`stripe-lite` for `mvp_payments.stripe`, and imported nowhere outside that app. A project that installs the package without the extra gets the interface and
 no provider library. `tests/test_app.py` asserts the dependency list for this reason.
 
 A third-party package that wants pages that look like the rest of a django-mvp site ships its own

@@ -30,20 +30,19 @@ project's standards document and its README. Longer rationale is in `decisions.m
 
 - **Q: Does a contributed page require a signed-in person, and what happens to a visitor who is
   not signed in?**
-  A: It requires one, and an anonymous visitor is sent to the project's sign-in page, the same way
-  the Account Center's own landing page behaves. Anything finer than that — who among the signed-in
-  people may see which page — is the host project's to enforce in its own configuration, because
-  this package holds no entitlement information and must not appear to be making an access
-  decision. Recorded as FR-008.
+  A: A page requires one unless its namespace declares it open to everyone, and an anonymous
+  visitor to a page that requires one is sent to the project's sign-in page, the same way the
+  Account Center's own landing page behaves. The Stripe namespace opens its plans page to every
+  visitor. Anything finer than that — who among the signed-in people may see which page — is the
+  host project's to enforce in its own configuration, because this package holds no entitlement
+  information and must not appear to be making an access decision. Recorded as FR-008.
 
 - **Q: Do a backend's entries sit directly in the Account Center navigation, or under a group of
   their own?**
   A: Under a group, labelled for what the group contains rather than for the library behind it —
-  "Payments" for the first namespace. This was first settled the other way, on the reasoning that
-  the only honest label for a group was the name of a Python library. Using the running pages
-  answered it: the Account Center is shared with whatever else a project installed, and
-  django-accounts-center already sections its own part of the same menu under "Email &
-  Authentication". A namespace declares its own group label, so nothing here reaches across
+  "Billing" for the Stripe namespace. The Account Center is shared with whatever else a project
+  installed, and django-accounts-center already sections its own part of the same menu under "Email
+  & Authentication", so a group named for the library behind it would read as noise. A namespace declares its own group label, so nothing here reaches across
   namespaces. Recorded as FR-005.
 
 - **Q: How many cards does an installed backend put on the Account Center overview?**
@@ -85,7 +84,8 @@ each one leads to a page that renders.
 3. **Given** that same project, **When** its source is examined, **Then** it contains no view,
    template or menu entry belonging to those pages, and exactly one line mounting this package.
 4. **Given** that same project, **When** someone who is not signed in requests one of those pages
-   directly, **Then** they are sent to the project's sign-in page.
+   directly, **Then** they are sent to the project's sign-in page, unless the namespace declares
+   that page open to everyone.
 
 ---
 
@@ -110,8 +110,8 @@ Nothing from the backend appears. Read the package's declared dependencies and i
    appears.
 2. **Given** that same project, **When** the package's declared runtime dependencies are read,
    **Then** they are exactly Django and django-mvp.
-3. **Given** that same project, **When** the package's own code is read, **Then** no module imports
-   a payment backend or a payment provider's library.
+3. **Given** that same project, **When** the package's own code is read, **Then** no module outside
+   the provider app imports a payment backend or a payment provider's library.
 4. **Given** a project that installs the backend after the fact, **When** it is added to the
    installed applications and nothing else changes, **Then** its pages appear.
 
@@ -188,7 +188,7 @@ the first namespace's entries, card and pages before and after.
   absent: the pages still arrive, because arrival depends on installation alone. What a page does
   with an unreachable endpoint belongs to the feature that fills the page.
 - Someone who is not signed in requests a contributed page's address directly: they are sent to the
-  project's sign-in page.
+  project's sign-in page, unless the namespace declares that page open to everyone.
 - A project removes a backend from its installed applications while people are using it: the
   entries, card and pages disappear on the next request, and the addresses stop resolving.
 
@@ -204,20 +204,23 @@ the first namespace's entries, card and pages before and after.
 - **FR-003**: Contributions MUST be registered when the application is ready. No module in this
   package may inspect the application registry, reverse a URL or read project configuration while
   the framework is still starting.
-- **FR-004**: The package MUST declare no payment backend among its dependencies and MUST import
-  none. Where a page needs a backend's records, it MUST reach them through the application registry
-  rather than by importing the backend.
+- **FR-004**: The package MUST declare no third-party payment backend among its dependencies and
+  MUST import none. A provider's own SDK is imported only inside that provider's app, and declared
+  only in that app's extra. Where a page needs a provider app's records, it MUST reach them through
+  the application registry rather than by importing them.
 - **FR-005**: An installed backend's pages MUST appear in the Account Center's navigation as one
   group, labelled by the namespace that declares them. A group whose pages cannot be reached MUST
   NOT be shown.
 - **FR-006**: An installed backend MUST contribute exactly one card to the Account Center's
   overview, leading to that backend's pages.
-- **FR-007**: The drf-stripe namespace MUST contribute three pages — the person's subscription, the
-  plans available to them, and their billing management — each reachable from its own navigation
-  entry, each rendering its title and heading inside the Account Center layout. What each page shows
-  beyond that is delivered by later features.
+- **FR-007**: The Stripe namespace MUST contribute two pages — the person's subscription and the
+  plans available — each rendering its title and heading inside the Account Center layout. The
+  subscription page has a navigation entry. The plans page is routed and reversible but not listed,
+  because it is reached from a control on the subscription page. What each page shows beyond that is
+  delivered by later features.
 - **FR-008**: A contributed page MUST require a signed-in person and MUST send anyone else to the
-  project's sign-in page. The package MUST make no finer access decision than that.
+  project's sign-in page, unless its namespace declares the page open to everyone. The package MUST
+  make no finer access decision than that.
 - **FR-009**: An entry whose page cannot be reached MUST NOT be shown.
 - **FR-010**: One namespace's contribution MUST NOT alter or remove another namespace's entries,
   card or pages, and MUST NOT share a URL name with one.
@@ -236,7 +239,7 @@ The last three apply across every story rather than to any one of them.
   installed — its navigation entries, its overview card and its pages. A contribution is made or not
   made as a whole, and belongs to exactly one namespace.
 - **Namespace**: the backend a set of components speaks to, and the name that set is grouped under.
-- **Page set**: the pages one namespace contributes. For drf-stripe, three.
+- **Page set**: the pages one namespace contributes. For Stripe, two.
 
 ## Success Criteria *(mandatory)*
 
@@ -245,10 +248,10 @@ The last three apply across every story rather than to any one of them.
 - **SC-001**: A project that installs this package and a backend and adds one line to its URL
   configuration can reach every page that backend contributes, having written no view, template or
   menu entry.
-- **SC-002**: Removing the backend from the installed applications removes all three pages, every
+- **SC-002**: Removing the backend from the installed applications removes both pages, every
   entry and the card, leaving nothing behind and raising nothing.
 - **SC-003**: The package's declared runtime dependencies are exactly Django and django-mvp, and no
-  module in it imports a payment backend or a payment provider's library.
+  module outside the provider app imports a payment backend or a payment provider's library.
 - **SC-004**: With the backend installed and the URL configuration unmounted, the Account Center
   renders with no entry that leads nowhere.
 - **SC-005**: Adding a second namespace changes nothing about the first namespace's entries, card or
@@ -259,12 +262,12 @@ The last three apply across every story rather than to any one of them.
 ## Assumptions
 
 - The pages this feature contributes arrive before they have content. Each one is filled by a later
-  roadmap item: the subscription page by R2, the plans page by R3, billing management by R5.
-- The demo project installs the real backend, as a development dependency, and its pages are what
-  the demo shows. The backend's published metadata carries no upper version pins, so it resolves
-  against current Django and pydantic. It does import a name removed from its payment provider's
-  library at version 8, so the development group holds that library below 8. None of this reaches a
-  project that installs this package, because none of it is a dependency of the package.
+  roadmap item: the subscription page by R2 and the plans page by R3. Managing a subscription is
+  reached from the subscription page through the provider's own portal, not through a page of
+  its own.
+- The demo project installs the Stripe app, and its pages are what the demo shows. The provider's
+  SDK reaches the demo and the test suite through the package's `stripe-lite` extra, and nothing
+  else. None of it reaches a project that installs this package without the extra.
 - A second namespace, for the sake of User Story 5, is defined inside the test suite. There is one
   real backend, and the guarantee under test is that two contributions are independent of each
   other.

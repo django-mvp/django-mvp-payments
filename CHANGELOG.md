@@ -66,6 +66,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every recorded customer, or one with `--user`, after webhooks were missed. Its admin pages are
   read-only for everyone, a superuser included. The demo documents forwarding a sandbox's
   webhooks to it with `stripe listen`.
+- The Stripe app mounts the handoffs to Stripe's own pages with the package's URLs:
+  `payments:stripe-billing-portal` opens the billing portal, `payments:stripe-plan-switch` opens the
+  plan-change screen, and `payments:stripe-billing-return` is where the portal sends the reader
+  back, after running `Customer.sync()` for them. A person with no Stripe customer, or with nothing
+  subscribed for the plan switch, is refused with 409. `Customer.for_user()`, `Customer.portal_url()`,
+  `Customer.plan_change_flow()` and `Customer.pricing_table_client_secret()` back them.
+- The plans page is open to every visitor. For a signed-in person it passes the pricing table
+  `client-reference-id`, and for one who already has a Stripe customer also
+  `customer-session-client-secret`, so a further purchase lands on the customer they have.
+  `<c-stripe.pricing-table>` takes `client_reference_id` and `customer_session_client_secret`, and
+  drops `customer-email` when a customer session is passed. A visitor who is not signed in is told
+  to sign in first by the new `<c-stripe.sign-in-notice>`; a purchase made without signing in is
+  tied to nobody. New context names: `client_reference_id`, `customer_session_client_secret` and
+  `sign_in_url`.
+- `Page.login_required`, so a namespace can contribute a page open to everyone. It defaults to
+  `True`.
+- The subscription page lists every subscription a person currently holds, where it could show only
+  those the former backend called current. [ADR 0012](docs/adr/0012-the-plans-page-is-open-to-everyone.md)
+  records why the plans page is open.
 
 ### Changed
 
@@ -135,9 +154,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A page here may have whatever view it needs, built on django-mvp's view classes, rather than only
   a template-rendering one. It still holds no state, decides nothing about money and reaches no
   payment provider.
+- **The `drf-stripe` namespace is now `stripe`, and its pages read `mvp_payments.stripe`.** Install
+  the app and the `stripe-lite` extra; the namespace is contributed when `mvp_payments.stripe` is in
+  `INSTALLED_APPS`. Rename `<c-drf-stripe.*>` to `<c-stripe.*>`, `cotton/drf_stripe/` to
+  `cotton/stripe/`, `mvp_payments/drf_stripe/` template names to `mvp_payments/stripe/`, the static
+  files under `mvp_payments/drf_stripe/` to `mvp_payments/stripe/`, and `payments:drf-stripe-*` URL
+  names to `payments:stripe-*`. There are no aliases for the old names.
+- **The settings keys are renamed.** `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` is
+  `MVP_PAYMENTS["STRIPE_PRICING_TABLE_ID"]`, and `DRF_STRIPE_PUBLISHABLE_KEY` is
+  `STRIPE_PUBLISHABLE_KEY`.
+- **A subscriber sees the pricing table again**, and the plans page no longer sends a visitor who
+  is not signed in to sign in.
+- `CurrentSubscription` carries the plan's name, amount and interval directly, one subscription
+  being one price in the Stripe app. A subscription counts as current when the app counts it as
+  subscribed, which a past-due one does not.
+- "Switch plans" opens the portal's home, instead of a plan-change screen, for a person with several
+  subscriptions.
 
 ### Removed
 
 - The drf-stripe billing page and its address (`payments:drf-stripe-billing`). It never had
   content, and what it was going to hold is the portal control that already sits on the
   subscription page.
+- `drf-stripe-subscription` as a development dependency, and with it everything that read its
+  records: `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` and `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`
+  (the pages link to the Stripe app's own views), the demo's portal, plan-switch and return views,
+  and the global `stripe.api_version` pin in the demo.
+- `<c-stripe.plan>`, `<c-stripe.features>` and `<c-stripe.already-subscribed>`, and the plan
+  features on the subscription page, which the Stripe app does not record. A plan's quantity is
+  not shown either.

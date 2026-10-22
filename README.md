@@ -23,26 +23,27 @@ panel and the "your card expires next month" notice to be built from raw utility
 every project, every time.
 
 This package is that layer, plus the least it takes to keep it fed. It runs no payment logic and
-depends on no third-party payment backend. For Stripe it is moving to an app of its own,
+depends on no third-party payment backend. For Stripe it has an app of its own,
 `mvp_payments.stripe`, which keeps a small copy of each user's subscription in step with Stripe
-through webhooks. Either way it brings its own pages with it: they turn up in django-mvp's Account
-Center, rather than leaving you to build and route them.
+through webhooks. Its pages turn up in django-mvp's Account Center, rather than leaving you to
+build and route them.
 
 ## Status
 
-Version 0.0.1. The `drf-stripe` namespace contributes one entry to the Account Center,
-Subscription, under a Billing group. That page shows a signed-in person what they are currently
-subscribed to, what each plan grants them, the way to switch plans, and the way through to the
-provider's billing portal. The plans page it leads to mounts the provider's own pricing table,
-configured by two settings, and says so plainly when it has not been configured or when the
-provider's library never arrived. Nothing here is stable.
+Version 0.0.1. The `stripe` namespace contributes one entry to the Account Center, Subscription,
+under a Billing group. That page shows a signed-in person every subscription they currently hold,
+the way to switch plans, and the way through to Stripe's billing portal. The plans page it leads
+to is open to every visitor and mounts Stripe's own pricing table, configured by two settings. It
+ties a signed-in person's purchase to them, tells a visitor who is not signed in to sign in
+first, and says so plainly when it has not been configured or when Stripe's library never arrived.
+Nothing here is stable.
 
 ## Requirements
 
 - Python 3.12+
 - Django 5.2, 6.0 or 6.1
 - django-mvp 0.30.0+
-- A payment backend of your choosing, installed and configured separately
+- For Stripe, the `stripe-lite` extra and a Stripe account
 
 ## Install
 
@@ -76,7 +77,7 @@ urlpatterns = [
 Mount it where a reader would expect to find it. These are Account Center pages, so inside the
 Account Center's own prefix and under the label the navigation gives them is the natural place.
 Addresses carry no backend name: a page is at `<your prefix>/subscription/`, never
-`<your prefix>/some-library-name/subscription/`, because which library you chose to talk to your
+`<your prefix>/stripe/subscription/`, because which library you chose to talk to your
 payment provider is not a person's business while they read their own subscription.
 
 That line is the only wiring. From there, every backend you have installed contributes its own
@@ -114,26 +115,23 @@ the settings, the records and the webhook.
 Components are grouped by the backend they speak to, and the namespace is that backend's name:
 
 ```html
-<c-drf-stripe.plan-grid />
-<c-drf-stripe.subscribe-button price-id="price_123" />
+<c-stripe.pricing-table :table_id="pricing_table_id" :publishable_key="publishable_key" />
+<c-stripe.subscription :subscription="subscription" />
 ```
 
-Each namespace assumes one backend's HTTP endpoints and nothing else. Two namespaces never
+Each namespace assumes one backend's records and nothing else. Two namespaces never
 share markup or a data shape, because the things they are describing are not the same thing
 wearing different names — a subscription in one library is a different record with different
 fields from a subscription in the next.
 
-Shipped today: `drf-stripe`, built against
-[drf-stripe-subscription](https://github.com/oscarychen/drf-stripe-subscription), which handles
-webhooks locally and hands checkout and billing management to Stripe's hosted pages. It
-contributes a subscription page and a plans page, of which only the first is in the navigation.
-The subscription page shows what a person is currently subscribed to, reading the backend's own
-records directly and calling one of its HTTP endpoints, `customer-portal/`, to hand the reader to
-Stripe's own billing portal. It also carries the way to the plans page, which mounts the
-provider's own pricing table from two settings. Namespaces for other backends
-are welcome and do not need this one's agreement about anything: adding one is adding it beside
-the ones already installed, and changes nothing about their navigation entries, their card or
-their pages.
+Shipped today: `stripe`, built on the package's own Stripe app. It contributes a subscription page
+and a plans page, of which only the first is in the navigation. The subscription page lists every
+subscription a person currently holds, reading the Stripe app's records, and hands the reader to
+Stripe's own billing portal and plan-change screen through views the app mounts. It also carries
+the way to the plans page, which is open to every visitor and mounts the provider's own pricing
+table from two settings. Namespaces for other backends are welcome and do not need this one's
+agreement about anything: adding one is adding it beside the ones already installed, and changes
+nothing about their navigation entries, their card or their pages.
 
 [docs/subscription-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/subscription-page.md) covers the subscription page: what it puts
 in the template context, the components it is built from, and how to replace it with your own.
@@ -172,8 +170,8 @@ The Stripe app keeps the least it can: who each user's Stripe customer is, and t
 subscription with its status, price and period. Stripe is the source of truth. The app learns of
 changes from Stripe's webhooks, checks each one's signature and then asks Stripe for the current
 state, rather than trusting what the webhook says. It is installed with
-`django-mvp-payments[stripe-lite]`. Today's pages still read drf-stripe-subscription's records
-until they move to it ([ADR 0010](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
+`django-mvp-payments[stripe-lite]`
+([ADR 0010](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
 
 The standing directions this package works toward are in [GOALS.md](https://github.com/django-mvp/django-mvp-payments/blob/main/GOALS.md).
 
