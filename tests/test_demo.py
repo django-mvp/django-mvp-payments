@@ -8,7 +8,9 @@ the sidebar. None of that raises, so none of it shows up anywhere except in a
 browser.
 """
 
+import importlib.util
 import re
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -85,6 +87,37 @@ class TestDemoStripeSetup:
 
         with pytest.raises(Resolver404):
             resolve("/api/stripe/customer-portal/")
+
+
+def load_demo_settings():
+    """Run demo/settings.py afresh, so the environment it reads is the one the test set."""
+    spec = importlib.util.spec_from_file_location(
+        "demo_settings_probe", "demo/settings.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TestDemoWebhookSecret:
+    def test_the_secret_stripe_listen_prints_is_taken_from_the_environment(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv("STRIPE_TEST_WEBHOOK_SECRET", "whsec_from_stripe_listen")
+
+        settings = load_demo_settings()
+
+        assert (
+            settings.MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"] == "whsec_from_stripe_listen"
+        )
+
+    def test_without_one_the_demo_still_has_a_value_so_it_runs(self, monkeypatch):
+        monkeypatch.delenv("STRIPE_TEST_WEBHOOK_SECRET", raising=False)
+        monkeypatch.setattr(Path, "exists", lambda self: False)
+
+        settings = load_demo_settings()
+
+        assert settings.MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]
 
 
 class TestSidebarMenu:

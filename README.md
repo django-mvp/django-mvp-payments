@@ -220,6 +220,19 @@ Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo 
 sandbox customers and subscriptions. The file lists the one portal setting "Switch plans" needs
 from your sandbox.
 
+To have the demo record subscriptions made in the sandbox, forward Stripe's webhooks to it with the
+[Stripe CLI](https://docs.stripe.com/stripe-cli) in a second terminal:
+
+```bash
+stripe listen --forward-to localhost:8020/account/billing/stripe/webhook/ \
+  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.deleted
+```
+
+It prints a `whsec_...` signing secret. Put it in `demo/.env` as `STRIPE_TEST_WEBHOOK_SECRET` and
+restart the demo. Subscribing, switching plans and cancelling in the sandbox then show up in the
+demo's records. The demo starts without the command
+running, and `python manage.py stripe_sync` brings the records up to date after a gap.
+
 ## Contributing
 
 Changes follow [CONSTITUTION.md](https://github.com/django-mvp/django-mvp-payments/blob/main/CONSTITUTION.md), the
