@@ -231,7 +231,7 @@ On that visit, with nothing current showing yet, the page says the payment is be
 instead of saying there is no subscription, and polls for it with htmx, which django-mvp already
 loads on every page. Every three seconds it fetches the page again and swaps in only its
 subscription region (`#mvp-payments-subscription`). Nothing else on the page reloads. Each poll
-counts up `returned`, and the polling stops by itself as soon as a subscription appears, or after
+counts up `returned`, a value that is not a positive whole number counting as the first, and the polling stops by itself as soon as a subscription appears, or after
 `SubscriptionPageView.RETURN_POLL_LIMIT` polls (five). After the last one the page says the payment
 has not reached the site yet and to reload later.
 
@@ -245,7 +245,8 @@ The billing portal is sent back to a view of the Stripe app instead, at `stripe/
 `payments:stripe-billing-return`. It runs `Customer.sync()` for the signed-in person, so the plan
 they just chose in the portal is already recorded, and redirects to this page with `?returned=1`.
 When Stripe cannot be asked it redirects anyway, and the page waits for the webhook. A person with
-no customer is redirected without Stripe being asked. This is what lets a development server,
+no customer is redirected without Stripe being asked, and so is anyone who came back through it in
+the last ten seconds. This is what lets a development server,
 which Stripe cannot reach, show a change straight away.
 
 ## Replacing the page

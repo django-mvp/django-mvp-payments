@@ -6,6 +6,7 @@ import pytest
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.urls import reverse
+from django.views.debug import ExceptionReporter
 
 from mvp_payments.stripe.catalogue import Catalogue
 from mvp_payments.stripe.models import Customer, Subscription
@@ -460,6 +461,24 @@ class TestWebhookKeepsSecretsOut:
 
         self.assert_no_secret_anywhere(response, caplog, secrets)
 
+    def test_an_unexpected_failure_after_verifying_keeps_the_signing_secret_out_of_its_report(
+        self, deliver, rf, stripe_fake
+    ):
+        """The report an admin email or an error tracker builds lists each frame's locals."""
+        StripeCustomerFactory(stripe_id="cus_1")
+        malformed = {**subscription_payload("sub_1", "cus_1")}
+        del malformed["items"]
+        stripe_now_holds(stripe_fake, "cus_1", malformed)
+
+        with pytest.raises(KeyError) as raised:
+            deliver(subscription_event("updated"))
+
+        report = ExceptionReporter(
+            rf.post("/"), raised.type, raised.value, raised.tb
+        ).get_traceback_html()
+        assert "webhook" in report
+        assert WEBHOOK_SECRET not in report
+
 
 PORTAL_PATH = "/v1/billing_portal/sessions"
 
@@ -701,6 +720,70 @@ class TestBillingReturn:
         assert response.url.startswith(reverse("account_login"))
         assert stripe_fake.requests == []
 
+    def test_coming_back_again_straight_away_does_not_ask_stripe_again(
+        self, stripe_fake, client, user
+    ):
+        """A GET any page can make a browser send must not be a way to spend the rate limit."""
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_now_holds(
+            stripe_fake, "cus_mine", subscription_payload("sub_new", "cus_mine")
+        )
+        client.force_login(user)
+        client.get(self.url)
+        asked = len(stripe_fake.requests)
+
+        response = client.get(self.url)
+
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+        assert len(stripe_fake.requests) == asked
+
+    def test_coming_back_again_with_a_session_straight_away_does_not_ask_stripe_again(
+        self, stripe_fake, client, user
+    ):
+        stripe_fake.respond(
+            "GET",
+            "/v1/checkout/sessions/cs_1",
+            checkout_session_payload(
+                "cs_1", client_reference_id=f"{user.pk}_forged", customer="cus_new"
+            ),
+        )
+        client.force_login(user)
+        client.get(self.url, {"session_id": "cs_1"})
+        asked = len(stripe_fake.requests)
+
+        client.get(self.url, {"session_id": "cs_1"})
+
+        assert len(stripe_fake.requests) == asked
+
+    def test_the_pause_is_each_persons_own(self, stripe_fake, client, user):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_now_holds(stripe_fake, "cus_mine")
+        other = UserFactory()
+        StripeCustomerFactory(user=other, stripe_id="cus_other")
+        stripe_fake.respond(
+            "GET", "/v1/customers/cus_other", customer_payload("cus_other")
+        )
+        client.force_login(user)
+        client.get(self.url)
+        client.force_login(other)
+
+        client.get(self.url)
+
+        assert "/v1/customers/cus_other" in stripe_fake.paths()
+
+    def test_coming_back_once_the_pause_is_over_refreshes_again(
+        self, stripe_fake, client, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_now_holds(stripe_fake, "cus_mine")
+        client.force_login(user)
+        client.get(self.url)
+        cache.clear()
+
+        client.get(self.url)
+
+        assert stripe_fake.paths("GET").count("/v1/customers/cus_mine") == 2
+
     def bought(self, stripe_fake, user, *, reference_user=None, customer="cus_new"):
         reference = Customer.client_reference(reference_user or user)
         stripe_fake.respond(
@@ -771,9 +854,10 @@ SESSIONS = "/v1/checkout/sessions"
 
 @pytest.fixture
 def on_offer(stripe_fake):
-    """Stripe's catalogue holds one price, ``price_pro``."""
+    """Stripe's catalogue holds one price, ``price_pro``, and makes customers as ``cus_made``."""
     pro = {**product_payload("prod_pro", "Pro"), "active": True}
     stripe_fake.respond_with_list("/v1/prices", [price_payload("price_pro", pro)])
+    stripe_fake.respond("POST", "/v1/customers", customer_payload("cus_made"))
     return stripe_fake
 
 
@@ -851,6 +935,18 @@ class TestCheckout:
 
         (_, _, params) = checkout_created.requests[-1]
         assert params["customer"] == ["cus_mine"]
+
+    def test_a_person_with_no_customer_has_one_made_and_buys_as_it(
+        self, checkout_created, client, user
+    ):
+        client.force_login(user)
+
+        self.post(client)
+
+        assert Customer.objects.get(user=user).stripe_id == "cus_made"
+        (_, _, params) = checkout_created.requests[-1]
+        assert params["customer"] == ["cus_made"]
+        assert "customer_email" not in params
 
     def test_a_person_who_is_not_signed_in_is_sent_to_sign_in_and_stripe_is_not_asked(
         self, stripe_fake, client, db
@@ -974,7 +1070,7 @@ class TestCheckout:
 
         assert response.url == "/pricing/?x=1#a"
 
-    def test_a_customer_stripe_no_longer_has_is_dropped_and_checkout_still_starts(
+    def test_a_customer_stripe_no_longer_has_is_replaced_and_checkout_still_starts(
         self, on_offer, client, user
     ):
         StripeCustomerFactory(user=user, stripe_id="cus_gone")
@@ -1007,4 +1103,4 @@ class TestCheckout:
         response = self.post(client)
 
         assert response.url == "https://checkout.stripe.com/c/pay/cs_2"
-        assert not Customer.objects.filter(user=user).exists()
+        assert Customer.objects.get(user=user).stripe_id == "cus_made"

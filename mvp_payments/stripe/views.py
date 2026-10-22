@@ -6,6 +6,7 @@ import stripe
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
@@ -14,6 +15,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.debug import sensitive_variables
 from django.views.decorators.http import require_POST
 from stripe.params.billing_portal import SessionCreateParamsFlowData
 
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @require_POST
+@sensitive_variables("secret")
 def webhook(request: HttpRequest) -> HttpResponse:
     """Verify a Stripe webhook, then bring the affected records into step.
 
@@ -204,7 +207,16 @@ class BillingReturnView(LoginRequiredMixin, View):
     after the reader does, and a development server is not reachable from Stripe at all. So
     the customer is synchronised on the way back. It lands with ``?returned=1``, so if the
     change has still not arrived the page says it is being confirmed and polls for it.
+
+    Any page can make a browser send this GET, so Stripe is asked at most once per person in
+    each ``REFRESH_PAUSE`` seconds. Without the pause, one account loading it in a loop spends the
+    Stripe account's rate limit, and every other person's checkout fails with it.
+
+    Attributes:
+        REFRESH_PAUSE: Seconds after a return before the same person's next one asks Stripe.
     """
+
+    REFRESH_PAUSE = 10
 
     def get(self, request: HttpRequest) -> HttpResponse:
         """Bring the person's subscriptions up to date, then go back to the page.
@@ -216,18 +228,21 @@ class BillingReturnView(LoginRequiredMixin, View):
 
         Returns:
             A redirect to the user subscriptions page. A Stripe failure does not stop it: the
-            webhook is still coming.
+            webhook is still coming, as it is when the pause leaves Stripe unasked.
         """
-        try:
-            customer = self.get_customer(request)
-            if customer is not None:
-                customer.sync()
-        except stripe.StripeError as error:
-            logger.error(  # noqa: TRY400
-                "Could not refresh user %s from Stripe: %s.",
-                request.user.pk,
-                type(error).__name__,
-            )
+        if cache.add(
+            f"mvp_payments_stripe:returned:{request.user.pk}", 1, self.REFRESH_PAUSE
+        ):
+            try:
+                customer = self.get_customer(request)
+                if customer is not None:
+                    customer.sync()
+            except stripe.StripeError as error:
+                logger.error(  # noqa: TRY400
+                    "Could not refresh user %s from Stripe: %s.",
+                    request.user.pk,
+                    type(error).__name__,
+                )
         return redirect(reverse(f"{APP_NAMESPACE}:stripe-subscription") + "?returned=1")
 
     def get_customer(self, request: HttpRequest) -> Customer | None:

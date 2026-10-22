@@ -434,6 +434,26 @@ class TestPlansPage:
 
         assert len(plans_on_offer.requests) == asked
 
+    def test_a_frequency_from_stripe_cannot_end_the_string_alpine_reads_it_in(
+        self, client, stripe_fake
+    ):
+        """The browser turns an escaped quote back into a quote before Alpine sees it."""
+        product = {**product_payload("prod_x", "X"), "active": True}
+        stripe_fake.respond_with_list(
+            "/v1/prices",
+            [price_payload("price_x", product, interval="month'-alert(1)-'")],
+        )
+
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
+
+        expressions = [
+            html.unescape(value)
+            for value in re.findall(r'x-(?:data|show)="([^"]*)"', content)
+        ]
+        assert any("alert(1)" in expression for expression in expressions)
+        for expression in expressions:
+            assert "'-alert(1)-'" not in expression
+
 
 @pytest.mark.django_db
 class TestPlansWayToBuy:
@@ -836,6 +856,16 @@ class TestComingBackFromTheProvider:
     ):
         response = self._page(logged_in_client, f"?returned={value}")
 
+        assert response.context["provider_return"]["attempt"] == 1
+
+    @pytest.mark.parametrize("value", ["\u00b2", "9" * 5000])
+    def test_a_count_that_reads_as_digits_but_is_no_number_is_read_as_the_first_return(
+        self, logged_in_client, value
+    ):
+        """A superscript passes ``isdigit()``, and so does a number too long for ``int()``."""
+        response = self._page(logged_in_client, f"?returned={value}")
+
+        assert response.status_code == 200
         assert response.context["provider_return"]["attempt"] == 1
 
 

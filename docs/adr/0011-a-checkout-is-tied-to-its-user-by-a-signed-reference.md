@@ -26,9 +26,10 @@ for a signed-in user, from the plans page included, carries that value as the Ch
 
 ## What it costs
 
-- Rotating `SECRET_KEY` invalidates the references of checkouts that are still open at that
-  moment, so those purchases are recorded against nobody. Checkouts are short-lived, so the
-  window is narrow.
+- A reference verifies under `SECRET_KEY` or any key in `SECRET_KEY_FALLBACKS`, so rotating the
+  key loses nothing as long as the old one stays in the fallbacks for a day, the longest a checkout
+  stays open. Removing a key from the fallbacks sooner invalidates the references of checkouts
+  still open under it, and those purchases are recorded against nobody.
 - A checkout started anywhere that does not pass the reference, such as a payment link created
   in Stripe's dashboard, is not tied to any user.
 

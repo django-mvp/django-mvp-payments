@@ -11,9 +11,10 @@ from datetime import UTC, datetime
 import stripe
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.translation import gettext_lazy as _
+from stripe.params import CustomerCreateParams
 from stripe.params.billing_portal import (
     SessionCreateParams,
     SessionCreateParamsFlowData,
@@ -96,17 +97,38 @@ class Customer(models.Model):
         return f"{user.pk}_{cls.signature(user.pk)}"
 
     @staticmethod
-    def signature(pk) -> str:
+    def signature(pk, secret: str | bytes | None = None) -> str:
         """Sign a user's primary key for a checkout reference.
 
         Args:
             pk: The user's primary key.
+            secret: The key to sign with, the project's ``SECRET_KEY`` when ``None``.
 
         Returns:
-            An HMAC-SHA256 of the key under the project's ``SECRET_KEY`` and this app's salt,
-            in hex.
+            An HMAC-SHA256 of the primary key under the secret and this app's salt, in hex.
         """
-        return salted_hmac(REFERENCE_SALT, str(pk), algorithm="sha256").hexdigest()
+        return salted_hmac(
+            REFERENCE_SALT, str(pk), secret=secret, algorithm="sha256"
+        ).hexdigest()
+
+    @classmethod
+    def verifies(cls, pk, presented: str) -> bool:
+        """Say whether a reference's signature was made for this primary key.
+
+        A checkout can stay open for a day, so a signature made before ``SECRET_KEY`` was
+        rotated still verifies while the old key is in ``SECRET_KEY_FALLBACKS``.
+
+        Args:
+            pk: The primary key the reference names.
+            presented: The signature the reference carries.
+
+        Returns:
+            Whether the signature matches under ``SECRET_KEY`` or any of its fallbacks.
+        """
+        return any(
+            constant_time_compare(presented, cls.signature(pk, secret))
+            for secret in [settings.SECRET_KEY, *settings.SECRET_KEY_FALLBACKS]
+        )
 
     @classmethod
     def from_checkout(cls, session_id: str) -> Customer | None:
@@ -132,7 +154,7 @@ class Customer(models.Model):
             return None
         parts = session.client_reference_id.rpartition("_")
         pk, presented = parts[0], parts[2]
-        if not constant_time_compare(presented, cls.signature(pk)):
+        if not cls.verifies(pk, presented):
             return None
         user = get_user_model().objects.filter(pk=pk).first()
         if user is None:
@@ -157,7 +179,12 @@ class Customer(models.Model):
                 user.pk,
             )
             return None
-        return cls.objects.create(user=user, stripe_id=stripe_id)
+        try:
+            with transaction.atomic():
+                return cls.objects.create(user=user, stripe_id=stripe_id)
+        except IntegrityError:
+            # The webhook and the return view both tie a first purchase, and the other won.
+            return cls.objects.filter(user=user, stripe_id=stripe_id).first()
 
     @classmethod
     def start_checkout(
@@ -166,9 +193,10 @@ class Customer(models.Model):
         """Ask Stripe for a subscription Checkout Session for a signed-in user.
 
         The session carries the user's signed reference (ADR 0011), so the purchase can be
-        tied back to them. A user who already has a customer buys as that customer; anyone
-        else gives Stripe their email address, if they have one, and Stripe makes the customer.
-        A customer Stripe no longer has is synced away and the session asked for again without it.
+        tied back to them. It is always for the user's own customer, made first when they have
+        none (ADR 0015), so a second checkout can never make a second customer that holds a
+        subscription the site does not know about. A customer Stripe no longer has is synced
+        away, and the session asked for again for a new one.
 
         Args:
             user: The signed-in user.
@@ -183,19 +211,16 @@ class Customer(models.Model):
         Raises:
             stripe.StripeError: When Stripe could not be asked, or refused.
         """
-        customer = cls.for_user(user)
+        customer = cls.for_user(user) or cls.make_for(user)
         params: CheckoutSessionCreateParams = {
             "mode": "subscription",
             "line_items": [{"price": price_id, "quantity": 1}],
             "client_reference_id": cls.client_reference(user),
+            "customer": customer.stripe_id,
             "allow_promotion_codes": True,
             "success_url": success_url,
             "cancel_url": cancel_url,
         }
-        if customer is not None:
-            params["customer"] = customer.stripe_id
-        elif user.email:
-            params["customer_email"] = user.email
         try:
             return cls.checkout_url(params)
         except stripe.InvalidRequestError as error:
@@ -203,15 +228,38 @@ class Customer(models.Model):
                 None,
                 "customer",
             )
-            if customer is None or not gone:
+            if not gone:
                 raise
             customer.sync()
             if cls.objects.filter(pk=customer.pk).exists():
                 raise
-        del params["customer"]
-        if user.email:
-            params["customer_email"] = user.email
+        params["customer"] = cls.make_for(user).stripe_id
         return cls.checkout_url(params)
+
+    @classmethod
+    def make_for(cls, user) -> Customer:
+        """Ask Stripe to make a customer for a user who has none, and record it.
+
+        Two checkouts started at once can both make one. The first recorded is the user's, and
+        the other stays on Stripe with nothing bought on it.
+
+        Args:
+            user: The signed-in user. Their email address, if they have one, is given to Stripe.
+
+        Returns:
+            The user's customer.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused. Nothing is recorded.
+        """
+        params: CustomerCreateParams = {}
+        if user.email:
+            params["email"] = user.email
+        made = client().v1.customers.create(params=params)
+        customer, _ = cls.objects.get_or_create(
+            user=user, defaults={"stripe_id": made.id}
+        )
+        return customer
 
     @staticmethod
     def checkout_url(params: CheckoutSessionCreateParams) -> str:

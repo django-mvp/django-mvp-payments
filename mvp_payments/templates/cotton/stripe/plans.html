@@ -5,7 +5,7 @@
 <c-vars plans />
 {% if plans.prices %}
 <div class="flex flex-col gap-6"
-     x-data="{ interval: '{{ plans.first_interval }}' }">
+     x-data="{ interval: '{{ plans.first_interval|escapejs }}' }">
   {% if plans.intervals|length > 1 %}
     <c-join class="self-start" role="radiogroup" aria-label="{% translate 'Billing frequency' %}">
       {% for interval in plans.intervals %}
@@ -21,7 +21,7 @@
   {% endif %}
   {% for interval in plans.intervals %}
     <section class="flex flex-col gap-3"
-             x-show="interval === '{{ interval.key }}'"
+             x-show="interval === '{{ interval.key|escapejs }}'"
              aria-label="{{ interval.label }}">
       {% if plans.intervals|length > 1 %}
         <h2 class="text-lg font-semibold" x-show="false">{{ interval.label }}</h2>

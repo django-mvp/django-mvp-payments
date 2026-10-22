@@ -23,11 +23,15 @@ The first release. Nothing was published before it, so everything below is new.
   customer and every subscription Stripe reports for them in your database, against Stripe API
   version `2026-09-30.endive` whatever your account's default is. It needs
   `MVP_PAYMENTS["STRIPE_SECRET_KEY"]` and `MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]`, and a system
-  check names whichever is missing without printing it.
+  check names whichever is missing without printing it. Another warns when the default cache is
+  Django's dummy cache, which would send every view of the plans page to Stripe.
   - Its webhook, `payments:stripe-webhook`, verifies every event and then fetches the current state
     from Stripe, so late, repeated and out-of-order events leave the same records.
   - A purchase is tied to the user who made it by a signed reference carried through checkout, never
-    by email address.
+    by email address. A reference signed before `SECRET_KEY` was rotated still verifies while the old
+    key is in `SECRET_KEY_FALLBACKS`.
+  - Every checkout is for the person's own Stripe customer, made before their first one, so buying
+    twice can never leave a paid subscription on a customer the site does not know.
   - `Subscription.objects.for_user(user).subscribed()` answers whether someone is subscribed, for
     your own views.
   - `python manage.py stripe_sync` re-syncs every recorded customer, or one with `--user`, after
@@ -37,7 +41,7 @@ The first release. Nothing was published before it, so everything below is new.
   holds, with its status, plan, amount, billing frequency and current period, and offers "Manage
   subscription" (Stripe's billing portal) and "Switch plans" (Stripe's plan-change screen). Coming
   back from Stripe, the page shows what just changed, and polls briefly while the webhook catches
-  up. Components: `<c-stripe.subscription>`, `<c-stripe.amount>`, `<c-stripe.portal-link>`,
+  up. The way back asks Stripe at most once every ten seconds for each person. Components: `<c-stripe.subscription>`, `<c-stripe.amount>`, `<c-stripe.portal-link>`,
   `<c-stripe.plans-link>`, `<c-stripe.no-subscription>` and `<c-stripe.provider-return>`, with
   `billing_portal.js` binding the two controls.
 - **The plans page**, public. It draws every active recurring price in your Stripe account with its

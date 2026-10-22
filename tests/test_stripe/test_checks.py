@@ -74,3 +74,22 @@ class TestSettingsChecks:
 
         assert SECRET not in text
         assert WEBHOOK not in text
+
+
+class TestCacheCheck:
+    def test_a_dummy_default_cache_is_warned_about(self, settings):
+        settings.CACHES = {
+            "default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}
+        }
+
+        findings = stripe_findings()
+
+        assert [finding.id for finding in findings] == ["mvp_payments_stripe.W001"]
+        assert "CACHES" in findings[0].msg
+
+    def test_a_cache_that_keeps_things_is_not_warned_about(self, settings):
+        settings.CACHES = {
+            "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+        }
+
+        assert stripe_findings() == []
