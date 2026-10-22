@@ -132,6 +132,27 @@ from mvp_payments.stripe.models import Customer
 Customer.objects.get(stripe_id="cus_123").sync()
 ```
 
+## The `stripe_sync` command
+
+```bash
+python manage.py stripe_sync
+python manage.py stripe_sync --user ada
+```
+
+Runs `Customer.sync()` for every recorded customer, one after another, and prints how many it
+synced. Run it after a period when webhooks did not arrive, such as a deploy, an expired signing
+secret or a changed address. Running it again straight away changes nothing.
+
+`--user`
+: The `USERNAME_FIELD` value of one user, such as their username. Only that user's customer is
+  synced. A name no user has, or a user with no recorded customer, stops the command with an
+  error before Stripe is asked anything.
+
+A customer Stripe no longer has is removed with its subscriptions, as `sync()` does. Each customer
+is synced in a transaction of its own. When Stripe cannot be asked, the command stops with an
+error that says how many customers it had synced. Those stay synced, and running the command again
+finishes the rest. The error names the kind of failure and never Stripe's message.
+
 ## `Customer.client_reference()` and `Customer.from_checkout()`
 
 A purchase is tied to a user only through the identity of the signed-in user, carried through

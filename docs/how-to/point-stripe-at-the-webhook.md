@@ -24,3 +24,7 @@ reaches your database.
 Stripe now calls your site for each of those events, and the records follow. What the webhook
 answers, and what it does with each event, is in the
 [webhook reference](../reference/stripe-app.md#the-webhook).
+
+If webhooks were missed, for example while the endpoint was down, bring the records back into step
+with `python manage.py stripe_sync`. See the
+[command reference](../reference/stripe-app.md#the-stripe_sync-command).
