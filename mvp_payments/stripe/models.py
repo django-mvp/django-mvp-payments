@@ -345,6 +345,18 @@ class SubscriptionQuerySet(models.QuerySet["Subscription"]):
         """
         return self.filter(status__in=("active", "trialing"))
 
+    def current(self) -> SubscriptionQuerySet:
+        """Limit to the subscriptions that have not ended.
+
+        Every status but Stripe's two terminal ones, cancelled and incomplete-expired, so a
+        subscription that is past due, unpaid, incomplete or paused is still one a person has
+        and needs to see. A status the app does not know is kept and shown as itself.
+
+        Returns:
+            The subscriptions that have not ended.
+        """
+        return self.exclude(status__in=("canceled", "incomplete_expired"))
+
 
 class Subscription(models.Model):
     """One Stripe subscription, as Stripe last reported it.

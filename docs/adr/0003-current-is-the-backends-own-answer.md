@@ -5,7 +5,8 @@
 ## Decision
 
 `SubscriptionReader` reads a person's current subscriptions through the Stripe app's own
-`Subscription.objects.for_user(user).subscribed()`. This package's interface layer names no
+`Subscription.objects.for_user(user).current()`: every subscription that has not finished, in
+whatever state Stripe reports. This package's interface layer names no
 subscription status anywhere, and holds no list of which statuses count as current.
 
 ## Why
@@ -20,13 +21,13 @@ set down a second time in the interface layer. A copy of the list goes stale sil
 original moves, and the one place that decides who is subscribed should stay the one place.
 
 Reading the app's answer also disposes of the several-subscriptions question without a rule of our
-own. The backend returns every subscription that counts and the page renders each one, which is
-simpler than choosing between them and is the only answer that cannot quietly hide one.
+own. The app returns every current subscription and the page renders each one, which is simpler
+than choosing between them and is the only answer that cannot quietly hide one.
 
-The accepted cost: a subscription the Stripe app does not count, such as one that is past due,
-does not appear on the page, so a person in that state reads as having no current subscription.
+The page reads `current()` and not `subscribed()`. A person whose payment has failed is not
+subscribed, but they still have a subscription, and the page is where they find out and reach
+Stripe's portal to put it right (Article XV: every state is representable).
 
 ## Revisit if
 
-The Stripe app's definition of subscribed grows a state the page should name, such as a payment
-that has failed and can still be put right.
+Stripe adds a terminal status beyond `canceled` and `incomplete_expired`.

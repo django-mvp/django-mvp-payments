@@ -10,11 +10,16 @@ and how to replace it with one of your own.
 
 ## What counts as current
 
-The page shows the subscriptions the Stripe app counts as subscribed, and does not apply a
-definition of its own. That is `Subscription.objects.for_user(user).subscribed()`: a subscription
-whose status is `active` or `trialing`, including one set to end with its period. A subscription
-in any other status does not appear here, and a person with none of the first kind reads as having
-no current subscription. A person who holds several subscriptions sees every one of them.
+The page shows every subscription the Stripe app holds for the person that has not finished, and
+does not apply a definition of its own. That is `Subscription.objects.for_user(user).current()`:
+every status except `canceled` and `incomplete_expired`. So a subscription that is past due,
+unpaid, incomplete or paused is shown with its status, and the way through to Stripe's portal is
+there to put it right. A person with nothing current reads as having no subscription. A person who
+holds several subscriptions sees every one of them.
+
+Whether someone counts as subscribed, for deciding what they may see, is a different question,
+answered by `subscribed()`. A person whose payment has failed is on this page and is not
+subscribed.
 
 That matters if you are deciding where to show something. A page that drew its own line would
 disagree with the rest of your application on the day the app's line moved. See

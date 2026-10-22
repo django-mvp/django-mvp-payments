@@ -25,11 +25,11 @@ Stripe app's own behaviour and the project's standards document. Longer rational
 - **Q: A person can hold several subscriptions, and several of the statuses the Stripe app stores
   describe one that is over. Which of them does a page about what someone is "currently"
   subscribed to show?**
-  A: Whichever the Stripe app itself counts as subscribed. It already draws that line and applies
-  it everywhere else it answers questions about a person: a subscription counts while it is active
-  or on trial, including one set to end with its period, and does not in any other status. Taking
-  the app's answer rather than inventing a second one is what keeps this page agreeing with the
-  rest of the application. The page lists every such subscription rather than assuming there is
+  A: Every one the Stripe app holds as current, meaning every status except the two that mean
+  it has finished, cancelled and incomplete-expired. A subscription that is past due, unpaid,
+  incomplete or paused is still one the person has, and this page is where they see that and
+  reach Stripe's portal to put it right. Taking the app's answer rather than inventing a second
+  one is what keeps this page agreeing with the rest of the application. The page lists every such subscription rather than assuming there is
   exactly one. Recorded as FR-001.
 
 - **Q: What is a plan's name?**
@@ -210,8 +210,8 @@ unrelated template and confirm it renders on its own.
 
 ### Functional Requirements
 
-- **FR-001**: The subscription page MUST show every subscription the Stripe app counts as
-  subscribed for the signed-in person, and MUST take the app's own definition rather than applying
+- **FR-001**: The subscription page MUST show every subscription the Stripe app holds as current
+  for the signed-in person, and MUST take the app's own definition rather than applying
   one of its own.
 - **FR-002**: For each of those subscriptions the page MUST show its status, and its current
   billing period where the Stripe app recorded one.

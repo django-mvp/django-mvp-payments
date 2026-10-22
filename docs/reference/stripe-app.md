@@ -109,6 +109,12 @@ Records change only from what Stripe reports. Nothing here is edited by hand.
   `past_due`, `unpaid`, `incomplete`, `incomplete_expired`, `paused`, `canceled`, and any status
   this version does not know, do not.
 
+`current()`
+: Every subscription that has not finished: every status except `canceled` and
+  `incomplete_expired`, including any status this version does not know. This is what the user
+  subscriptions page lists, so that a payment that has failed is shown and can be put right. It is
+  not an answer to whether someone is subscribed.
+
 ```python
 from mvp_payments.stripe.models import Subscription
 

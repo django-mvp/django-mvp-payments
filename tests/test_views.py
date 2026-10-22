@@ -735,8 +735,8 @@ class TestBillingPortalEndpoint:
 
 @pytest.mark.django_db
 class TestNoCurrentSubscription:
-    @pytest.mark.parametrize("status", ["canceled", "past_due", "incomplete"])
-    def test_a_person_whose_subscription_does_not_count_is_told_there_is_none(
+    @pytest.mark.parametrize("status", ["canceled", "incomplete_expired"])
+    def test_a_person_whose_subscription_has_finished_is_told_there_is_none(
         self, user, client_for, status
     ):
         ended_subscription = StripeSubscriptionFactory(
@@ -762,6 +762,20 @@ class TestNoCurrentSubscription:
         assert status not in content
         assert str(ended_subscription.current_period_start.year) not in content
         assert "data-mvp-payments-portal-link" not in content
+
+    @pytest.mark.parametrize("status", ["past_due", "unpaid", "incomplete", "paused"])
+    def test_a_subscription_needing_attention_is_shown_with_its_status_and_the_portal(
+        self, user, client_for, status
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, status=status, product_name="Needs Attention Plan"
+        )
+
+        content = client_for(user).get(reverse("payments:stripe-subscription")).content
+        content = content.decode()
+
+        assert "Needs Attention Plan" in content
+        assert "data-mvp-payments-portal-link" in content
 
     def test_a_person_with_no_customer_record_at_all_reaches_the_same_page(
         self, logged_in_client

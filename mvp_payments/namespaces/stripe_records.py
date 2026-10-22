@@ -1,7 +1,7 @@
 """The Stripe app's subscriptions, as presentation objects.
 
 Reached through ``apps.get_model`` throughout, never imported (Article XII). What counts as
-*current* is the Stripe app's own answer, ``SubscriptionQuerySet.subscribed``, never a status
+*current* is the Stripe app's own answer, ``SubscriptionQuerySet.current``, never a status
 list of ours (ADR 0003).
 """
 
@@ -73,7 +73,7 @@ class SubscriptionReader:
 
     @staticmethod
     def for_user(user: AbstractBaseUser) -> tuple[CurrentSubscription, ...]:
-        """Read the subscriptions the Stripe app counts as the person being subscribed.
+        """Read the person's current subscriptions, in whatever state Stripe reports.
 
         Args:
             user: The person whose subscriptions to read, who may not be signed in.
@@ -97,5 +97,5 @@ class SubscriptionReader:
                 period_start=subscription.current_period_start,
                 period_end=subscription.current_period_end,
             )
-            for subscription in subscription_model.objects.for_user(user).subscribed()
+            for subscription in subscription_model.objects.for_user(user).current()
         )

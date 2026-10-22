@@ -568,6 +568,7 @@ class TestCustomerFromCheckout:
 
 
 COUNTS_AS_SUBSCRIBED = {"active", "trialing"}
+HAS_ENDED = {"canceled", "incomplete_expired"}
 
 
 @pytest.mark.django_db
@@ -589,6 +590,20 @@ class TestSubscriptionQuerySet:
         )
 
         assert answer is (status in COUNTS_AS_SUBSCRIBED)
+
+    @pytest.mark.parametrize(
+        "status",
+        [
+            *Subscription.Status.values,
+            pytest.param("a_status_not_yet_invented", id="unknown"),
+        ],
+    )
+    def test_current_keeps_every_subscription_that_has_not_ended(self, status):
+        subscription = StripeSubscriptionFactory(status=status)
+
+        current = Subscription.objects.for_user(subscription.customer.user).current()
+
+        assert current.exists() is (status not in HAS_ENDED)
 
     def test_a_subscription_set_to_cancel_at_period_end_still_counts(self):
         subscription = StripeSubscriptionFactory(

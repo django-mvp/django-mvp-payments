@@ -27,8 +27,11 @@ def subscription_billed(interval, interval_count=1):
 
 @pytest.mark.django_db
 class TestSubscriptionReader:
-    @pytest.mark.parametrize("status", ["active", "trialing"])
-    def test_returns_one_entry_per_subscription_the_app_counts_as_subscribed(
+    @pytest.mark.parametrize(
+        "status",
+        ["active", "trialing", "past_due", "unpaid", "incomplete", "paused", "new_one"],
+    )
+    def test_returns_one_entry_per_current_subscription_shown_with_its_own_status(
         self, user, status
     ):
         StripeSubscriptionFactory(customer__user=user, status=status)
@@ -39,12 +42,8 @@ class TestSubscriptionReader:
         assert isinstance(subscriptions[0], CurrentSubscription)
         assert subscriptions[0].status == status
 
-    @pytest.mark.parametrize(
-        "status", ["canceled", "incomplete", "past_due", "unpaid", "paused"]
-    )
-    def test_a_subscription_the_app_does_not_count_as_subscribed_is_absent(
-        self, user, status
-    ):
+    @pytest.mark.parametrize("status", ["canceled", "incomplete_expired"])
+    def test_a_subscription_that_has_ended_is_absent(self, user, status):
         StripeSubscriptionFactory(customer__user=user, status=status)
 
         assert SubscriptionReader.for_user(user) == ()
