@@ -157,7 +157,18 @@ cache.set(
                 "name": "Probe",
                 "marketing_features": [{"name": "Own feature"}],
             },
-        }
+        },
+        {
+            "id": "price_probe_other",
+            "unit_amount": 5000,
+            "currency": "usd",
+            "recurring": {"interval": "month", "interval_count": 1},
+            "product": {
+                "id": "prod_probe_other",
+                "name": "Other",
+                "marketing_features": [{"name": "Own feature"}],
+            },
+        },
     ],
     3600,
 )
@@ -950,13 +961,17 @@ class TestPlansPageOverride:
         )
 
         content = result["content"]
-        assert (
-            '<p data-testid="the-hosting-projects-own-features">Probe has 1 features</p>'
-            in content
-        )
+        for product in ("Probe", "Other"):
+            marker = (
+                '<p data-testid="the-hosting-projects-own-features">'
+                f"{product} has 1 features</p>"
+            )
+            assert content.count(marker) == 1
         assert "Own feature" not in content
         assert 'id="price_probe"' in content
+        assert 'id="price_probe_other"' in content
         assert "20.00 USD" in content
+        assert "50.00 USD" in content
         assert "every month" in content
 
 
