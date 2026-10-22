@@ -270,6 +270,7 @@ page. The user subscriptions page links to them, and a project can too.
 | `BillingPortalView` | `payments:stripe-billing-portal` | `stripe/billing-portal/` | POST |
 | `PlanSwitchView` | `payments:stripe-plan-switch` | `stripe/plan-switch/` | POST |
 | `BillingReturnView` | `payments:stripe-billing-return` | `stripe/return/` | GET |
+| `CheckoutView` | `payments:stripe-checkout` | `stripe/checkout/` | POST |
 
 `BillingPortalView` and `PlanSwitchView` answer with `{"url": ...}`, the address of a Stripe
 billing-portal session for the person's customer, which a script follows. They answer:
@@ -279,6 +280,10 @@ billing-portal session for the person's customer, which a script follows. They a
 | 200 | A portal session was created |
 | 409 | The person has no Stripe customer, or, for the plan switch, nothing subscribed. Stripe is not asked and nothing is created |
 | 502 | Stripe could not be asked or refused. The log names the kind of error and never Stripe's message |
+
+`CheckoutView` is where a plan's Choose button posts, with the `price` chosen and a `return_to`
+path on your site. It needs a signed-in person. It does not start a Stripe checkout yet: it sends
+the person back to `return_to`.
 
 The portal view opens the portal's home. The plan-switch view opens the plan-change screen for the
 person's subscription, or the portal's home when they have several. Both send the reader back

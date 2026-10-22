@@ -2,7 +2,7 @@
   "feature": "005-plans-drawn-here",
   "branch": "005-plans-drawn-here",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "DESIGN_REVIEW",
+  "state": "IMPLEMENT",
   "state_history": [
     {
       "state": "PLAN",
@@ -13,6 +13,11 @@
       "state": "DESIGN_REVIEW",
       "at": "2026-10-22T16:30:25Z",
       "note": "plan, research and tasks committed; design reviewer dispatched"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-10-22T16:39:20Z",
+      "note": "design review applied; plan gate open; US1 dispatched"
     }
   ],
   "gates": {
@@ -27,8 +32,8 @@
       "approved_by": "Sam",
       "at": "2026-10-22T16:26:42Z",
       "self_resolved": [
-        "public page at /plans/, not under the account address — moved out of the Account Center to /plans/",
-        "design and inspect in the browser before reporting — browser pass at desktop and phone widths, light and dark, layout defects fixed"
+        "public page at /plans/, not under the account address \u2014 moved out of the Account Center to /plans/",
+        "design and inspect in the browser before reporting \u2014 browser pass at desktop and phone widths, light and dark, layout defects fixed"
       ]
     },
     "plan": {
@@ -58,23 +63,81 @@
       "tasks": [
         {
           "id": "T001",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_catalogue.py::TestCatalogue",
+              "tests/test_stripe/test_catalogue.py::TestStripeConfigCatalogue"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_catalogue.py"
+            ],
+            "code": [
+              "mvp_payments/stripe/catalogue.py:1"
+            ]
+          }
         },
         {
           "id": "T002",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_stripe_plans.py",
+              "tests/test_namespaces/test_stripe_records.py::TestFrequencyWords",
+              "tests/test_templatetags/test_mvp_payments.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_namespaces tests/test_templatetags tests/test_app.py tests/test_stripe"
+            ],
+            "code": [
+              "mvp_payments/namespaces/stripe_plans.py:1",
+              "mvp_payments/namespaces/stripe_records.py:55"
+            ]
+          }
         },
         {
           "id": "T003",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansPage",
+              "tests/test_views.py::TestSubscriptionPage",
+              "tests/test_views.py::TestPlansPageOverride",
+              "tests/test_urls.py",
+              "tests/test_plans_urls.py",
+              "tests/test_contributions.py",
+              "tests/test_namespaces/test_stripe.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py tests/test_urls.py tests/test_plans_urls.py tests/test_contributions.py tests/test_namespaces tests/test_components/test_stripe.py::TestPlansUnavailable tests/test_app.py"
+            ],
+            "code": [
+              "mvp_payments/views.py:150",
+              "mvp_payments/plans_urls.py:1"
+            ]
+          }
         },
         {
           "id": "T004",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py",
+              "tests/test_components/test_stripe.py",
+              "tests/test_app.py::TestNoProviderScript"
+            ],
+            "commands": [
+              "uv run pytest tests/test_demo.py tests/test_components tests/test_stripe/test_models.py tests/test_views.py tests/test_app.py"
+            ],
+            "code": [
+              "docs/reference/plans-page.md:1",
+              "docs/how-to/install-the-stripe-app.md:1"
+            ]
+          }
         }
       ]
     },

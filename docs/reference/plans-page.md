@@ -119,6 +119,9 @@ below returns the same dictionary for any template.
 `return_to`
 : The path of the page the plans are on, so signing in and a cancelled checkout come back to it.
 
+`PlanChoices.for_request(request)`, in `mvp_payments.namespaces.stripe_plans`, builds that
+dictionary. The page and the tag both call it, and a view of your own can too.
+
 ## The tag and the filters
 
 Load `mvp_payments` to use them.
