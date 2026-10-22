@@ -1,6 +1,8 @@
 """Rendering a contributed page inside the Account Center layout."""
 
+import html
 import re
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.db import connection
@@ -350,6 +352,99 @@ class TestPlansPage:
         client.get(reverse("payments_plans:stripe-plans"))
 
         assert len(plans_on_offer.requests) == asked
+
+
+@pytest.mark.django_db
+class TestPlansWayToBuy:
+    url = "/plans/"
+
+    def page(self, client, **query):
+        return client.get(self.url, query).content.decode()
+
+    def test_a_visitor_who_is_not_signed_in_is_sent_to_sign_in_and_back_to_the_plan(
+        self, client, plans_on_offer
+    ):
+        card = _card(self.page(client), "price_basic_year")
+
+        (href,) = re.findall(r'href="([^"]*\?next=[^"]*)"', card)
+        query = parse_qs(urlsplit(html.unescape(href)).query)
+        assert query["next"] == ["/plans/?plan=price_basic_year#price_basic_year"]
+        assert "<form" not in card
+
+    def test_a_signed_in_person_gets_a_form_posting_the_price_to_the_checkout(
+        self, logged_in_client, plans_on_offer
+    ):
+        card = _card(self.page(logged_in_client), "price_basic_year")
+
+        assert 'method="post"' in card
+        assert f'action="{reverse("payments:stripe-checkout")}"' in card
+        assert 'name="price" value="price_basic_year"' in card
+        assert 'name="return_to" value="/plans/"' in card
+        assert "csrfmiddlewaretoken" in card
+
+    def test_a_plan_the_person_holds_leads_to_their_subscriptions_not_the_checkout(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="active"
+        )
+        content = self.page(logged_in_client)
+
+        held = _card(content, "price_basic_month")
+        other = _card(content, "price_basic_year")
+        assert f'href="{reverse("payments:stripe-subscription")}"' in held
+        assert "<form" not in held
+        assert "<form" in other
+
+    def test_a_plan_whose_subscription_ended_is_offered_again(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="canceled"
+        )
+
+        card = _card(self.page(logged_in_client), "price_basic_month")
+
+        assert "<form" in card
+        assert reverse("payments:stripe-subscription") not in card
+
+    def test_the_plan_picked_before_signing_in_has_its_frequency_selected(
+        self, client, plans_on_offer
+    ):
+        content = self.page(client, plan="price_basic_year")
+
+        assert "interval: 'year_1'" in content
+        year = re.search(r"<input[^>]*value=\"year_1\"[^>]*>", content).group()
+        month = re.search(r"<input[^>]*value=\"month_1\"[^>]*>", content).group()
+        assert "checked" in year
+        assert "checked" not in month
+        assert 'id="price_basic_year"' in content
+
+    @pytest.mark.parametrize("signed_in", [False, True])
+    def test_each_control_is_named_for_its_plan_and_described_by_the_off_site_note(
+        self, client, logged_in_client, plans_on_offer, signed_in
+    ):
+        content = self.page(logged_in_client if signed_in else client)
+
+        card = _card(content, "price_basic_month")
+        control = re.search(
+            r"<(?:button|a)[^>]*aria-describedby=[^>]*>.*?</(?:button|a)>", card, re.S
+        ).group()
+        assert "Basic, every month" in control
+        assert 'aria-describedby="mvp-payments-checkout-note"' in control
+        note = content[content.index('id="mvp-payments-checkout-note"') :]
+        assert "Stripe" in note.split("</p>")[0]
+
+    def test_the_control_for_a_held_plan_is_named_for_the_subscription(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="active"
+        )
+
+        card = _card(self.page(logged_in_client), "price_basic_month")
+
+        assert "your Basic subscription" in card
 
 
 class TestPageViewConfiguration:

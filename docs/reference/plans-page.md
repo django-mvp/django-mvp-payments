@@ -49,6 +49,21 @@ Two states stand in for the cards:
 Amounts go through `mvp_payments.money.Money`, so a zero-decimal currency such as the yen shows
 `500,000 JPY` and a three-decimal one such as the Kuwaiti dinar shows `12.500 KWD`.
 
+## Buying a plan
+
+Each card ends in one control, which depends on who is looking:
+
+| Reader | Control |
+|---|---|
+| Not signed in | A link to `login_url` with `next` set to this page, `?plan=<price id>` and the card's anchor, so signing in lands on the plan they picked |
+| Signed in | A form that posts `price` and `return_to` to [`CheckoutView`](stripe-app.md), which sends them to Stripe's checkout page |
+| Holds the plan | A link to the user subscriptions page. A plan whose subscription has ended is offered again |
+
+The picked plan's billing frequency is selected when the page opens and its card is the target of
+the anchor. Every control is named for its plan, by text only a screen reader hears, and is
+described by the note under the cards that payment is taken on Stripe's checkout page. A checkout
+that cannot start returns the reader to this page with a message above it.
+
 ## Where the prices come from
 
 The Stripe app reads the prices from Stripe and keeps them in your project's default cache for
