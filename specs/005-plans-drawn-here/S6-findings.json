@@ -1,0 +1,85 @@
+{
+  "lens": "correctness",
+  "stage": "code",
+  "verdict": "approve",
+  "risk": "medium",
+  "scope": "Feature branch 005-plans-drawn-here vs origin/main (git diff origin/main...HEAD, 28 commits, 91 files), with two lenses: Phase 1 correctness and spec compliance (craft-review, with craft-simplify for remedies) and Phase 2 security (craft-security) over the public plans page, CheckoutView, Customer.start_checkout, the catalogue cache and the webhook's product/price branch. Read past the diff into the checkout, docs/, README and research.md. Suite run: `uv run pytest`, 498 passed. Coverage of new modules: catalogue.py 100%, stripe_plans.py 100%, templatetags 100%, stripe/views.py 99%, stripe/models.py 97% (uncovered: models.py:203, the re-raise when resource_missing was not the customer, and :227, Stripe sending no URL), project 98%. Removed or renamed names searched across Python, templates, Markdown and JS (specs/, .venv, dist and CHANGELOG history excluded): `payments:stripe-plans` 1 reference (tests/test_urls.py:20, which asserts it no longer reverses, correct); `Page.in_navigation` 1 (tests/test_contributions.py:131, which asserts the argument is refused, correct); `Page.login_required` 0; `pricing_table_client_secret` 0; `STRIPE_PRICING_TABLE_ID`/`STRIPE_PUBLISHABLE_KEY` 0; `pricing-table`/`pricing_table` 3 (all test names or a negative assertion, fine); `sign-in-notice` 0; `PlansUnconfiguredView`/`NoLibraryView` 0; `sign_in_url`/`customer_session_client_secret` 0; `page_url(\"plans\")` 0; `frequency_display` 10 (now delegates to `frequency_words`, every reference reads the same); `client-reference-id` 1 stale (docs/reference/stripe-app.md:245, see notes). Tests swept: 112 new or changed tests in test_catalogue.py, test_stripe_plans.py, test_views.py (TestPlansPage, TestPlansWayToBuy, TestPlansPageOverride, TestPlansWithoutTheStripeApp), test_stripe/test_views.py (TestCheckout, TestWebhookClearsTheCatalogue, TestBillingReturn session_id cases), test_models.py start_checkout, test_templatetags placement, test_stripe_sync catalogue clearing, test_contributions and test_urls. One cannot fail where it should (CR-001). Security: CheckoutView is LoginRequiredMixin and POST-only under CSRF, the price is checked against the catalogue before Stripe is asked, return_to goes through url_has_allowed_host_and_scheme against request.get_host(), Stripe text is autoescaped and has a test, the catalogue is cleared only after signature verification, failures are logged by error type only, and a failed read is cached for 60 seconds so an outage does not hit Stripe on every public request. No secret appears in the diff. Nothing at high or critical.",
+  "skills_loaded": [
+    {"name": "craft-review", "receipt": "craft-review/2026-10-15/6b8372b4", "loaded_via": "path-read"},
+    {"name": "craft-simplify", "receipt": "craft-simplify/2026-08-04/69038ce1", "loaded_via": "path-read"},
+    {"name": "craft-security", "receipt": "craft-security/2026-08-04/ea3d6742", "loaded_via": "path-read"}
+  ],
+  "findings": [
+    {
+      "id": "CR-001",
+      "severity": "medium",
+      "confidence": "verified",
+      "claim": "No test can tell the 'plans cannot be shown' state (FR-016, AS 1.8) from the 'no plans on offer' state (FR-017, AS 1.10). Swapping the two branches in the page template keeps the suite green.",
+      "evidence": "mvp_payments/templates/mvp_payments/stripe/plans.html:3-6 chooses `<c-stripe.plans-unavailable />` when `plans.prices is None` and `<c-stripe.no-plans />` when it is empty. tests/test_views.py:366-377 and :390-401 each assert only `response.context[\"plans\"][\"prices\"]` (set by the view, not the template), `\"mvp-list-empty\" in content` (both components render `<c-mvp.page.list.empty>`) and no `id=\"price_`. Neither assertion reads which component rendered. tests/test_components/test_stripe.py has a test for plans-unavailable alone (line 205) and none for no-plans.",
+      "reproduction": "In plans.html swap `<c-stripe.plans-unavailable />` and `<c-stripe.no-plans />`, run `uv run pytest tests/test_views.py -k 'cannot_be_read or nothing_on_offer'`: both stay green. The page now tells a visitor that nothing is on offer when Stripe is down, and the opposite.",
+      "suggested_fix": "Have each of the two page tests check which component rendered, without asserting wording: for example, compare the page's empty region against `cotton_render(\"stripe.no-plans\")` or `cotton_render(\"stripe.plans-unavailable\")`, or give each component a `data-testid` and assert on that. The repaired tests must fail when the two branches in plans.html are swapped."
+    },
+    {
+      "id": "CR-002",
+      "severity": "medium",
+      "confidence": "verified",
+      "claim": "The documented one-page replacement leaves every Choose control pointing `aria-describedby` at an element that is not on the page, so FR-021 (the control says it leads off the site) is lost wherever a project follows that example.",
+      "evidence": "mvp_payments/templates/cotton/stripe/plan_choose.html:16 and :25 set `aria-describedby=\"mvp-payments-checkout-note\"`. The element with that id exists only in cotton/stripe/plans.html:38. docs/reference/plans-page.md:209-223 ('Replacing a part on one page') tells a project to loop over `plans.prices` and use `<c-stripe.plan-choose>` directly, with no `<c-stripe.plans>`, so the note is never rendered. tests/test_templatetags/test_mvp_payments.py:146 renders that exact loop and does not check the description.",
+      "reproduction": "Render the loop from plans-page.md:215-222 with a signed-in or anonymous request. The output has `aria-describedby=\"mvp-payments-checkout-note\"` on each control and no element with `id=\"mvp-payments-checkout-note\"`. A screen reader announces only 'Choose, Pro, every month', with nothing about Stripe.",
+      "suggested_fix": "Smallest change: add the note paragraph (with its id) to the documented loop example in plans-page.md, and say in the plan-choose entry under 'The parts' that the control is described by that element, which the page must carry. A test for the loop placement should assert that the id the control names is present in the output, and should fail when the note is left out."
+    },
+    {
+      "id": "CR-003",
+      "severity": "medium",
+      "confidence": "verified",
+      "claim": "Two copies of the same billing-length table: `PlanChoices.INTERVAL_DAYS` in the interface duplicates `Catalogue.BILLING_DAYS` in the Stripe app. Neither research.md's 'What already exists' list nor the plan records the second one.",
+      "evidence": "mvp_payments/namespaces/stripe_plans.py:30-35 `INTERVAL_DAYS = {\"day\": 1, \"week\": 7, \"month\": 30, \"year\": 365}`, used at :86-89. mvp_payments/stripe/catalogue.py:37 `BILLING_DAYS = {\"day\": 1, \"week\": 7, \"month\": 30, \"year\": 365}`, used at :160-161. Both order prices by billing length. If one changes and the other does not, the frequency switch's order stops matching the order of each product's prices. specs/005-plans-drawn-here/research.md:107-129 lists neither.",
+      "reproduction": "Change either table (for example add a unit) and the other does not follow. No test compares them.",
+      "suggested_fix": "Keep one table. `PlanChoices.for_request` already reaches the catalogue through the app config without importing it, so `intervals()` can read `stripe_app.catalogue.BILLING_DAYS`. Or have `Catalogue` expose the billing-length key it already sorts by. Then delete `INTERVAL_DAYS`."
+    },
+    {
+      "id": "CR-004",
+      "severity": "low",
+      "confidence": "verified",
+      "claim": "With prices in more than one currency, 'cheapest first' compares raw minor units across currencies, so the product order is wrong. The docs promise cheapest first, and the spec's edge cases include a multi-currency catalogue.",
+      "evidence": "mvp_payments/stripe/catalogue.py:149-158 builds `cheapest[product_id]` from `unit_amount` without regard to currency and sorts on it. In tests/test_views.py:257-268, `price_bare_yen` is 500000 JPY (¥5,000) and `price_basic_month` is 2000 USD ($20). The yen product sorts after Basic even though Basic's yearly price is 20000 USD. docs/reference/plans-page.md:32-33 and stripe-app.md say 'Products come cheapest first'.",
+      "reproduction": "A catalogue with a USD product at 5000 ($50) and a JPY product at 1000 (¥1,000, about $7). The USD product is listed first.",
+      "suggested_fix": "Either order by currency first and then by amount, or narrow the documented promise to 'cheapest first within a currency'. No conversion either way."
+    },
+    {
+      "id": "CR-005",
+      "severity": "low",
+      "confidence": "verified",
+      "claim": "Customer.start_checkout treats any `resource_missing` as possibly the customer being gone. A missing price (an id from another account or mode, or a price Stripe dropped since the cache was filled) triggers a full `customer.sync()`, three or more Stripe calls and a locked write, before the original error is raised again. That branch has no test.",
+      "evidence": "mvp_payments/stripe/models.py:199-205: `if customer is None or error.code != \"resource_missing\": raise` then `customer.sync()`. Stripe sets `error.param` to `customer` or `line_items[0][price]` for the two cases. Coverage reports models.py:203, the re-raise, as never run.",
+      "reproduction": "A signed-in person with a Customer row posts a price that the cache still holds but Stripe answers 'No such price' (resource_missing, param line_items[0][price]). Stripe is asked for the customer, its subscriptions and each product before the checkout fails.",
+      "suggested_fix": "Also require `error.param == \"customer\"` before syncing, and add a test where a missing price, with a customer present, raises and does not ask Stripe for the customer."
+    },
+    {
+      "id": "CR-006",
+      "severity": "low",
+      "confidence": "verified",
+      "claim": "docs/reference/user-subscriptions-page.md still tells the project to set the checkout's success address to the user subscriptions page with `?returned=1`. The package now sets that address itself, through the return view, and a project has no setting to change it.",
+      "evidence": "docs/reference/user-subscriptions-page.md:222-226: 'So have the provider's checkout send them back ... Where a buyer lands after paying is the success address of the checkout, so set it to that address.' mvp_payments/stripe/views.py:292-297 hard-codes success_url to `payments:stripe-billing-return` with `?session_id={CHECKOUT_SESSION_ID}`, and BillingReturnView then redirects with `?returned=1`.",
+      "reproduction": "A reader follows the page and looks for a success-URL setting in MVP_PAYMENTS or the Stripe dashboard. There is none, and the dashboard setting belonged to the removed pricing table.",
+      "suggested_fix": "Say that checkout started from the plans page already comes back through `payments:stripe-billing-return`, which adds `?returned=1`. Keep the instruction only for a checkout the project builds itself."
+    },
+    {
+      "id": "CR-007",
+      "severity": "low",
+      "confidence": "verified",
+      "claim": "The test for replacing a part everywhere (AS 4.4: 'the project's markup appears in that part for every plan') runs on a catalogue of one price, so it cannot tell 'every card' from 'the first card'.",
+      "evidence": "tests/test_views.py:944-958 `test_a_part_the_project_replaces_changes_on_every_card_and_nothing_else` asserts one occurrence of the override's marker against the probe's single `price_probe`.",
+      "reproduction": "Only render the override for the first price in the loop (for example `{% if forloop.first %}`). With one price the test stays green.",
+      "suggested_fix": "Give the probe two prices and assert the override's marker appears once per price. The repaired test must fail when the override is applied to only one card."
+    }
+  ],
+  "notes": [
+    "docs/reference/stripe-app.md:245 says a page passes the reference to Stripe's checkout 'as its `client-reference-id`'. That is the removed pricing table's attribute name. The server now sends it as `client_reference_id`.",
+    "docs/reference/stripe-app.md, 'Handoffs to Stripe's own pages', opens with 'Three views' and the table under it lists four.",
+    "README.md:146 says plans-page.md covers 'the component it mounts, the settings it reads, and how to replace the component'. The page now covers several parts, one setting and the tag.",
+    "CHANGELOG [Unreleased] 'Added' still lists the pricing table, `Page.login_required` and `pricing_table_client_secret()` beside the 'Removed' entries for the same things. Since nothing was released, the 'Added' lines could be dropped instead.",
+    "tests/test_views.py:489 `assert 'id=\"price_basic_year\"' in content` is always true for that catalogue. The other assertions in the test do the work.",
+    "tests/test_contributions.py:123-131 pins that `Page` refuses `in_navigation`, a removed argument. It can fail, but it guards an absence."
+  ]
+}

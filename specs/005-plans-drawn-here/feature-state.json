@@ -2,7 +2,7 @@
   "feature": "005-plans-drawn-here",
   "branch": "005-plans-drawn-here",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "CONVERGE",
+  "state": "REVIEW",
   "state_history": [
     {
       "state": "PLAN",
@@ -23,6 +23,11 @@
       "state": "CONVERGE",
       "at": "2026-10-22T17:15:48Z",
       "note": "every story accepted; entering convergence"
+    },
+    {
+      "state": "REVIEW",
+      "at": "2026-10-22T17:17:00Z",
+      "note": "convergence complete: ADRs 0013 and 0014 graduated, S5 green"
     }
   ],
   "gates": {
@@ -143,6 +148,21 @@
               "docs/how-to/install-the-stripe-app.md:1"
             ]
           }
+        },
+        {
+          "id": "T012",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T013",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T014",
+          "status": "todo",
+          "attempts": 0
         }
       ]
     },
@@ -201,6 +221,16 @@
               "mvp_payments/templates/cotton/stripe/plan_choose.html:1"
             ]
           }
+        },
+        {
+          "id": "T015",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T016",
+          "status": "todo",
+          "attempts": 0
         }
       ]
     },
@@ -285,6 +315,16 @@
               "mvp_payments/contributions.py:25"
             ]
           }
+        },
+        {
+          "id": "T017",
+          "status": "todo",
+          "attempts": 0
+        },
+        {
+          "id": "T018",
+          "status": "todo",
+          "attempts": 0
         }
       ]
     }
@@ -295,7 +335,7 @@
       "max": 2
     },
     "review_cycles": {
-      "used": 0,
+      "used": 1,
       "max": 1
     },
     "tokens": {

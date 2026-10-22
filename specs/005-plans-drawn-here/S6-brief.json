@@ -1,0 +1,19 @@
+{
+ "stage": "S6",
+ "role": "reviewer",
+ "lenses": ["correctness+spec (Phase 1)", "security (Phase 2: the diff adds a sign-in-only checkout view, outbound Stripe calls and a webhook branch)"],
+ "repo": "django-mvp/django-mvp-payments",
+ "feature": "005-plans-drawn-here",
+ "worktree": "/home/sam/projects/worktrees/dmp-005-plans",
+ "diff": "git diff origin/main...HEAD (branch 005-plans-drawn-here)",
+ "required_skills": [
+  {"name": "craft-review", "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-review/SKILL.md", "receipt": "craft-review/2026-10-15/6b8372b4"},
+  {"name": "craft-simplify", "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-simplify/SKILL.md", "receipt": "craft-simplify/2026-08-04/69038ce1"},
+  {"name": "craft-security", "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-security/SKILL.md", "receipt": "craft-security/2026-08-04/ea3d6742"}
+ ],
+ "protocol": "/home/sam/.openclaw/workspaces/forge/skills/forge-feature-request/references/review.md",
+ "inputs": ["specs/005-plans-drawn-here/spec.md", "specs/005-plans-drawn-here/plan.md", "specs/005-plans-drawn-here/research.md", "specs/005-plans-drawn-here/decisions.md", "specs/005-plans-drawn-here/sketch.md", "CONSTITUTION.md", "CONTEXT.md", "docs/", "docs/contributing/standards/testing.md", "docs/contributing/standards/django.md"],
+ "notes": "The plan-card templates' markup, layout and copy were approved by the maintainer on the running page; wording and appearance there are not findings. The virtualenv is .venv in the worktree; stripe 16 source is under .venv/lib/python3.13/site-packages/stripe.",
+ "output": "specs/005-plans-drawn-here/S6-findings.json",
+ "schema": "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/schemas/review-findings.schema.json"
+}
