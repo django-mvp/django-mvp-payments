@@ -1,5 +1,7 @@
 """The webhook: verify the signature, then fetch the current state from Stripe."""
 
+import logging
+
 import pytest
 from django.urls import reverse
 
@@ -341,3 +343,68 @@ class TestWebhookEvents:
 
         assert response.status_code == 500
         assert Customer.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestWebhookKeepsSecretsOut:
+    @pytest.fixture
+    def secrets(self, settings):
+        return (settings.MVP_PAYMENTS["STRIPE_SECRET_KEY"], WEBHOOK_SECRET)
+
+    def assert_no_secret_anywhere(self, response, caplog, secrets):
+        text = response.content.decode() + caplog.text
+        text += " ".join(
+            f"{record.getMessage()} {record.exc_text}" for record in caplog.records
+        )
+        for secret in secrets:
+            assert secret not in text
+
+    def test_a_refused_request_leaks_neither_secret(
+        self, deliver, caplog, secrets, stripe_fake
+    ):
+        caplog.set_level(logging.DEBUG)
+        payload = subscription_event("updated")
+
+        response = deliver(payload, sign_webhook(payload, secret="whsec_someone_else"))
+
+        assert response.status_code == 400
+        self.assert_no_secret_anywhere(response, caplog, secrets)
+
+    def test_a_stripe_error_quoting_the_key_leaks_neither_secret(
+        self, deliver, caplog, secrets, stripe_fake
+    ):
+        caplog.set_level(logging.DEBUG)
+        StripeCustomerFactory(stripe_id="cus_1")
+        # Stripe masks the middle of a key it repeats back, as its SDK logs the message.
+        masked = f"{secrets[0][:8]}********{secrets[0][-4:]}"
+        stripe_fake.respond_with_message_echoing("GET", "/v1/customers/cus_1", masked)
+
+        response = deliver(subscription_event("updated"))
+
+        assert response.status_code == 500
+        self.assert_no_secret_anywhere(response, caplog, secrets)
+        ours = [
+            record.getMessage()
+            for record in caplog.records
+            if record.name.startswith("mvp_payments")
+        ]
+        assert ours
+        assert not any(masked in message for message in ours)
+
+    def test_an_unset_signing_secret_leaks_nothing(
+        self, deliver, settings, caplog, secrets, stripe_fake
+    ):
+        caplog.set_level(logging.DEBUG)
+        settings.MVP_PAYMENTS = {**settings.MVP_PAYMENTS, "STRIPE_WEBHOOK_SECRET": ""}
+
+        response = deliver(subscription_event("updated"))
+
+        assert response.status_code == 500
+        self.assert_no_secret_anywhere(response, caplog, secrets)
+
+    def test_a_handled_event_leaks_nothing(self, deliver, caplog, secrets, stripe_fake):
+        caplog.set_level(logging.DEBUG)
+
+        response = deliver(event_payload("ping", {"object": "ping"}))
+
+        self.assert_no_secret_anywhere(response, caplog, secrets)

@@ -249,3 +249,24 @@ class TestWhoMaySee:
         assert client.get(reverse(f"{SUBSCRIPTIONS}changelist")).status_code == 403
         index = client.get(reverse("admin:index")).content.decode()
         assert "Stripe subscriptions" not in index
+
+
+class TestAdminKeepsSecretsOut:
+    def test_no_page_of_the_app_shows_either_secret(self, admin_client, settings):
+        subscription = StripeSubscriptionFactory()
+        pages = [
+            reverse(f"{SUBSCRIPTIONS}changelist"),
+            reverse(f"{SUBSCRIPTIONS}change", args=[subscription.pk]),
+            reverse(f"{CUSTOMERS}changelist"),
+            reverse(f"{CUSTOMERS}change", args=[subscription.customer_id]),
+        ]
+        secrets = [
+            settings.MVP_PAYMENTS["STRIPE_SECRET_KEY"],
+            settings.MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"],
+        ]
+
+        for page in pages:
+            response = admin_client.get(page)
+            assert response.status_code == 200
+            for secret in secrets:
+                assert secret not in response.content.decode()

@@ -25,6 +25,10 @@ Neither value appears in a template, a log message or an error page. The app als
 writes the Stripe SDK's own module-level configuration, so another integration in the same
 process cannot change the key or the API version the app uses.
 
+When Stripe refuses a call, the app logs the kind of error and never Stripe's message, which can
+repeat part of a key. Stripe's own SDK writes its requests and responses to the `stripe` logger,
+at info and debug level, so leave that logger above those levels in production.
+
 ## System checks
 
 | Check | Raised when |

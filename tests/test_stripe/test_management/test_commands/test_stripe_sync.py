@@ -149,3 +149,22 @@ class TestStripeSyncCommand:
         run()
         assert list(Customer.objects.values_list("stripe_id", flat=True)) == ["cus_1"]
         assert Subscription.objects.filter(stripe_id="sub_1").exists()
+
+
+@pytest.mark.django_db
+class TestStripeSyncKeepsSecretsOut:
+    def test_a_stripe_error_quoting_the_key_reaches_neither_the_error_nor_the_output(
+        self, settings, stripe_fake
+    ):
+        key = settings.MVP_PAYMENTS["STRIPE_SECRET_KEY"]
+        StripeCustomerFactory(stripe_id="cus_1")
+        masked = f"{key[:8]}********{key[-4:]}"
+        stripe_fake.respond_with_message_echoing("GET", "/v1/customers/cus_1", masked)
+        out = StringIO()
+
+        with pytest.raises(CommandError) as raised:
+            call_command("stripe_sync", stdout=out)
+
+        assert masked not in str(raised.value)
+        assert masked not in out.getvalue()
+        assert raised.value.__cause__ is not None

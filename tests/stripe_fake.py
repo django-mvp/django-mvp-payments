@@ -83,6 +83,29 @@ class FakeStripe(stripe.HTTPClient):
             status,
         )
 
+    def respond_with_message_echoing(self, method: str, path: str, echoed: str) -> None:
+        """Answer ``method`` on ``path`` with an authentication error that quotes ``echoed``.
+
+        Stripe's real message for a bad key repeats part of it, which is how a secret ends up
+        in a log if the whole message is logged.
+
+        Args:
+            method: The HTTP method.
+            path: The path without host or query string.
+            echoed: The text the message quotes.
+        """
+        self.respond(
+            method,
+            path,
+            {
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": f"Invalid API Key provided: {echoed}",
+                }
+            },
+            401,
+        )
+
     def become_unreachable(self, method: str, path: str) -> None:
         """Make ``method`` on ``path`` fail as if Stripe could not be reached.
 
