@@ -217,7 +217,8 @@ Sign in as `regular.user`, `staff.user` or `super.user`, password `password`. Ou
 pages run on fake Stripe values, so the billing portal and the pricing table say they could not be
 reached. To see them working, copy `demo/.env.example` to `demo/.env` and fill it in from your own
 Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo accounts get real
-sandbox customers and subscriptions. The file lists the one portal setting "Switch plans" needs
+sandbox customers and subscriptions, recorded by the Stripe app as well, where `super.user` can
+look at them in the admin at `/admin/`. The file lists the one portal setting "Switch plans" needs
 from your sandbox.
 
 To have the demo record subscriptions made in the sandbox, forward Stripe's webhooks to it with the

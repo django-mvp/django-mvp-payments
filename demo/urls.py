@@ -1,6 +1,7 @@
 """The demo project's URL configuration."""
 
 from django.apps import apps
+from django.contrib import admin
 from django.urls import include, path
 
 from demo.views import (
@@ -14,6 +15,8 @@ from demo.views import (
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    # Django's admin, where the Stripe app's records can be looked at.
+    path("admin/", admin.site.urls),
     # The plans page's unavailable states, as the demonstration project's own routes (FS-003).
     path(
         "plans-unconfigured/",

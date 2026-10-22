@@ -20,7 +20,11 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.urls import reverse
 
+from mvp_payments.stripe.models import Customer as StripeCustomer
 from tests.factories import StripeUserFactory, SubscriptionFactory, UserFactory
+from tests.stripe_fake import customer_payload
+
+SANDBOX_SUBSCRIBER_NAMES = ("regular.user", "staff.user", "other.subscriber")
 
 
 class TestHomePage:
@@ -339,8 +343,13 @@ class TestBillingReturn:
 @pytest.mark.django_db
 class TestSeedDemoAgainstTheSandbox:
     @pytest.fixture
-    def sandbox(self, settings):
+    def sandbox(self, settings, stripe_fake):
         settings.DEV_ENV = {"STRIPE_TEST_SECRET_KEY": "sk_test_sandbox"}
+        for name in SANDBOX_SUBSCRIBER_NAMES:
+            stripe_fake.respond(
+                "GET", f"/v1/customers/cus_{name}", customer_payload(f"cus_{name}")
+            )
+        stripe_fake.respond_with_list("/v1/subscriptions", [])
         stripe_module = "demo.management.commands.seed_demo.stripe"
         with (
             patch(f"{stripe_module}.Customer") as customer,
@@ -423,6 +432,21 @@ class TestSeedDemoAgainstTheSandbox:
         assert not Subscription.objects.filter(
             subscription_id__startswith="sub_demo_"
         ).exists()
+
+    def test_each_subscriber_is_recorded_by_the_stripe_app_from_the_sandbox(
+        self, sandbox, stripe_fake
+    ):
+        call_command("seed_demo")
+
+        recorded = dict(
+            StripeCustomer.objects.values_list("user__username", "stripe_id")
+        )
+        assert recorded == {
+            "regular.user": "cus_regular.user",
+            "staff.user": "cus_staff.user",
+            "other.subscriber": "cus_other.subscriber",
+        }
+        assert "/v1/customers/cus_regular.user" in stripe_fake.paths("GET")
 
     def test_the_backends_own_synchronisation_reads_everything_back(self, sandbox):
         call_command("seed_demo")

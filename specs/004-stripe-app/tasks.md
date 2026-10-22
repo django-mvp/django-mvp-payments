@@ -85,3 +85,8 @@ Suite green on stripe 16.
 - [x] T014 Docstring for `Customer.signature()` (review REV-003).
 - [x] T015 State in `Customer.sync()` and the reference page that a subscription's price and
   period come from its first item (review REV-002).
+
+## Walkthrough
+
+- [x] T016 Mount Django's admin in the demo, and have `seed_demo` record its sandbox
+  subscriptions in the Stripe app, so the admin pages can be looked at with real records.
