@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
 from mvp_payments.namespaces.stripe_plans import PlanChoices
+from mvp_payments.stripe.catalogue import Catalogue
 from tests.factories import StripeSubscriptionFactory
 from tests.stripe_fake import price_payload, product_payload
 
@@ -57,6 +58,19 @@ class TestPlanChoices:
             "month_1",
             "month_3",
             "year_1",
+        ]
+
+    def test_the_switch_is_ordered_by_the_catalogues_own_billing_lengths(
+        self, catalogue, monkeypatch
+    ):
+        monkeypatch.setitem(Catalogue.BILLING_DAYS, "year", 1)
+
+        plans = PlanChoices.for_request(request_for(AnonymousUser()))
+
+        assert [i["key"] for i in plans["intervals"]] == [
+            "year_1",
+            "month_1",
+            "month_3",
         ]
 
     def test_every_interval_has_a_label_for_the_switch(self, catalogue):

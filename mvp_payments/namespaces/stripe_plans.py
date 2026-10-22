@@ -6,7 +6,7 @@ the interface never imports a provider app (Article XI).
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any
 
 from django.apps import apps
 from django.conf import settings
@@ -20,19 +20,7 @@ from mvp_payments.namespaces.stripe_records import CurrentSubscription
 
 
 class PlanChoices:
-    """The prices on offer, and how this reader can buy each one.
-
-    Attributes:
-        INTERVAL_DAYS: How long one interval of each unit lasts, to put billing
-            frequencies in order.
-    """
-
-    INTERVAL_DAYS: ClassVar[dict[str, int]] = {
-        "day": 1,
-        "week": 7,
-        "month": 30,
-        "year": 365,
-    }
+    """The prices on offer, and how this reader can buy each one."""
 
     @staticmethod
     def interval_key(price: dict[str, Any]) -> str:
@@ -72,11 +60,15 @@ class PlanChoices:
         ).capitalize()
 
     @classmethod
-    def intervals(cls, prices: list[dict[str, Any]]) -> list[dict[str, str]]:
+    def intervals(
+        cls, prices: list[dict[str, Any]], billing_days: dict[str, int]
+    ) -> list[dict[str, str]]:
         """List the distinct billing frequencies on offer, shortest first.
 
         Args:
             prices: The prices on offer.
+            billing_days: How long one interval of each unit bills for, which is the
+                catalogue's own table so the switch and the cards agree on order.
 
         Returns:
             One ``key`` and ``label`` for each frequency.
@@ -84,7 +76,7 @@ class PlanChoices:
         shortest_first = sorted(
             prices,
             key=lambda price: (
-                cls.INTERVAL_DAYS.get(price["recurring"]["interval"], 0)
+                billing_days.get(price["recurring"]["interval"], 0)
                 * price["recurring"]["interval_count"]
             ),
         )
@@ -115,7 +107,9 @@ class PlanChoices:
             else None
         )
         prices = stripe_app.catalogue.prices() if stripe_app else None
-        intervals = cls.intervals(prices or [])
+        intervals = cls.intervals(
+            prices or [], stripe_app.catalogue.BILLING_DAYS if stripe_app else {}
+        )
         ready = request.GET.get("plan", "")
         first_interval = intervals[0]["key"] if intervals else ""
         for price in prices or []:
