@@ -115,14 +115,14 @@ class Command(BaseCommand):
         subscription_model.objects.filter(
             subscription_id__startswith="sub_demo_"
         ).delete()
+        if apps.is_installed("mvp_payments.stripe"):
+            self.record_in_the_stripe_app(sandbox_customers)
         with contextlib.redirect_stdout(io.StringIO()):
             stripe_api_update_products_prices()
             stripe_api_update_subscriptions(
                 status="all", ignore_new_user_creation_errors=True
             )
         self.stdout.write("pulled sandbox products, prices and subscriptions")
-        if apps.is_installed("mvp_payments.stripe"):
-            self.record_in_the_stripe_app(sandbox_customers)
 
     def record_in_the_stripe_app(self, sandbox_customers):
         """Tie each sandbox customer to its demo account in the Stripe app, then sync it.

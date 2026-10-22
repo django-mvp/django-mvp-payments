@@ -43,15 +43,17 @@ generic event dispatcher, background tasks), this plan leaves it out:
    the session it fetches from Stripe, never from the event body. Setting the attribute on the
    pricing table belongs to the work that moves the pages; until then nothing on our pages sends
    it and the app ties nobody, which is the safe failure.
-5. **drf-stripe-subscription runs on stripe 16 once its URLconf is not mounted.** Its only
-   import of the removed `stripe.error` module is in `drf_stripe/serializers.py`, reached from
-   its views. With the demo no longer mounting `drf_stripe.urls` (the demo's own portal view is
-   what the page already uses), the whole suite passed on stripe 16.0.0: 196 tests, checked on
-   this branch on 2026-10-22. So the dev environment moves to stripe 16 in this feature and the
-   `drf-stripe` pages keep working until they move. The demo's own drf-stripe calls use the SDK's
-   global configuration, so the demo pins `stripe.api_version` to the version drf-stripe's models
-   parse, the last one with the billing period on the subscription (`2025-02-24.acacia`), for those calls. The app never uses the global configuration, so the two
-   cannot interfere.
+5. **drf-stripe-subscription only partly runs on stripe 16.** Its URLconf imports the removed
+   `stripe.error` module, so the demo stops mounting it. Its pages, its records and its portal
+   call still work, and the suite passes on stripe 16.0.0. Its own synchronisation does not:
+   `stripe_api_update_products_prices()` passes a stripe 16 `ListObject` to `**`, which raises
+   `TypeError` because stripe objects are no longer dictionaries (found against the sandbox on
+   2026-10-22). So in the demo, `seed_demo` with a sandbox key and the return from the billing
+   portal both stop at that call. Nothing outside the demo calls it, and the work that moves the
+   pages removes drf-stripe-subscription along with it. `seed_demo` records the Stripe app's
+   subscriptions before that call, so the new app's records are always seeded. The demo's
+   drf-stripe calls use the SDK's global configuration, pinned to an old API version for them,
+   which the app never uses.
 6. **Deleted objects.** Retrieving a deleted customer returns an object with `deleted: true`.
    A customer that never existed raises `InvalidRequestError` with code `resource_missing`. Both
    mean "Stripe no longer has it". Cancelled subscriptions stay retrievable and are listed by
