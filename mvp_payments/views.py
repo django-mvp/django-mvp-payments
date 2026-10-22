@@ -145,20 +145,16 @@ class PlansPageView(MVPTemplateView):
     A public page, outside the Account Center, mounted wherever the project includes
     ``mvp_payments.plans_urls`` (``/plans/`` in the demo). Open to every visitor.
 
-    SKETCH (FS-005): adds ``plans``, what the plans components read, and the two notices
-    a return from a failed checkout can carry.
+    Adds ``plans`` to the context: what the plans components read.
     """
 
     template_name = "mvp_payments/stripe/plans.html"
     page_title = _("Plans")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        """Add the plans, and any notice about a checkout that did not start."""
+        """Add the plans for the person asking."""
         from mvp_payments.namespaces.stripe_plans import PlanChoices
 
         context: dict[str, Any] = super().get_context_data(**kwargs)
         context["plans"] = PlanChoices.for_request(self.request)
-        sketch = self.request.GET.get("sketch", "")
-        context["checkout_failed"] = sketch == "checkout-failed"
-        context["plan_gone"] = sketch == "plan-gone"
         return context

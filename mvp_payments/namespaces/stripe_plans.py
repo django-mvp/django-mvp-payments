@@ -1,12 +1,12 @@
-"""What the plans components need to draw the plans for one reader (FS-005 sketch).
+"""What the plans components need to draw the plans for one reader.
 
-SKETCH: the catalogue comes from ``SketchCatalogue`` until the Stripe app reads and caches
-Stripe's (FR-014). The rest is what the screens need from the code, whoever builds it.
+The prices come from the Stripe app's catalogue, reached through the app registry because
+the interface never imports a provider app (Article XI).
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from django.apps import apps
 from django.conf import settings
@@ -16,22 +16,48 @@ from django.urls import reverse
 from django.utils.translation import gettext
 
 from mvp_payments.contributions import APP_NAMESPACE
-from mvp_payments.namespaces.stripe_catalogue import SketchCatalogue
 from mvp_payments.namespaces.stripe_records import CurrentSubscription
 
 
 class PlanChoices:
-    """The prices on offer, and how this reader can buy each one."""
+    """The prices on offer, and how this reader can buy each one.
+
+    Attributes:
+        INTERVAL_DAYS: How long one interval of each unit lasts, to put billing
+            frequencies in order.
+    """
+
+    INTERVAL_DAYS: ClassVar[dict[str, int]] = {
+        "day": 1,
+        "week": 7,
+        "month": 30,
+        "year": 365,
+    }
 
     @staticmethod
     def interval_key(price: dict[str, Any]) -> str:
-        """One string per billing frequency, such as ``month_1``."""
+        """Name a price's billing frequency with one string.
+
+        Args:
+            price: A price as the catalogue returns it.
+
+        Returns:
+            The unit and the count, such as ``month_1``.
+        """
         recurring = price["recurring"]
         return f"{recurring['interval']}_{recurring['interval_count']}"
 
     @staticmethod
     def interval_label(price: dict[str, Any]) -> str:
-        """A billing frequency as a switch label: Monthly, Yearly, Every 3 months."""
+        """Name a price's billing frequency as a switch label.
+
+        Args:
+            price: A price as the catalogue returns it.
+
+        Returns:
+            Monthly, Yearly or similar for a count of one, the frequency in words
+            otherwise, and the raw interval where it is not recognised.
+        """
         recurring = price["recurring"]
         if recurring["interval_count"] == 1:
             labels = {
@@ -41,33 +67,55 @@ class PlanChoices:
                 "year": gettext("Yearly"),
             }
             return str(labels.get(recurring["interval"], recurring["interval"]))
-        return CurrentSubscription(
-            status="",
-            name="",
-            amount=None,
-            interval=recurring["interval"],
-            interval_count=recurring["interval_count"],
-            period_start=None,
-            period_end=None,
-        ).frequency_display.capitalize()
+        return CurrentSubscription.frequency_words(
+            recurring["interval"], recurring["interval_count"]
+        ).capitalize()
+
+    @classmethod
+    def intervals(cls, prices: list[dict[str, Any]]) -> list[dict[str, str]]:
+        """List the distinct billing frequencies on offer, shortest first.
+
+        Args:
+            prices: The prices on offer.
+
+        Returns:
+            One ``key`` and ``label`` for each frequency.
+        """
+        shortest_first = sorted(
+            prices,
+            key=lambda price: (
+                cls.INTERVAL_DAYS.get(price["recurring"]["interval"], 0)
+                * price["recurring"]["interval_count"]
+            ),
+        )
+        distinct = {cls.interval_key(price): price for price in shortest_first}
+        return [
+            {"key": key, "label": cls.interval_label(price)}
+            for key, price in distinct.items()
+        ]
 
     @classmethod
     def for_request(cls, request: HttpRequest) -> dict[str, Any]:
-        """Everything the plans components read, for the person making this request."""
-        variant = request.GET.get("sketch", "")
-        prices = SketchCatalogue.prices(variant)
-        intervals: list[dict[str, str]] = []
+        """Gather everything the plans components read, for the person making this request.
+
+        Args:
+            request: The request the plans are drawn for.
+
+        Returns:
+            ``prices`` (``None`` when the catalogue cannot be read), ``intervals`` and
+            ``first_interval`` for the frequency switch, ``held`` (the price ids the
+            signed-in person currently subscribes to), ``ready`` (the price picked before
+            signing in), ``signed_in`` and the addresses ``login_url``, ``checkout_url``
+            and ``subscriptions_url``, with ``return_to``, the page the plans are on.
+        """
+        stripe_app: Any = apps.get_app_config("mvp_payments_stripe")
+        prices = stripe_app.catalogue.prices()
+        intervals = cls.intervals(prices or [])
+        ready = request.GET.get("plan", "")
+        first_interval = intervals[0]["key"] if intervals else ""
         for price in prices or []:
-            key = cls.interval_key(price)
-            if key not in [i["key"] for i in intervals]:
-                intervals.append({"key": key, "label": cls.interval_label(price)})
-        days = {"day": 1, "week": 7, "month": 30, "year": 365}
-        intervals.sort(
-            key=lambda i: (
-                days.get(i["key"].rsplit("_", 1)[0], 0)
-                * int(i["key"].rsplit("_", 1)[1])
-            )
-        )
+            if price["id"] == ready:
+                first_interval = cls.interval_key(price)
         held: list[str] = []
         user = request.user
         if user.is_authenticated:
@@ -77,11 +125,6 @@ class PlanChoices:
                 .current()
                 .values_list("price_id", flat=True)
             )
-        ready = request.GET.get("plan", "")
-        first_interval = intervals[0]["key"] if intervals else ""
-        for price in prices or []:
-            if price["id"] == ready:
-                first_interval = cls.interval_key(price)
         return {
             "prices": prices,
             "intervals": intervals,

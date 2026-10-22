@@ -149,6 +149,8 @@ class TestPackagedApp:
             Path("views.py"),
             Path("namespaces/__init__.py"),
             Path("namespaces/stripe.py"),
+            Path("namespaces/stripe_plans.py"),
+            Path("plans_urls.py"),
             Path("templatetags/__init__.py"),
             Path("templatetags/mvp_payments.py"),
         }
