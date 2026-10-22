@@ -29,3 +29,10 @@ Did: tests/stripe_fake.py with FakeStripe (a stripe.HTTPClient subclass keyed by
 Verified: uv run pytest tests/test_stripe_fake.py (9 passed): SDK parsing, auto-paging, recording, error mapping to InvalidRequestError.code, connection error, uncanned request, and the signed payload passing the real construct_event, failing for another secret and an old timestamp.
 Next: T005 Customer.sync().
 Watch: the SDK passes the method in lower case, so the fake upper-cases it before routing.
+
+## 2026-10-22T08:49:00Z · Implementer US1 · T005
+
+Did: Customer.sync() in models.py. Atomic; first statement re-reads the customer row with select_for_update(); retrieves the customer (resource_missing or deleted removes the row and its subscriptions); lists subscriptions with status=all and no expansion; fetches each distinct product once for its name; update_or_create by stripe_id from the first item; deletes rows Stripe did not return. Documented under "How records are kept in step" in docs/stripe.md.
+Verified: uv run pytest tests/test_stripe (44 passed in test_models.py, 17 of them for sync). Probed by mutation: replacing the final .delete() with .none() fails test_a_row_stripe_no_longer_returns_is_deleted. Red first: all 17 failed with AttributeError before the method existed.
+Next: T006 client_reference and from_checkout.
+Watch: SQLite has no row locks, so the suite cannot prove FOR UPDATE is emitted. The test asserts the customer SELECT is the first statement in the transaction; the lock itself is by construction.

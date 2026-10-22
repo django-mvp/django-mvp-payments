@@ -5,9 +5,14 @@ Rows are written only from what Stripe reports (Article XI), never by hand.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
+import stripe
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
+
+from .client import client
 
 
 class Customer(models.Model):
@@ -44,6 +49,86 @@ class Customer(models.Model):
 
     def __str__(self) -> str:
         return self.stripe_id
+
+    def sync(self) -> None:
+        """Bring this customer's subscriptions into step with what Stripe holds now.
+
+        The only place subscription rows are written (Article XI). The customer's row is
+        locked first, so two webhooks for one customer cannot write an older state over a
+        newer one. When Stripe no longer has the customer, the row and its subscriptions are
+        deleted. Rows Stripe did not return are deleted.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused. Nothing changes.
+        """
+        with transaction.atomic():
+            try:
+                customer = Customer.objects.select_for_update().get(pk=self.pk)
+            except Customer.DoesNotExist:
+                return
+            stripe_client = client()
+            try:
+                remote = stripe_client.v1.customers.retrieve(customer.stripe_id)
+            except stripe.InvalidRequestError as error:
+                if error.code != "resource_missing":
+                    raise
+                customer.delete()
+                return
+            if getattr(remote, "deleted", False):
+                customer.delete()
+                return
+
+            # Not expanded: Stripe refuses an expansion this deep (data.items.data.price.product).
+            listed = stripe_client.v1.subscriptions.list(
+                params={"customer": customer.stripe_id, "status": "all", "limit": 100}
+            )
+            remote_subscriptions = list(listed.auto_paging_iter())
+            product_names = {
+                product_id: stripe_client.v1.products.retrieve(product_id).name
+                for product_id in {
+                    subscription["items"]["data"][0]["price"]["product"]
+                    for subscription in remote_subscriptions
+                }
+            }
+            for subscription in remote_subscriptions:
+                item = subscription["items"]["data"][0]
+                price = item["price"]
+                Subscription.objects.update_or_create(
+                    stripe_id=subscription["id"],
+                    defaults={
+                        "customer": customer,
+                        "status": subscription["status"],
+                        "price_id": price["id"],
+                        "product_name": product_names[price["product"]],
+                        "amount": price["unit_amount"],
+                        "currency": price["currency"],
+                        "interval": price["recurring"]["interval"],
+                        "interval_count": price["recurring"]["interval_count"],
+                        "current_period_start": _from_epoch(
+                            item["current_period_start"]
+                        ),
+                        "current_period_end": _from_epoch(item["current_period_end"]),
+                        "cancel_at_period_end": subscription["cancel_at_period_end"],
+                        "ended_at": _from_epoch(subscription["ended_at"]),
+                    },
+                )
+            customer.subscriptions.exclude(
+                stripe_id__in=[
+                    subscription["id"] for subscription in remote_subscriptions
+                ]
+            ).delete()
+
+
+def _from_epoch(seconds: int | None) -> datetime | None:
+    """Convert a Stripe timestamp to an aware datetime.
+
+    Args:
+        seconds: Seconds since the epoch, or ``None``.
+
+    Returns:
+        The moment in UTC, or ``None`` when Stripe reported none.
+    """
+    return None if seconds is None else datetime.fromtimestamp(seconds, tz=UTC)
 
 
 class SubscriptionQuerySet(models.QuerySet["Subscription"]):

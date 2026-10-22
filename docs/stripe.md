@@ -121,3 +121,28 @@ subscribes twice has two rows. Newest billing period first is the default order.
 | `updated` | When the row was last written from Stripe |
 
 Records change only from what Stripe reports. Nothing here is edited by hand.
+
+## How records are kept in step
+
+Every record is written by one method, `Customer.sync()`. It asks Stripe for the customer and for
+all of the customer's subscriptions, whatever their status, and writes what comes back:
+
+- A subscription Stripe returns is created, or updated in place by its Stripe identifier. Running
+  `sync()` again with nothing changed at Stripe leaves the same rows.
+- A subscription of the customer's that Stripe no longer returns is deleted.
+- A subscription Stripe reports as ended stays, with the status Stripe gave it.
+- A customer Stripe reports as deleted, or no longer has, is deleted here with its subscriptions.
+  Nothing is changed on Stripe.
+- A product's name is fetched from Stripe once per product, since Stripe will not include it in
+  the subscription list.
+- Any other error from Stripe, including Stripe being unreachable, is raised and leaves the
+  records as they were.
+
+The customer's row is locked while it runs, so two syncs of one customer take turns and the
+later one writes the newer state.
+
+```python
+from mvp_payments.stripe.models import Customer
+
+Customer.objects.get(stripe_id="cus_123").sync()
+```
