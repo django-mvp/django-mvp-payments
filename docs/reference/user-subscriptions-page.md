@@ -221,9 +221,11 @@ Stripe sends a person back to your site separately from telling the Stripe app w
 so the page they land on can be reached before the app has heard. Somebody who has just paid could
 be told they have no subscription.
 
-So have the provider's checkout send them back to the user subscriptions page with `?returned=1` on the
-address. Where a buyer lands after paying is the success address of the checkout, so set it to
-that address.
+A checkout started from the plans page already does this. Its success address is
+`payments:stripe-billing-return`, which sends the buyer on to the user subscriptions page with
+`?returned=1` on the address, and there is nothing to set. Only a checkout your project builds
+itself needs the instruction: where a buyer lands after paying is the success address of that
+checkout, so point it at that return view, or at the user subscriptions page with `?returned=1`.
 
 On that visit, with nothing current showing yet, the page says the payment is being confirmed
 instead of saying there is no subscription, and polls for it with htmx, which django-mvp already
