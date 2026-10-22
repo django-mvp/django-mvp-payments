@@ -70,3 +70,27 @@ either.
 
 None was left marked for clarification. The five questions the coverage scan raised are answered
 in `spec.md` under Clarifications.
+
+## D1 — The plans page has an address of its own
+
+Sam ruled at the sketch that a public page does not sit under the account address. The page leaves
+the Stripe contribution and is routed by `mvp_payments/plans_urls.py`, which a project includes at
+the address it chooses. Article XIII's single include becomes two for a project that offers the
+plans page.
+
+**ADR:** pending convergence.
+
+## D2 — Notices on return use Django's messages
+
+The checkout view adds a message and redirects. `mvp/base.html` already renders messages above the
+page, so no template of this package carries a notice.
+
+**ADR:** none — local to this feature, nothing downstream inherits it.
+
+## D3 — Replacing a part for one placement is composition
+
+A project replaces a part on one page by writing its own loop over `plans.prices` with the parts it
+keeps. No attribute or slot passes a replacement component in, because composition already does
+the job (Article III).
+
+**ADR:** none — documented usage of components that already exist.
