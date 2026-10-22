@@ -1,0 +1,169 @@
+{
+ "story": "US2",
+ "skills_loaded": [
+  {
+   "name": "craft-tdd",
+   "receipt": "craft-tdd/2026-09-28/b19e4d07",
+   "loaded_via": "path-read"
+  },
+  {
+   "name": "craft-increments",
+   "receipt": "craft-increments/2026-10-15/1ffa47c3",
+   "loaded_via": "path-read"
+  }
+ ],
+ "tasks": [
+  {
+   "id": "T005",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_stripe/test_models.py::TestCustomerStartCheckout",
+     "tests/test_stripe/test_views.py::TestCheckout"
+    ],
+    "criteria": [
+     "SC-002",
+     "SC-003"
+    ],
+    "commands": [
+     "uv run pytest tests/test_stripe -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "09e191e"
+   ]
+  },
+  {
+   "id": "T006",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_stripe/test_views.py::TestBillingReturn"
+    ],
+    "criteria": [
+     "SC-003"
+    ],
+    "commands": [
+     "uv run pytest tests/test_stripe/test_views.py -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "590bc7f"
+   ]
+  },
+  {
+   "id": "T007",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_views.py::TestPlansWayToBuy"
+    ],
+    "criteria": [
+     "SC-002"
+    ],
+    "commands": [
+     "uv run pytest tests/test_views.py -k TestPlansWayToBuy -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "f3d204f"
+   ]
+  },
+  {
+   "id": "T008",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_stripe/test_views.py::TestWebhookClearsTheCatalogue",
+     "tests/test_stripe/test_management/test_commands/test_stripe_sync.py::TestStripeSyncClearsTheCatalogue"
+    ],
+    "criteria": [
+     "SC-004"
+    ],
+    "commands": [
+     "uv run pytest tests/test_stripe -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "1b1a967"
+   ]
+  },
+  {
+   "id": "T009",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_templatetags/test_mvp_payments.py::TestStripePlansPlacement",
+     "tests/test_views.py::TestPlansPageOverride",
+     "tests/test_views.py::TestPlansWithoutTheStripeApp"
+    ],
+    "criteria": [
+     "SC-006",
+     "SC-008"
+    ],
+    "commands": [
+     "uv run pytest tests/test_templatetags tests/test_views.py tests/test_namespaces tests/test_components -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "545ff47"
+   ]
+  },
+  {
+   "id": "T010",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_demo.py::TestSeedDemoCommand",
+     "tests/test_demo.py::TestDemoCache",
+     "tests/test_demo.py::TestSeedDemoAgainstTheSandbox"
+    ],
+    "criteria": [],
+    "commands": [
+     "uv run pytest tests/test_demo.py -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "c708b67"
+   ]
+  },
+  {
+   "id": "T011",
+   "status": "done",
+   "evidence": {
+    "tests_added": [
+     "tests/test_contributions.py::TestContribution",
+     "tests/test_namespaces/test_stripe.py::TestStripeContribution"
+    ],
+    "criteria": [],
+    "commands": [
+     "uv run pytest tests/test_contributions.py tests/test_namespaces tests/test_views.py -q"
+    ],
+    "exit_code": 0
+   },
+   "commits": [
+    "b5aad07"
+   ]
+  }
+ ],
+ "deviations": [],
+ "concerns": [
+  "This report covers US2, US3 and US4 together (T005-T011) as the dispatch asked; the schema's story field takes one id, so it says US2. Ledger rows were written per task with kit/forge ledger-task, and each story's records were committed after its last task (f06485b, 95731a6, 9149b39).",
+  "tests/stripe_fake.py gained FakeStripe.respond_in_turn (additive) for the retry-after-missing-customer tests.",
+  "Existing tests tied to Page.in_navigation were rewritten or retired as the brief allows: tests/test_contributions.py (the 'kept out of the navigation' test became 'every page is listed', plus a test that Page takes no such option), tests/test_namespaces/test_stripe.py (the 'only subscription in navigation' test removed as a duplicate of the one-page test; per-page conditions dropped), tests/test_views.py (the navigation assertion). No other pre-existing test was changed.",
+  "cotton/stripe/plans.html now wraps its markup in {% if plans.prices %}, and PlanChoices.for_request no longer raises without the Stripe app (prices None, empty checkout and subscriptions addresses), so the parts render nothing in a project that has not installed it (T009). The approved markup, layout and copy are unchanged.",
+  "BillingReturnView only syncs a customer that Customer.from_checkout ties to the signed-in person; a session made for someone else ties that other person's customer but syncs nothing for the reader.",
+  "The offline demo catalogue is cached with no expiry (stripe_sync or a sandbox seed clears it); a file cache lives in /.demo-cache/ (git-ignored). README updated for the demo's plans and the new webhook events.",
+  "The 'held plan is marked' badge on a card is not asserted in markup (wording/appearance); the held list is asserted in the page context and the Manage link and absent form in the card.",
+  "docs/namespaces.md had stale lines saying the plans page belongs to the Stripe contribution; fixed along with the in_navigation text. CHANGELOG still has older Unreleased entries describing the former backend's plans page; left alone as out of scope.",
+  "specs/005-plans-drawn-here/US1-brief.json and US2-4-brief.json are untracked files from the orchestrator; left in place.",
+  "Full verify: kit/forge verify --repo . --base origin/main -> conformance, docs, lint, typecheck, test, build all passed; uv run pytest -n auto --dist loadscope -> 498 passed."
+ ],
+ "blocked": []
+}
