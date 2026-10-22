@@ -302,8 +302,20 @@
         },
         {
           "id": "T016",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py::TestSeedDemoAgainstTheSandbox::test_each_subscriber_is_recorded_by_the_stripe_app_from_the_sandbox"
+            ],
+            "commands": [
+              "uv run pytest tests/test_demo.py"
+            ],
+            "code": [
+              "demo/management/commands/seed_demo.py:107",
+              "demo/urls.py:17"
+            ]
+          }
         }
       ]
     },
