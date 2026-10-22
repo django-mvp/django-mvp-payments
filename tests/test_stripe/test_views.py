@@ -1,4 +1,4 @@
-"""The webhook: verify the signature, then fetch the current state from Stripe."""
+"""The webhook, and the handoffs to Stripe's billing portal."""
 
 import logging
 
@@ -408,3 +408,244 @@ class TestWebhookKeepsSecretsOut:
         response = deliver(event_payload("ping", {"object": "ping"}))
 
         self.assert_no_secret_anywhere(response, caplog, secrets)
+
+
+PORTAL_PATH = "/v1/billing_portal/sessions"
+
+
+@pytest.fixture
+def portal_opens(stripe_fake):
+    stripe_fake.respond(
+        "POST",
+        PORTAL_PATH,
+        {
+            "id": "bps_1",
+            "object": "billing_portal.session",
+            "url": "https://billing.example.com/session",
+        },
+    )
+    return stripe_fake
+
+
+def posted_to_the_portal(fake):
+    return [params for method, path, params in fake.requests if path == PORTAL_PATH]
+
+
+@pytest.mark.django_db
+class TestBillingPortal:
+    url = "/account/billing/stripe/billing-portal/"
+
+    def test_is_mounted_with_the_packages_urls(self):
+        assert reverse("payments:stripe-billing-portal") == self.url
+
+    def test_a_customer_is_given_the_address_stripe_minted(
+        self, portal_opens, client, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        client.force_login(user)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 200
+        assert response.json() == {"url": "https://billing.example.com/session"}
+        ((params,)) = posted_to_the_portal(portal_opens)
+        assert params["customer"] == ["cus_mine"]
+
+    def test_it_keeps_working_on_every_call_after_the_first(
+        self, portal_opens, client, user
+    ):
+        StripeCustomerFactory(user=user)
+        client.force_login(user)
+
+        statuses = [client.post(self.url).status_code for _ in range(3)]
+
+        assert statuses == [200, 200, 200]
+
+    def test_stripe_is_asked_for_this_persons_own_customer_never_anothers(
+        self, portal_opens, client, user
+    ):
+        StripeCustomerFactory(stripe_id="cus_somebody_else")
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        client.force_login(user)
+
+        client.post(self.url)
+
+        ((params,)) = posted_to_the_portal(portal_opens)
+        assert params["customer"] == ["cus_mine"]
+
+    def test_the_reader_is_sent_back_through_the_return_view_with_no_flow(
+        self, portal_opens, client, user
+    ):
+        StripeCustomerFactory(user=user)
+        client.force_login(user)
+
+        client.post(self.url)
+
+        ((params,)) = posted_to_the_portal(portal_opens)
+        assert params["return_url"][0].endswith(
+            reverse("payments:stripe-billing-return")
+        )
+        assert not any(key.startswith("flow_data") for key in params)
+
+    def test_somebody_with_no_customer_gets_no_portal(self, portal_opens, client, user):
+        client.force_login(user)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 409
+        assert portal_opens.requests == []
+
+    def test_signing_in_is_required(self, portal_opens, client, db):
+        response = client.post(self.url)
+
+        assert response.status_code == 302
+        assert portal_opens.requests == []
+
+    def test_only_a_post_is_answered(self, portal_opens, client, user):
+        StripeCustomerFactory(user=user)
+        client.force_login(user)
+
+        assert client.get(self.url).status_code == 405
+
+    def test_stripe_being_unreachable_is_reported_without_its_message(
+        self, stripe_fake, client, user, caplog
+    ):
+        StripeCustomerFactory(user=user)
+        client.force_login(user)
+        stripe_fake.respond_with_message_echoing(
+            "POST", PORTAL_PATH, "sk_test_not_a_r********_key"
+        )
+
+        response = client.post(self.url)
+
+        assert response.status_code == 502
+        assert "sk_test" not in response.content.decode() + caplog.text
+
+
+@pytest.mark.django_db
+class TestPlanSwitch:
+    url = "/account/billing/stripe/plan-switch/"
+
+    def test_it_opens_the_plan_change_screen_for_the_persons_subscription(
+        self, portal_opens, client, user
+    ):
+        customer = StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        subscription = StripeSubscriptionFactory(customer=customer, status="active")
+        client.force_login(user)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 200
+        assert response.json() == {"url": "https://billing.example.com/session"}
+        ((params,)) = posted_to_the_portal(portal_opens)
+        assert params["customer"] == ["cus_mine"]
+        assert params["flow_data[type]"] == ["subscription_update"]
+        assert params["flow_data[subscription_update][subscription]"] == [
+            subscription.stripe_id
+        ]
+        assert params["flow_data[after_completion][redirect][return_url]"][0].endswith(
+            reverse("payments:stripe-billing-return")
+        )
+
+    def test_several_subscriptions_open_the_portal_to_choose_from(
+        self, portal_opens, client, user
+    ):
+        customer = StripeCustomerFactory(user=user)
+        StripeSubscriptionFactory(customer=customer, status="active")
+        StripeSubscriptionFactory(customer=customer, status="trialing")
+        client.force_login(user)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 200
+        ((params,)) = posted_to_the_portal(portal_opens)
+        assert not any(key.startswith("flow_data") for key in params)
+
+    def test_somebody_with_nothing_subscribed_has_nothing_to_switch(
+        self, portal_opens, client, user
+    ):
+        customer = StripeCustomerFactory(user=user)
+        StripeSubscriptionFactory(customer=customer, status="canceled")
+        client.force_login(user)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 409
+        assert portal_opens.requests == []
+
+    def test_somebody_with_no_customer_has_nothing_to_switch(
+        self, portal_opens, client, user
+    ):
+        client.force_login(user)
+
+        response = client.post(self.url)
+
+        assert response.status_code == 409
+        assert portal_opens.requests == []
+
+    def test_signing_in_is_required(self, portal_opens, client, db):
+        response = client.post(self.url)
+
+        assert response.status_code == 302
+        assert portal_opens.requests == []
+
+
+@pytest.mark.django_db
+class TestBillingReturn:
+    url = "/account/billing/stripe/return/"
+
+    def test_it_refreshes_from_stripe_then_shows_the_subscription_page(
+        self, stripe_fake, client, user
+    ):
+        customer = StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_now_holds(
+            stripe_fake, "cus_mine", subscription_payload("sub_new", "cus_mine")
+        )
+        client.force_login(user)
+
+        response = client.get(self.url)
+
+        assert response.status_code == 302
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+        assert list(customer.subscriptions.values_list("stripe_id", flat=True)) == [
+            "sub_new"
+        ]
+
+    def test_somebody_with_no_customer_is_sent_on_without_asking_stripe(
+        self, stripe_fake, client, user
+    ):
+        client.force_login(user)
+
+        response = client.get(self.url)
+
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+        assert stripe_fake.requests == []
+
+    def test_stripe_being_unreachable_still_sends_the_reader_on(
+        self, stripe_fake, client, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_fake.become_unreachable("GET", "/v1/customers/cus_mine")
+        client.force_login(user)
+
+        response = client.get(self.url)
+
+        assert response.status_code == 302
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+
+    def test_only_the_signed_in_persons_customer_is_refreshed(
+        self, stripe_fake, client, user
+    ):
+        StripeCustomerFactory(stripe_id="cus_somebody_else")
+        client.force_login(user)
+
+        client.get(self.url)
+
+        assert stripe_fake.requests == []
+
+    def test_signing_in_is_required(self, stripe_fake, client, db):
+        response = client.get(self.url)
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("account_login"))
+        assert stripe_fake.requests == []

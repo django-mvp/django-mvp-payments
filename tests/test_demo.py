@@ -18,10 +18,9 @@ import pytest
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.urls import reverse
 
 from mvp_payments.stripe.models import Customer as StripeCustomer
-from tests.factories import StripeUserFactory, SubscriptionFactory, UserFactory
+from tests.factories import SubscriptionFactory
 from tests.stripe_fake import customer_payload
 
 SANDBOX_SUBSCRIBER_NAMES = ("regular.user", "staff.user", "other.subscriber")
@@ -196,146 +195,6 @@ class TestSeedDemoCommand:
         assert StripeUser.objects.count() == StripeUser.objects.distinct().count()
         stripe_user = self._stripe_user_for("regular.user")
         assert Subscription.objects.filter(stripe_user=stripe_user).count() == 1
-
-
-@pytest.mark.django_db
-class TestBillingPortalHandoff:
-    ENDPOINT = "/api/billing-portal/"
-
-    @pytest.fixture
-    def subscriber(self, client):
-        stripe_user = StripeUserFactory(customer_id="cus_a_real_looking_one")
-        client.force_login(stripe_user.user)
-        return stripe_user.user
-
-    def test_a_subscriber_is_given_the_address_the_provider_minted(
-        self, client, subscriber
-    ):
-        with patch(
-            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
-            return_value=SimpleNamespace(url="https://billing.example.com/session"),
-        ):
-            response = client.post(self.ENDPOINT)
-
-        assert response.status_code == 200
-        assert response.json() == {"url": "https://billing.example.com/session"}
-
-    def test_it_keeps_working_on_every_call_after_the_first(self, client, subscriber):
-        with patch(
-            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
-            return_value=SimpleNamespace(url="https://billing.example.com/session"),
-        ):
-            statuses = [client.post(self.ENDPOINT).status_code for _ in range(3)]
-
-        assert statuses == [200, 200, 200]
-
-    def test_the_provider_is_asked_for_this_persons_own_customer(
-        self, client, subscriber
-    ):
-        with patch(
-            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
-            return_value=SimpleNamespace(url="https://billing.example.com/session"),
-        ) as create:
-            client.post(self.ENDPOINT)
-
-        assert create.call_args.kwargs["customer"] == "cus_a_real_looking_one"
-
-    def test_the_reader_is_sent_back_through_the_refresh(self, client, subscriber):
-        with patch(
-            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create",
-            return_value=SimpleNamespace(url="https://billing.example.com/session"),
-        ) as create:
-            client.post(self.ENDPOINT)
-
-        assert create.call_args.kwargs["return_url"].endswith(reverse("billing-return"))
-        assert "flow_data" not in create.call_args.kwargs
-
-    def test_somebody_with_no_customer_record_gets_no_portal(self, client):
-        client.force_login(UserFactory())
-
-        with patch(
-            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
-        ) as create:
-            response = client.post(self.ENDPOINT)
-
-        assert response.status_code == 409
-        create.assert_not_called()
-
-    def test_signing_in_is_required(self, client):
-        with patch(
-            "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
-        ) as create:
-            response = client.post(self.ENDPOINT)
-
-        assert response.status_code == 302
-        create.assert_not_called()
-
-
-@pytest.mark.django_db
-class TestPlanSwitchHandoff:
-    ENDPOINT = "/api/plan-switch/"
-    CREATE = "drf_stripe.stripe_api.api.stripe_api.billing_portal.Session.create"
-
-    def test_it_opens_the_plan_change_screen_for_the_persons_current_subscription(
-        self, subscriber_client, current_subscription, stripe_user
-    ):
-        with patch(
-            self.CREATE,
-            return_value=SimpleNamespace(url="https://billing.example.com/flow"),
-        ) as create:
-            response = subscriber_client.post(self.ENDPOINT)
-
-        assert response.status_code == 200
-        assert response.json() == {"url": "https://billing.example.com/flow"}
-        kwargs = create.call_args.kwargs
-        assert kwargs["customer"] == stripe_user.customer_id
-        flow = kwargs["flow_data"]
-        assert flow["type"] == "subscription_update"
-        assert (
-            flow["subscription_update"]["subscription"]
-            == current_subscription.subscription_id
-        )
-        assert flow["after_completion"]["redirect"]["return_url"].endswith(
-            reverse("billing-return")
-        )
-
-    def test_somebody_with_nothing_current_has_nothing_to_switch(
-        self, logged_in_client, stripe_user
-    ):
-        with patch(self.CREATE) as create:
-            response = logged_in_client.post(self.ENDPOINT)
-
-        assert response.status_code == 409
-        create.assert_not_called()
-
-    def test_signing_in_is_required(self, client, db):
-        with patch(self.CREATE) as create:
-            response = client.post(self.ENDPOINT)
-
-        assert response.status_code == 302
-        create.assert_not_called()
-
-
-@pytest.mark.django_db
-class TestBillingReturn:
-    SYNC = "drf_stripe.stripe_api.subscriptions.stripe_api_update_subscriptions"
-
-    def test_it_refreshes_from_the_provider_then_shows_the_subscription_page(
-        self, logged_in_client
-    ):
-        with patch(self.SYNC) as sync:
-            response = logged_in_client.get(reverse("billing-return"))
-
-        sync.assert_called_once_with(status="all", ignore_new_user_creation_errors=True)
-        assert response.status_code == 302
-        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
-
-    def test_signing_in_is_required(self, client, db):
-        with patch(self.SYNC) as sync:
-            response = client.get(reverse("billing-return"))
-
-        assert response.status_code == 302
-        sync.assert_not_called()
 
 
 @pytest.mark.django_db

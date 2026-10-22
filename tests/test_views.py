@@ -3,7 +3,6 @@
 import re
 
 import pytest
-from django.conf import settings
 from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
@@ -480,40 +479,24 @@ class TestSubscriptionPage:
         assert "data-mvp-payments-portal-link" in content
         assert 'src="/static/mvp_payments/stripe/billing_portal.js"' in content
 
-    def test_a_subscriber_switches_through_the_plan_change_endpoint(
+    def test_a_subscriber_switches_through_the_apps_plan_switch_view(
         self, subscribed_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
-        ):
-            response = subscribed_client.get(reverse("payments:stripe-subscription"))
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
         content = _content_region(response.content.decode())
+        endpoint = reverse("payments:stripe-plan-switch")
 
-        assert response.context["plan_switch_endpoint"] == "/api/plan-switch/"
-        assert 'data-endpoint="/api/plan-switch/"' in content
+        assert response.context["plan_switch_endpoint"] == endpoint
+        assert f'data-endpoint="{endpoint}"' in content
         assert f'href="{reverse("payments:stripe-plans")}"' not in content
 
-    def test_without_a_plan_change_endpoint_a_subscriber_is_offered_no_switch(
-        self, subscribed_client
+    def test_the_plan_switch_view_is_withheld_from_somebody_with_no_subscription(
+        self, logged_in_client
     ):
-        with override_settings(MVP_PAYMENTS={}):
-            response = subscribed_client.get(reverse("payments:stripe-subscription"))
-        content = _content_region(response.content.decode())
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         assert response.context["plan_switch_endpoint"] is None
-        assert "data-mvp-payments-portal-link" not in content
-
-    def test_the_plan_change_endpoint_is_withheld_from_somebody_with_no_subscription(
-        self, user, client_for
-    ):
-        client = client_for(user)
-        with override_settings(
-            MVP_PAYMENTS={"STRIPE_PLAN_SWITCH": "/api/plan-switch/"}
-        ):
-            response = client.get(reverse("payments:stripe-subscription"))
-
-        assert response.context["plan_switch_endpoint"] is None
-        assert "/api/plan-switch/" not in response.content.decode()
+        assert reverse("payments:stripe-plan-switch") not in response.content.decode()
 
     def test_someone_with_no_subscription_is_invited_to_choose_one(
         self, user, client_for
@@ -620,42 +603,24 @@ class TestComingBackFromTheProvider:
 
 @pytest.mark.django_db
 class TestBillingPortalEndpoint:
-    def test_carries_the_endpoint_from_settings_for_a_current_subscriber(
+    def test_is_the_apps_billing_portal_view_for_a_current_subscriber(
         self, subscribed_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
-        ):
-            response = subscribed_client.get(reverse("payments:stripe-subscription"))
+        response = subscribed_client.get(reverse("payments:stripe-subscription"))
 
-        assert (
-            response.context["billing_portal_endpoint"]
-            == "/api/stripe/customer-portal/"
-        )
+        endpoint = reverse("payments:stripe-billing-portal")
+        assert response.context["billing_portal_endpoint"] == endpoint
+        assert f'data-endpoint="{endpoint}"' in response.content.decode()
 
-    def test_is_none_when_the_setting_is_absent(self, subscribed_client):
-        with override_settings(MVP_PAYMENTS={}):
-            response = subscribed_client.get(reverse("payments:stripe-subscription"))
-
-        assert response.context["billing_portal_endpoint"] is None
-
-    def test_is_none_for_a_person_with_no_current_subscription_even_when_set(
-        self, logged_in_client
-    ):
-        with override_settings(
-            MVP_PAYMENTS={"STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
-        ):
-            response = logged_in_client.get(reverse("payments:stripe-subscription"))
+    def test_is_none_for_a_person_with_no_current_subscription(self, logged_in_client):
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         assert response.context["billing_portal_endpoint"] is None
 
     def test_says_nothing_about_a_subscription_to_someone_who_has_none(
         self, logged_in_client
     ):
-        with override_settings(
-            MVP_PAYMENTS={"STRIPE_BILLING_PORTAL": "/api/stripe/customer-portal/"}
-        ):
-            response = logged_in_client.get(reverse("payments:stripe-subscription"))
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
 
         content = response.content.decode()
         assert "data-mvp-payments-portal-link" not in content
@@ -722,10 +687,7 @@ class TestTemplateOverride:
         assert "Premium" in content
         assert "20.00 USD" in content
         assert "every month" in content
-        # Read from the configuration rather than written out here: which endpoint a
-        # project hands a reader to is the project's to choose, and what this proves is
-        # that the value reaches the project's own template, not what the value is.
-        assert settings.MVP_PAYMENTS["STRIPE_BILLING_PORTAL"] in content
+        assert reverse("payments:stripe-billing-portal") in content
 
 
 class TestPlansPageOverride:

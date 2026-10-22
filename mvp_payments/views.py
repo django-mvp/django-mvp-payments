@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import reverse
 from django.utils.functional import Promise
 from mvp.views import MVPTemplateView
 
@@ -83,15 +84,16 @@ class SubscriptionPageView(PaymentPageView):
 
     - ``subscriptions``: every one of this person's current subscriptions, read at render time
       (Article XII).
-    - ``billing_portal_endpoint``: where the billing-portal endpoint is mounted, from
-      ``settings.MVP_PAYMENTS`` (ADR 0005). ``None`` for anyone with nothing current, because there is
-      nothing to manage until a subscription exists (ADR 0007).
+    - ``billing_portal_endpoint``: where the Stripe app's billing-portal view is mounted
+      (ADR 0005). ``None`` for anyone with nothing current, because there is nothing to manage
+      until a subscription exists (ADR 0007).
     - ``plans_url``: the plans page, which is not in the navigation.
-    - ``plan_switch_endpoint``: the project's endpoint opening the provider's plan-change screen,
-      from the same settings (ADR 0008). ``None`` for anyone with nothing current.
+    - ``plan_switch_endpoint``: where the Stripe app's plan-switch view is mounted, which opens
+      the provider's plan-change screen (ADR 0008). ``None`` for anyone with nothing current.
     - ``provider_return``: set when the reader comes back from the provider (``?returned=N``) and
-      nothing current shows yet, because the webhook can arrive after the reader is back. A dict of ``attempt`` and ``poll_url``, which is ``None`` once ``RETURN_POLL_LIMIT``
-      polls are spent. ``None`` otherwise.
+      nothing current shows yet, because the webhook can arrive after the reader is back. A dict
+      of ``attempt`` and ``poll_url``, which is ``None`` once ``RETURN_POLL_LIMIT`` polls are
+      spent. ``None`` otherwise.
     """
 
     #: How many times the subscription region polls for a payment to arrive after the reader
@@ -103,15 +105,13 @@ class SubscriptionPageView(PaymentPageView):
         context: dict[str, Any] = super().get_context_data(**kwargs)
         subscriptions = SubscriptionReader.for_user(self.request.user)
         context["provider_return"] = self.provider_return(subscriptions)
-        mvp_payments_settings = getattr(settings, "MVP_PAYMENTS", {})
+        namespace = self.request.resolver_match.namespace
         context["subscriptions"] = subscriptions
         context["billing_portal_endpoint"] = (
-            mvp_payments_settings.get("STRIPE_BILLING_PORTAL")
-            if subscriptions
-            else None
+            reverse(f"{namespace}:stripe-billing-portal") if subscriptions else None
         )
         context["plan_switch_endpoint"] = (
-            mvp_payments_settings.get("STRIPE_PLAN_SWITCH") if subscriptions else None
+            reverse(f"{namespace}:stripe-plan-switch") if subscriptions else None
         )
         context["plans_url"] = self.get_contribution().page_url("plans")
         return context

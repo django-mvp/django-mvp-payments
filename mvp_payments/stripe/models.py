@@ -14,6 +14,10 @@ from django.contrib.auth import get_user_model
 from django.db import models, transaction
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.translation import gettext_lazy as _
+from stripe.params.billing_portal import (
+    SessionCreateParams,
+    SessionCreateParamsFlowData,
+)
 
 from .client import client
 
@@ -58,6 +62,20 @@ class Customer(models.Model):
 
     def __str__(self) -> str:
         return self.stripe_id
+
+    @classmethod
+    def for_user(cls, user) -> Customer | None:
+        """Find the customer tied to a user.
+
+        Args:
+            user: The user, who may be anonymous or not yet saved.
+
+        Returns:
+            The user's customer, or ``None`` when they have none or are not signed in.
+        """
+        if not user.is_authenticated or user.pk is None:
+            return None
+        return cls.objects.filter(user=user).first()
 
     @classmethod
     def client_reference(cls, user) -> str:
@@ -139,6 +157,72 @@ class Customer(models.Model):
             )
             return None
         return cls.objects.create(user=user, stripe_id=stripe_id)
+
+    def portal_url(
+        self, return_url: str, flow_data: SessionCreateParamsFlowData | None = None
+    ) -> str:
+        """Ask Stripe for a billing-portal session for this customer.
+
+        Args:
+            return_url: Where Stripe sends the reader when they leave the portal.
+            flow_data: A Stripe portal flow to open on, or ``None`` for the portal's home.
+
+        Returns:
+            The address of the portal session, which the reader is sent to.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused.
+        """
+        params: SessionCreateParams = {
+            "customer": self.stripe_id,
+            "return_url": return_url,
+        }
+        if flow_data is not None:
+            params["flow_data"] = flow_data
+        return client().v1.billing_portal.sessions.create(params=params).url
+
+    def plan_change_flow(self, return_url: str) -> SessionCreateParamsFlowData | None:
+        """Describe the portal flow that changes this customer's one subscription.
+
+        Args:
+            return_url: Where Stripe sends the reader once the change is done.
+
+        Returns:
+            The flow for the customer's subscription, or ``None`` when they do not have
+            exactly one subscribed subscription: with none there is nothing to change, and with
+            several the portal's home lets them pick.
+        """
+        subscribed = list(self.subscriptions.subscribed()[:2])
+        if len(subscribed) != 1:
+            return None
+        return {
+            "type": "subscription_update",
+            "subscription_update": {"subscription": subscribed[0].stripe_id},
+            "after_completion": {
+                "type": "redirect",
+                "redirect": {"return_url": return_url},
+            },
+        }
+
+    def pricing_table_client_secret(self) -> str:
+        """Ask Stripe for the secret that lets the pricing table act for this customer.
+
+        Passed to the pricing table, it makes a purchase land on this customer rather than
+        creating a second one.
+
+        Returns:
+            The single-use client secret of a customer session.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused.
+        """
+        session = client().v1.customer_sessions.create(
+            params={
+                "customer": self.stripe_id,
+                "components": {"pricing_table": {"enabled": True}},
+            }
+        )
+        return session.client_secret
 
     def sync(self) -> None:
         """Bring this customer's subscriptions into step with what Stripe holds now.
