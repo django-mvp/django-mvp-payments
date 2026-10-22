@@ -42,7 +42,7 @@ page of your own project, whether or not this package's Account Center pages are
 Stripe's checkout is hosted by Stripe, so the package never sees it. What makes the subscription
 that results belong to a user is a reference that goes out with the pricing table and comes back
 on the completed checkout, where the Stripe app's webhook checks it
-([ADR 0011](adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)).
+([ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)).
 
 The plans page passes the pricing table two things for a signed-in person:
 

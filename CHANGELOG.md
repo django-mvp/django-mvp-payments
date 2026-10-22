@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `<c-drf-stripe.features>`, `<c-drf-stripe.portal-link>`, `<c-drf-stripe.no-subscription>`) and
   two names on its template context, `subscriptions` and `billing_portal_endpoint`, so a project
   overriding the template needs no view, context processor or query of its own.
-  `docs/user-subscriptions-page.md` documents both.
+  `docs/reference/user-subscriptions-page.md` documents both.
 - `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, telling the user subscriptions page where a project
   mounted the backend's billing-portal endpoint (`customer-portal/`).
 - `Page.in_navigation`, so a namespace can contribute a page that is routed and reverses without
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sibling with `get_contribution().page_url(slug)` rather than a hard-coded URL name.
 - The plans page now mounts the provider's own pricing table with `<c-drf-stripe.pricing-table>`,
   configured by two settings, `MVP_PAYMENTS["DRF_STRIPE_PRICING_TABLE_ID"]` and
-  `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]`. `docs/plans-page.md` documents the component, the
+  `MVP_PAYMENTS["DRF_STRIPE_PUBLISHABLE_KEY"]`. `docs/reference/plans-page.md` documents the component, the
   two settings, and how to replace either the component or the page with your own.
 - The pricing table carries the signed-in person's email address, so a purchase reaches the
   account that made it — the backend matches a customer to a user by address and reads no other
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reader looking at empty space.
 - `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`, naming an endpoint of the project's own that opens the
   provider's plan-change screen for a subscriber's existing subscription. "Switch plans" posts to
-  it. `docs/user-subscriptions-page.md` says what the endpoint does, and the demo has a working one.
+  it. `docs/reference/user-subscriptions-page.md` says what the endpoint does, and the demo has a working one.
 - `<c-drf-stripe.already-subscribed>`, shown on the plans page to somebody who already has a
   subscription, with a link to their user subscriptions page.
 - A reader who comes back from paying at the provider to the user subscriptions page with `?returned=1`

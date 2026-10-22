@@ -133,10 +133,10 @@ table from two settings. Namespaces for other backends are welcome and do not ne
 agreement about anything: adding one is adding it beside the ones already installed, and changes
 nothing about their navigation entries, their card or their pages.
 
-[docs/user-subscriptions-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/user-subscriptions-page.md) covers the user subscriptions page: what it puts
+[docs/reference/user-subscriptions-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/user-subscriptions-page.md) covers the user subscriptions page: what it puts
 in the template context, the components it is built from, and how to replace it with your own.
 
-[docs/plans-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/plans-page.md) covers the plans page: the component it mounts, the
+[docs/reference/plans-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/plans-page.md) covers the plans page: the component it mounts, the
 settings it reads, and how to replace the component or the page with your own.
 
 [docs/namespaces.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/namespaces.md) is how you add a namespace: what one declares, the two

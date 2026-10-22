@@ -23,7 +23,7 @@ subscribed.
 
 That matters if you are deciding where to show something. A page that drew its own line would
 disagree with the rest of your application on the day the app's line moved. See
-[Asking whether a user is subscribed](reference/stripe-app.md#asking-whether-a-user-is-subscribed).
+[Asking whether a user is subscribed](stripe-app.md#asking-whether-a-user-is-subscribed).
 
 ## The context
 
@@ -210,7 +210,7 @@ Two things are set in the provider's dashboard, not here:
 - **Which plans can be switched to.** The customer portal's settings list the products and prices a
   subscriber may move between. With none listed, the plan-change screen has nothing to offer.
 - **Where the change reaches your records.** Stripe reports the change through the webhook (see
-  [how to point Stripe at the webhook](how-to/point-stripe-at-the-webhook.md)). Until it arrives,
+  [how to point Stripe at the webhook](../how-to/point-stripe-at-the-webhook.md)). Until it arrives,
   your records still show the old plan. The return view below covers the gap.
 
 ## Coming back from the provider

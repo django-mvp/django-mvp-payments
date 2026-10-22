@@ -22,7 +22,7 @@ Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there
   webhook is verified against it.
 
 Two more settings are read by the plans page, not by the app, and are described in
-[the plans page](../plans-page.md#the-page):
+[the plans page](plans-page.md#the-page):
 
 `STRIPE_PRICING_TABLE_ID`
 : The id of your pricing table, `prctbl_...`, from Stripe's dashboard.
