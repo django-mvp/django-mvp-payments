@@ -3,8 +3,10 @@
 from io import StringIO
 
 import pytest
+from django.core.cache import cache
 from django.core.management import CommandError, call_command
 
+from mvp_payments.stripe.catalogue import Catalogue
 from mvp_payments.stripe.models import Customer, Subscription
 from tests.factories import (
     StripeCustomerFactory,
@@ -168,3 +170,20 @@ class TestStripeSyncKeepsSecretsOut:
         assert masked not in str(raised.value)
         assert masked not in out.getvalue()
         assert raised.value.__cause__ is not None
+
+
+@pytest.mark.django_db
+class TestStripeSyncClearsTheCatalogue:
+    def test_the_next_read_of_the_catalogue_asks_stripe(self, stripe_fake):
+        cache.set(Catalogue.KEY, [{"id": "price_1"}], 3600)
+
+        run()
+
+        assert cache.get(Catalogue.KEY) is None
+
+    def test_it_is_cleared_even_when_no_customer_is_recorded(self, stripe_fake):
+        cache.set(Catalogue.KEY, None, 60)
+
+        run()
+
+        assert cache.get(Catalogue.KEY, "absent") == "absent"

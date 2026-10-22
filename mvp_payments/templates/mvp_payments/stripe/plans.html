@@ -1,16 +1,10 @@
-{% extends "mvp/account/base.html" %}
-{% block account.content %}
-  <c-mvp.page>
-    <c-mvp.page.title :title="page.title" />
-    {% if sign_in_url %}
-      <c-stripe.sign-in-notice :url="sign_in_url" />
-    {% elif pricing_table_id and publishable_key %}
-      <c-stripe.pricing-table :table_id="pricing_table_id"
-                              :publishable_key="publishable_key"
-                              :client_reference_id="client_reference_id"
-                              :customer_session_client_secret="customer_session_client_secret" />
-    {% else %}
-      <c-stripe.plans-unavailable />
-    {% endif %}
-  </c-mvp.page>
-{% endblock account.content %}
+{% extends "page_view.html" %}
+{% block page.content %}
+  {% if plans.prices is None %}
+    <c-stripe.plans-unavailable />
+  {% elif not plans.prices %}
+    <c-stripe.no-plans />
+  {% else %}
+    <c-stripe.plans :plans="plans" />
+  {% endif %}
+{% endblock page.content %}

@@ -1,4 +1,5 @@
 {% extends "page_view.html" %}
+{% load mvp_payments %}
 {% block page.content %}
   <c-mvp.section title="What this is" icon="info">
     <c-mvp.text>
@@ -18,7 +19,7 @@
   <c-mvp.section title="One namespace per backend" icon="payments">
     <c-mvp.text>
       A component names the provider it speaks to.
-      <code>&lt;c-stripe.pricing-table&gt;</code> is Stripe's own pricing table, and the
+      <code>&lt;c-stripe.plans&gt;</code> draws the prices in Stripe's catalogue, and the
       <code>stripe.subscription</code> page reads the records of this package's Stripe app. A
       second provider would get a namespace of its own beside it rather than underneath it.
     </c-mvp.text>
@@ -29,25 +30,6 @@
       liability by the third. A namespace per backend costs some duplication and buys the
       freedom to match each one exactly.
     </c-mvp.text>
-  </c-mvp.section>
-  <c-mvp.section title="Two ways to build a page" icon="grid-view">
-    <c-mvp.grid md="2" gap="4">
-      <c-mvp.card title="Native" icon="plan">
-        <c-mvp.text tight>
-          Your backend's own records, rendered as daisyUI markup. It themes with the rest of
-          the site and can show a person their own state — which plan they are already on,
-          what they cannot buy, what happens at the end of the period.
-        </c-mvp.text>
-      </c-mvp.card>
-      <c-mvp.card title="Provider embed" icon="subscription">
-        <c-mvp.text tight>
-          A thin wrapper around the drop-in the provider already publishes, such as Stripe's
-          pricing table. Faster where there is no signed-in person to reflect, and configured
-          in the provider's dashboard rather than here.
-        </c-mvp.text>
-      </c-mvp.card>
-    </c-mvp.grid>
-    <c-mvp.text muted>Neither is the fallback for the other.</c-mvp.text>
   </c-mvp.section>
   <c-mvp.section title="What it stays out of" icon="document">
     <c-mvp.text>
@@ -61,44 +43,20 @@
       it was decided by the backend or by the project installing this.
     </c-mvp.text>
   </c-mvp.section>
-  <c-mvp.section title="The same component, on a page of the project's own" icon="payments">
+  <c-mvp.section title="The same plans, on a page of the project's own" icon="payments">
     <c-mvp.text>
-      This is the same <code>&lt;c-stripe.pricing-table&gt;</code> component the Account
-      Center's Plans page renders — placed here, on this landing page, with nothing behind it
-      but its own two attributes. There is no view of ours behind this page and no sign-in
-      requirement, and the component needs neither.
+      These are the plans the plans page shows, placed here on this landing
+      page with one template tag and one component. Choosing one while signed out signs you in
+      and brings you back here.
     </c-mvp.text>
-    <c-stripe.pricing-table table_id="prctbl_not_a_real_table"
-                                 publishable_key="pk_test_not_a_real_key" />
-  </c-mvp.section>
-  <c-mvp.section title="Before it is configured" icon="info">
-    <c-mvp.text>
-      Every project starts here: nothing supplied, or the provider's library never loaded. Both
-      states are one click away rather than left to be imagined.
-    </c-mvp.text>
-    <c-mvp.text tight>
-      The package's own Plans page, reached with neither a pricing table id nor a publishable key
-      supplied:
-      <c-button variant="primary"
-                size="sm"
-                text="Nothing configured yet"
-                href="{% url 'plans-unconfigured' %}" />
-    </c-mvp.text>
-    <c-mvp.text tight>
-      Both values configured, the mount point rendered, and the provider's own script never
-      loaded:
-      <c-button variant="primary"
-                size="sm"
-                text="The library never arrived"
-                href="{% url 'no-library' %}" />
-    </c-mvp.text>
+    {% stripe_plans as plans %}
+    {% if plans.prices %}<c-stripe.plans :plans="plans" />{% endif %}
   </c-mvp.section>
   <c-mvp.section title="Where the components will appear" icon="overview">
     <c-alert variant="info" icon="info" soft>
       <span>
         The user subscriptions page is built: sign in and open the Account Center to see it, under
-        Billing. It carries the way to the plans page, which is routed and waiting on its own
-        roadmap item.
+        Billing. The plans page is open to everyone and is under Plans in the sidebar.
       </span>
     </c-alert>
     <c-mvp.text muted>

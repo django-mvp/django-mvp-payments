@@ -1,6 +1,8 @@
 """Rendering a contributed page inside the Account Center layout."""
 
+import html
 import re
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.db import connection
@@ -10,7 +12,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from mvp_payments.namespaces.stripe import stripe_contribution
-from mvp_payments.stripe.models import Customer
 from mvp_payments.views import SubscriptionPageView
 from tests.factories import (
     StripeCustomerFactory,
@@ -19,6 +20,7 @@ from tests.factories import (
 )
 from tests.markup import account_center_cards_region, account_navigation_regions
 from tests.probes import run_probe
+from tests.stripe_fake import price_payload, product_payload
 
 _AMOUNT_PATTERN = re.compile(r"\d[\d,]*\.\d{2,3} [A-Z]{3}")
 
@@ -86,40 +88,6 @@ print(json.dumps({
 }))
 """
 
-_COMPONENT_TEMPLATE_OVERRIDE_PROBE = """
-import json
-
-import django
-
-django.setup()
-
-from django.contrib.auth.models import AnonymousUser
-from django.db import connection
-from django.template import Context, Template
-from django.test import RequestFactory
-from django.test.utils import CaptureQueriesContext, setup_test_environment
-from django_cotton.compiler_regex import CottonCompiler
-
-setup_test_environment()
-
-compiler = CottonCompiler()
-request = RequestFactory().get("/")
-request.user = AnonymousUser()
-
-compiled = compiler.process(
-    '<c-stripe.pricing-table table_id="prctbl_test123" '
-    'publishable_key="pk_test_456" />'
-)
-template = Template(compiled)
-context = Context({"request": request})
-context.request = request
-
-with CaptureQueriesContext(connection) as captured:
-    html = template.render(context)
-
-print(json.dumps({"html": html, "query_count": len(captured)}))
-"""
-
 _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE = """
 import json
 
@@ -127,30 +95,117 @@ import django
 
 django.setup()
 
-from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.management import call_command
-from django.test import Client, override_settings
+from django.test import Client
 from django.test.utils import setup_test_environment
 from django.urls import reverse
+
+from mvp_payments.stripe.catalogue import Catalogue
 
 setup_test_environment()
 call_command("migrate", verbosity=0, run_syncdb=True)
 
-User.objects.create_user(username="person", password="password")
-client = Client()
-client.login(username="person", password="password")
-
-with override_settings(
-    MVP_PAYMENTS={
-        "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-        "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
-    }
-):
-    response = client.get(reverse("payments:stripe-plans"))
+# The catalogue is cached, so the probe never asks Stripe.
+cache.set(
+    Catalogue.KEY,
+    [
+        {
+            "id": "price_probe",
+            "unit_amount": 2000,
+            "currency": "usd",
+            "recurring": {"interval": "month", "interval_count": 1},
+            "product": {"id": "prod_probe", "name": "Probe", "marketing_features": []},
+        }
+    ],
+    3600,
+)
+response = Client().get(reverse("payments_plans:stripe-plans"))
 
 print(json.dumps({
     "status_code": response.status_code,
     "content": response.content.decode(),
+}))
+"""
+
+
+_PLANS_PART_OVERRIDE_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
+from django.test import RequestFactory
+from django_cotton.utils import render_component
+
+from mvp_payments.namespaces.stripe_plans import PlanChoices
+from mvp_payments.stripe.catalogue import Catalogue
+
+cache.set(
+    Catalogue.KEY,
+    [
+        {
+            "id": "price_probe",
+            "unit_amount": 2000,
+            "currency": "usd",
+            "recurring": {"interval": "month", "interval_count": 1},
+            "product": {
+                "id": "prod_probe",
+                "name": "Probe",
+                "marketing_features": [{"name": "Own feature"}],
+            },
+        },
+        {
+            "id": "price_probe_other",
+            "unit_amount": 5000,
+            "currency": "usd",
+            "recurring": {"interval": "month", "interval_count": 1},
+            "product": {
+                "id": "prod_probe_other",
+                "name": "Other",
+                "marketing_features": [{"name": "Own feature"}],
+            },
+        },
+    ],
+    3600,
+)
+request = RequestFactory().get("/plans/")
+request.user = AnonymousUser()
+plans = PlanChoices.for_request(request)
+
+print(json.dumps({"content": render_component(request, "stripe.plans", plans=plans)}))
+"""
+
+_PLANS_WITHOUT_STRIPE_APP_PROBE = """
+import json
+
+import django
+
+django.setup()
+
+from django.contrib.auth.models import AnonymousUser
+from django.template import Template
+from django.template.context import make_context
+from django.test import RequestFactory
+from django_cotton.compiler_regex import CottonCompiler
+
+from mvp_payments.namespaces.stripe_plans import PlanChoices
+
+request = RequestFactory().get("/pricing/")
+request.user = AnonymousUser()
+source = (
+    "{% load mvp_payments %}{% stripe_plans as plans %}"
+    "<b>{{ plans.prices|default_if_none:'none' }}</b>"
+    '<c-stripe.plans :plans="plans" />'
+)
+template = Template(CottonCompiler().process(source))
+
+print(json.dumps({
+    "prices": PlanChoices.for_request(request)["prices"],
+    "content": template.render(make_context({"request": request}, request)),
 }))
 """
 
@@ -167,20 +222,13 @@ class TestPaymentPage:
 
         assert response.status_code == 200
         assert re.search(rf"<h1[^>]*>\s*{page.label}\s*</h1>", content)
-        # django-mvp swaps the sidebar to the Account Center's navigation on a page
-        # that navigation has an entry for, and on no other.
-        assert ('aria-label="Account navigation"' in content) == page.in_navigation
+        assert 'aria-label="Account navigation"' in content
 
     def test_anonymous_visitor_is_sent_to_the_sign_in_page(self, client, db):
         response = client.get(reverse("payments:stripe-subscription"))
 
         assert response.status_code == 302
         assert response.url.startswith(reverse("account_login"))
-
-    def test_a_page_may_be_declared_open_to_everyone(self, client, db):
-        response = client.get(reverse("payments:stripe-plans"))
-
-        assert response.status_code == 200
 
 
 def _content_region(content: str) -> str:
@@ -195,212 +243,289 @@ def _content_region(content: str) -> str:
     return content
 
 
+def _card(content: str, price_id: str) -> str:
+    """The markup of the plan card for one price, up to the next card or the page's note."""
+    start = content.index(f'id="{price_id}"')
+    ends = [
+        content.find(marker, start + 1)
+        for marker in (' id="price_', 'id="mvp-payments-checkout-note"')
+    ]
+    return content[start : min(end for end in ends if end != -1)]
+
+
+@pytest.fixture
+def plans_on_offer(stripe_fake):
+    basic = {
+        **product_payload("prod_basic", "Basic"),
+        "active": True,
+        "description": "For one person getting started.",
+        "marketing_features": [{"name": "One project"}, {"name": "Email support"}],
+    }
+    bare = {**product_payload("prod_bare", "Bare"), "active": True}
+    stripe_fake.respond_with_list(
+        "/v1/prices",
+        [
+            price_payload("price_basic_month", basic, unit_amount=2000),
+            price_payload(
+                "price_basic_year", basic, unit_amount=20000, interval="year"
+            ),
+            price_payload("price_bare_yen", bare, unit_amount=500000, currency="jpy"),
+            price_payload(
+                "price_bare_dinar",
+                bare,
+                unit_amount=12500,
+                currency="kwd",
+                interval_count=3,
+            ),
+        ],
+    )
+    return stripe_fake
+
+
 @pytest.mark.django_db
 class TestPlansPage:
-    def test_context_and_content_carry_both_settings_values(self, logged_in_client):
-        with override_settings(
-            MVP_PAYMENTS={
-                "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-                "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
-            }
+    def test_an_anonymous_visitor_opens_it_at_the_address_the_project_mounted_it(
+        self, client, plans_on_offer
+    ):
+        response = client.get(reverse("payments_plans:stripe-plans"))
+
+        assert reverse("payments_plans:stripe-plans") == "/plans/"
+        assert response.status_code == 200
+
+    def test_every_price_on_offer_has_a_card(self, client, plans_on_offer):
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
+
+        for price_id in (
+            "price_basic_month",
+            "price_basic_year",
+            "price_bare_yen",
+            "price_bare_dinar",
         ):
-            response = logged_in_client.get(reverse("payments:stripe-plans"))
+            assert f'id="{price_id}"' in content
 
-        assert response.status_code == 200
-        assert response.context["pricing_table_id"] == "prctbl_test123"
-        assert response.context["publishable_key"] == "pk_test_456"
-
-        content = _content_region(response.content.decode())
-        assert "<stripe-pricing-table" in content
-        assert 'pricing-table-id="prctbl_test123"' in content
-        assert 'publishable-key="pk_test_456"' in content
-
-    def test_the_element_carries_the_signed_in_persons_own_address(
-        self, logged_in_client, user
+    def test_a_card_shows_the_name_amount_frequency_description_and_features(
+        self, client, plans_on_offer
     ):
-        user.email = "person@example.com"
-        user.save()
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
 
-        with override_settings(
-            MVP_PAYMENTS={
-                "STRIPE_PRICING_TABLE_ID": "prctbl_test123",
-                "STRIPE_PUBLISHABLE_KEY": "pk_test_456",
-            }
-        ):
-            response = logged_in_client.get(reverse("payments:stripe-plans"))
+        card = _card(content, "price_basic_month")
+        assert "Basic" in card
+        assert "20.00 USD" in card
+        assert "every month" in card
+        assert "For one person getting started." in card
+        assert "One project" in card
+        assert "Email support" in card
 
-        content = _content_region(response.content.decode())
-        assert 'customer-email="person@example.com"' in content
-
-    def test_a_subscriber_sees_the_pricing_table(self, subscribed_client):
-        response = subscribed_client.get(reverse("payments:stripe-plans"))
-
-        content = _content_region(response.content.decode())
-        assert response.status_code == 200
-        assert "<stripe-pricing-table" in content
-        assert "You already have a subscription" not in content
-
-    def test_a_signed_in_person_has_their_purchase_tied_to_them(
-        self, logged_in_client, user
+    def test_each_price_of_one_product_shows_its_own_amount_and_frequency(
+        self, client, plans_on_offer
     ):
-        response = logged_in_client.get(reverse("payments:stripe-plans"))
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
 
-        reference = Customer.client_reference(user)
-        assert response.context["client_reference_id"] == reference
-        content = _content_region(response.content.decode())
-        assert f'client-reference-id="{reference}"' in content
-        assert "customer-session-client-secret" not in content
+        card = _card(content, "price_basic_year")
+        assert "200.00 USD" in card
+        assert "every year" in card
 
-    def test_a_signed_in_person_with_no_customer_causes_no_request_to_stripe(
-        self, logged_in_client, stripe_fake
+    @pytest.mark.parametrize(
+        ("price_id", "amount", "frequency"),
+        [
+            ("price_bare_yen", "500,000 JPY", "every month"),
+            ("price_bare_dinar", "12.500 KWD", "every 3 months"),
+        ],
+    )
+    def test_an_amount_is_shown_in_its_own_currency_with_its_own_places(
+        self, client, plans_on_offer, price_id, amount, frequency
     ):
-        logged_in_client.get(reverse("payments:stripe-plans"))
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
 
-        assert stripe_fake.requests == []
+        card = _card(content, price_id)
+        assert amount in card
+        assert frequency in card
 
-    def test_a_signed_in_customer_has_the_purchase_land_on_their_stripe_customer(
-        self, logged_in_client, stripe_customer, stripe_fake
+    def test_a_product_with_no_description_or_features_shows_neither(
+        self, client, plans_on_offer
     ):
-        stripe_fake.respond(
-            "POST",
-            "/v1/customer_sessions",
-            {"id": "cuss_1", "object": "customer_session", "client_secret": "cuss_s_1"},
-        )
-        stripe_customer.user.email = "person@example.com"
-        stripe_customer.user.save()
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
 
-        response = logged_in_client.get(reverse("payments:stripe-plans"))
+        card = _card(content, "price_bare_yen")
+        assert "None" not in card
+        assert "<ul" not in card
 
-        content = _content_region(response.content.decode())
-        assert 'customer-session-client-secret="cuss_s_1"' in content
-        assert (
-            f'client-reference-id="{Customer.client_reference(stripe_customer.user)}"'
-            in content
-        )
-        assert "customer-email" not in content
-        ((method, path, params),) = stripe_fake.requests
-        assert (method, path) == ("POST", "/v1/customer_sessions")
-        assert params["customer"] == [stripe_customer.stripe_id]
+    def test_text_from_stripe_is_escaped(self, client, stripe_fake):
+        hostile = {
+            **product_payload("prod_x", "<script>alert(1)</script>"),
+            "active": True,
+            "description": "<b>bold</b>",
+            "marketing_features": [{"name": "<img src=x onerror=alert(2)>"}],
+        }
+        stripe_fake.respond_with_list("/v1/prices", [price_payload("price_x", hostile)])
 
-    def test_a_subscriber_gets_the_session_of_their_own_customer_and_nobody_elses(
-        self, subscribed_client, stripe_customer, stripe_fake
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
+
+        assert "<script>alert(1)</script>" not in content
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in content
+        assert "<b>bold</b>" not in content
+        assert "<img src=x" not in content
+
+    def test_the_page_carries_no_pricing_table_and_no_provider_script(
+        self, client, plans_on_offer
     ):
-        StripeCustomerFactory(stripe_id="cus_somebody_else")
-        stripe_fake.respond(
-            "POST",
-            "/v1/customer_sessions",
-            {"id": "cuss_1", "object": "customer_session", "client_secret": "cuss_s_1"},
-        )
+        content = client.get(reverse("payments_plans:stripe-plans")).content.decode()
 
-        subscribed_client.get(reverse("payments:stripe-plans"))
-
-        ((_, _, params),) = stripe_fake.requests
-        assert params["customer"] == [stripe_customer.stripe_id]
-
-    def test_stripe_being_unreachable_still_shows_the_table_with_the_reference(
-        self, logged_in_client, stripe_customer, stripe_fake
-    ):
-        stripe_fake.become_unreachable("POST", "/v1/customer_sessions")
-
-        response = logged_in_client.get(reverse("payments:stripe-plans"))
-
-        content = _content_region(response.content.decode())
-        assert response.status_code == 200
-        assert "<stripe-pricing-table" in content
-        assert "client-reference-id" in content
-        assert "customer-session-client-secret" not in content
-
-    def test_an_anonymous_visitor_is_given_no_way_to_buy(self, client, db, stripe_fake):
-        response = client.get(reverse("payments:stripe-plans"))
-
-        content = _content_region(response.content.decode())
-        assert response.status_code == 200
-        assert "<stripe-pricing-table" not in content
-        assert response.context["client_reference_id"] is None
-        assert stripe_fake.requests == []
-
-    def test_an_anonymous_visitor_is_told_to_sign_in_before_choosing_a_plan(
-        self, client, db
-    ):
-        plans = reverse("payments:stripe-plans")
-
-        response = client.get(plans)
-
-        sign_in = f"{reverse('account_login')}?next={plans}"
-        assert response.context["sign_in_url"] == sign_in
-        content = _content_region(response.content.decode())
-        assert f'href="{sign_in}"' in content
-
-    def test_a_signed_in_person_is_not_told_to_sign_in(self, logged_in_client):
-        response = logged_in_client.get(reverse("payments:stripe-plans"))
-
-        assert response.context["sign_in_url"] is None
-        assert reverse("account_login") not in _content_region(
-            response.content.decode()
-        )
-
-    def test_an_anonymous_visitor_can_still_not_open_the_subscription_page(
-        self, client, db
-    ):
-        response = client.get(reverse("payments:stripe-subscription"))
-
-        assert response.status_code == 302
-
-    def test_renders_with_mvp_payments_absent_from_settings_entirely(
-        self, logged_in_client, settings
-    ):
-        del settings.MVP_PAYMENTS
-
-        response = logged_in_client.get(reverse("payments:stripe-plans"))
-
-        assert response.status_code == 200
-        assert response.context["pricing_table_id"] is None
-        assert response.context["publishable_key"] is None
-
-    def test_importing_the_views_module_with_settings_unconfigured_raises_nothing(self):
-        import importlib
-
-        import mvp_payments.views as views_module
-
-        importlib.reload(views_module)
-
-    def test_states_plans_unavailable_and_emits_no_provider_element_without_a_table_id(
-        self, logged_in_client
-    ):
-        with override_settings(MVP_PAYMENTS={"STRIPE_PUBLISHABLE_KEY": "pk_test_456"}):
-            response = logged_in_client.get(reverse("payments:stripe-plans"))
-
-        content = _content_region(response.content.decode())
-        assert response.status_code == 200
         assert "stripe-pricing-table" not in content
-        assert "Plans not available" in content
+        assert "js.stripe.com" not in content
 
-    def test_states_plans_unavailable_and_emits_no_provider_element_without_a_publishable_key(
-        self, logged_in_client
+    def test_a_catalogue_that_cannot_be_read_is_stated_and_offers_no_plan(
+        self, client, stripe_fake
     ):
-        with override_settings(
-            MVP_PAYMENTS={"STRIPE_PRICING_TABLE_ID": "prctbl_test123"}
-        ):
-            response = logged_in_client.get(reverse("payments:stripe-plans"))
+        stripe_fake.become_unreachable("GET", "/v1/prices")
 
-        content = _content_region(response.content.decode())
+        response = client.get(reverse("payments_plans:stripe-plans"))
+
         assert response.status_code == 200
-        assert "stripe-pricing-table" not in content
-        assert "Plans not available" in content
-
-    def test_with_mvp_payments_absent_the_heading_renders_unchanged(
-        self, logged_in_client, settings
-    ):
-        del settings.MVP_PAYMENTS
-
-        response = logged_in_client.get(reverse("payments:stripe-plans"))
+        assert response.context["plans"]["prices"] is None
         content = response.content.decode()
+        assert "data-mvp-payments-plans-unavailable" in content
+        assert "data-mvp-payments-no-plans" not in content
+        assert 'id="price_' not in content
+
+    def test_a_missing_secret_key_is_stated_without_asking_stripe(
+        self, client, stripe_fake, settings
+    ):
+        settings.MVP_PAYMENTS = {}
+
+        response = client.get(reverse("payments_plans:stripe-plans"))
 
         assert response.status_code == 200
-        plans_label = stripe_contribution.pages[1].label
-        assert re.search(rf"<h1[^>]*>\s*{plans_label}\s*</h1>", content)
-        assert "stripe-pricing-table" not in content
-        assert "Plans not available" in _content_region(content)
+        assert response.context["plans"]["prices"] is None
+        assert stripe_fake.requests == []
+
+    def test_a_catalogue_with_nothing_on_offer_is_stated_and_offers_no_plan(
+        self, client, stripe_fake
+    ):
+        stripe_fake.respond_with_list("/v1/prices", [])
+
+        response = client.get(reverse("payments_plans:stripe-plans"))
+
+        assert response.status_code == 200
+        assert response.context["plans"]["prices"] == []
+        content = response.content.decode()
+        assert "data-mvp-payments-no-plans" in content
+        assert "data-mvp-payments-plans-unavailable" not in content
+        assert 'id="price_' not in content
+
+    def test_a_plan_the_person_holds_is_marked_as_theirs(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="active"
+        )
+
+        response = logged_in_client.get(reverse("payments_plans:stripe-plans"))
+
+        assert response.context["plans"]["held"] == ["price_basic_month"]
+
+    def test_a_second_visit_reads_the_catalogue_from_the_cache(
+        self, client, plans_on_offer
+    ):
+        client.get(reverse("payments_plans:stripe-plans"))
+        asked = len(plans_on_offer.requests)
+
+        client.get(reverse("payments_plans:stripe-plans"))
+
+        assert len(plans_on_offer.requests) == asked
+
+
+@pytest.mark.django_db
+class TestPlansWayToBuy:
+    url = "/plans/"
+
+    def page(self, client, **query):
+        return client.get(self.url, query).content.decode()
+
+    def test_a_visitor_who_is_not_signed_in_is_sent_to_sign_in_and_back_to_the_plan(
+        self, client, plans_on_offer
+    ):
+        card = _card(self.page(client), "price_basic_year")
+
+        (href,) = re.findall(r'href="([^"]*\?next=[^"]*)"', card)
+        query = parse_qs(urlsplit(html.unescape(href)).query)
+        assert query["next"] == ["/plans/?plan=price_basic_year#price_basic_year"]
+        assert "<form" not in card
+
+    def test_a_signed_in_person_gets_a_form_posting_the_price_to_the_checkout(
+        self, logged_in_client, plans_on_offer
+    ):
+        card = _card(self.page(logged_in_client), "price_basic_year")
+
+        assert 'method="post"' in card
+        assert f'action="{reverse("payments:stripe-checkout")}"' in card
+        assert 'name="price" value="price_basic_year"' in card
+        assert 'name="return_to" value="/plans/"' in card
+        assert "csrfmiddlewaretoken" in card
+
+    def test_a_plan_the_person_holds_leads_to_their_subscriptions_not_the_checkout(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="active"
+        )
+        content = self.page(logged_in_client)
+
+        held = _card(content, "price_basic_month")
+        other = _card(content, "price_basic_year")
+        assert f'href="{reverse("payments:stripe-subscription")}"' in held
+        assert "<form" not in held
+        assert "<form" in other
+
+    def test_a_plan_whose_subscription_ended_is_offered_again(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="canceled"
+        )
+
+        card = _card(self.page(logged_in_client), "price_basic_month")
+
+        assert "<form" in card
+        assert reverse("payments:stripe-subscription") not in card
+
+    def test_the_plan_picked_before_signing_in_has_its_frequency_selected(
+        self, client, plans_on_offer
+    ):
+        content = self.page(client, plan="price_basic_year")
+
+        assert "interval: 'year_1'" in content
+        year = re.search(r"<input[^>]*value=\"year_1\"[^>]*>", content).group()
+        month = re.search(r"<input[^>]*value=\"month_1\"[^>]*>", content).group()
+        assert "checked" in year
+        assert "checked" not in month
+        assert 'id="price_basic_year"' in content
+
+    @pytest.mark.parametrize("signed_in", [False, True])
+    def test_each_control_is_named_for_its_plan_and_described_by_the_off_site_note(
+        self, client, logged_in_client, plans_on_offer, signed_in
+    ):
+        content = self.page(logged_in_client if signed_in else client)
+
+        card = _card(content, "price_basic_month")
+        control = re.search(
+            r"<(?:button|a)[^>]*aria-describedby=[^>]*>.*?</(?:button|a)>", card, re.S
+        ).group()
+        assert "Basic, every month" in control
+        assert 'aria-describedby="mvp-payments-checkout-note"' in control
+        note = content[content.index('id="mvp-payments-checkout-note"') :]
+        assert "Stripe" in note.split("</p>")[0]
+
+    def test_the_control_for_a_held_plan_is_named_for_the_subscription(
+        self, logged_in_client, user, plans_on_offer
+    ):
+        StripeSubscriptionFactory(
+            customer__user=user, price_id="price_basic_month", status="active"
+        )
+
+        card = _card(self.page(logged_in_client), "price_basic_month")
+
+        assert "your Basic subscription" in card
 
 
 class TestPageViewConfiguration:
@@ -586,7 +711,7 @@ class TestSubscriptionPage:
 
         assert response.context["plan_switch_endpoint"] == endpoint
         assert f'data-endpoint="{endpoint}"' in content
-        assert f'href="{reverse("payments:stripe-plans")}"' not in content
+        assert f'href="{reverse("payments_plans:stripe-plans")}"' not in content
 
     def test_the_plan_switch_view_is_withheld_from_somebody_with_no_subscription(
         self, logged_in_client
@@ -604,8 +729,23 @@ class TestSubscriptionPage:
         response = client.get(reverse("payments:stripe-subscription"))
         content = response.content.decode()
 
-        assert f'href="{reverse("payments:stripe-plans")}"' in content
+        assert f'href="{reverse("payments_plans:stripe-plans")}"' in content
         assert "data-mvp-payments-portal-link" not in content
+
+    def test_the_plans_address_is_the_one_the_project_mounted(self, logged_in_client):
+        response = logged_in_client.get(reverse("payments:stripe-subscription"))
+
+        assert response.context["plans_url"] == reverse("payments_plans:stripe-plans")
+
+    def test_nothing_leads_to_the_plans_when_the_project_has_not_mounted_them(
+        self, logged_in_client
+    ):
+        with override_settings(ROOT_URLCONF="tests.urls_without_plans"):
+            response = logged_in_client.get(reverse("payments:stripe-subscription"))
+
+        assert response.status_code == 200
+        assert response.context["plans_url"] is None
+        assert "/plans/" not in response.content.decode()
 
     def test_the_portal_control_carries_a_usable_csrf_token(self, subscribed_client):
         response = subscribed_client.get(reverse("payments:stripe-subscription"))
@@ -803,19 +943,7 @@ class TestTemplateOverride:
 
 
 class TestPlansPageOverride:
-    def test_a_projects_own_component_renders_with_no_view_and_no_query(self):
-        result = run_probe(
-            _COMPONENT_TEMPLATE_OVERRIDE_PROBE,
-            "tests.settings_with_project_template_override",
-        )
-
-        assert result["query_count"] == 0
-        html = result["html"]
-        assert 'data-testid="the-hosting-projects-own-pricing-table"' in html
-        assert 'data-table-id="prctbl_test123"' in html
-        assert 'data-publishable-key="pk_test_456"' in html
-
-    def test_a_projects_own_page_template_receives_every_documented_context_name(self):
+    def test_a_projects_own_page_template_receives_the_plans(self):
         result = run_probe(
             _PLANS_PAGE_TEMPLATE_OVERRIDE_PROBE,
             "tests.settings_with_project_template_override",
@@ -824,6 +952,36 @@ class TestPlansPageOverride:
         assert result["status_code"] == 200
         content = result["content"]
         assert 'data-testid="the-hosting-projects-own-plans-page"' in content
-        assert '<p data-testid="pricing-table-id">prctbl_test123</p>' in content
-        assert '<p data-testid="publishable-key">pk_test_456</p>' in content
-        assert 'data-testid="the-hosting-projects-own-pricing-table"' in content
+        assert '<p data-testid="price-id">price_probe</p>' in content
+
+    def test_a_part_the_project_replaces_changes_on_every_card_and_nothing_else(self):
+        result = run_probe(
+            _PLANS_PART_OVERRIDE_PROBE,
+            "tests.settings_with_project_template_override",
+        )
+
+        content = result["content"]
+        for product in ("Probe", "Other"):
+            marker = (
+                '<p data-testid="the-hosting-projects-own-features">'
+                f"{product} has 1 features</p>"
+            )
+            assert content.count(marker) == 1
+        assert "Own feature" not in content
+        assert 'id="price_probe"' in content
+        assert 'id="price_probe_other"' in content
+        assert "20.00 USD" in content
+        assert "50.00 USD" in content
+        assert "every month" in content
+
+
+class TestPlansWithoutTheStripeApp:
+    def test_the_plans_are_unavailable_and_the_parts_render_nothing(self):
+        result = run_probe(
+            _PLANS_WITHOUT_STRIPE_APP_PROBE, "tests.settings_without_stripe_app"
+        )
+
+        assert result["prices"] is None
+        assert "<b>none</b>" in result["content"]
+        assert 'id="price_' not in result["content"]
+        assert "mvp-payments-checkout-note" not in result["content"]

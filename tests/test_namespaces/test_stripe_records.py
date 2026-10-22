@@ -133,6 +133,25 @@ class TestFrequencyDisplay:
         assert subscription_billed("").frequency_display == ""
 
 
+class TestFrequencyWords:
+    def test_a_count_of_one_is_the_singular_form(self):
+        assert CurrentSubscription.frequency_words("year", 1) == "every year"
+
+    def test_a_count_above_one_is_the_plural_form(self):
+        assert CurrentSubscription.frequency_words("month", 3) == "every 3 months"
+
+    def test_an_unrecognised_interval_is_itself_with_its_count(self):
+        assert CurrentSubscription.frequency_words("quarter", 2) == "quarter_2"
+
+    def test_no_interval_is_nothing(self):
+        assert CurrentSubscription.frequency_words("", 1) == ""
+
+    def test_a_subscription_says_the_same_as_the_helper(self):
+        assert subscription_billed("week", 2).frequency_display == (
+            CurrentSubscription.frequency_words("week", 2)
+        )
+
+
 class TestNoStatusIsNamed:
     def test_no_status_is_named_in_the_source(self):
         source = inspect.getsource(stripe_records)

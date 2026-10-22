@@ -1,206 +1,238 @@
 # The plans page
 
-The `stripe` namespace contributes a page offering every visitor the plans they can choose from.
-It arrives with the package: add `mvp_payments.stripe` to `INSTALLED_APPS`, mount this package's
-URLs once, and the page is routed and reached from the user subscriptions page. There is no view to
-write. It has no entry in the Account Center's navigation, so it is drawn with the project's own
-sidebar.
+The plans page shows every visitor the plans they can choose from. It draws them itself from the
+prices in your Stripe account, so a price you add in Stripe's dashboard appears on the page
+without a change to your project.
 
-The page is open to everyone. Every signed-in person gets the pricing table, whether or not they
-already have a subscription. A visitor who is not signed in is asked to sign in in place of the
-table, because the table's own buttons go straight to Stripe's checkout and a purchase made without
-an account would be tied to nobody.
+It is a page of its own, outside the Account Center, and it is open to everyone. A project mounts
+it with a second include, beside the single include of `mvp_payments.urls`, at the address it
+chooses. Nothing is routed until the project includes it, and nothing is routed at all unless
+`mvp_payments.stripe` is in `INSTALLED_APPS`.
 
-Unlike the user subscriptions page, this page shows nothing of the Stripe app's own records. It mounts
-the provider's own embeddable pricing table — [Stripe's pricing
-table](https://docs.stripe.com/payments/checkout/pricing-table) — and reads two settings to
-configure it. No amount, currency, billing frequency or plan name is produced anywhere by this
-package; the provider renders every price inside its own frame.
-
-## The component
-
-`<c-stripe.pricing-table>` emits the provider's `<stripe-pricing-table>` custom element.
-
-```html
-<c-stripe.pricing-table :table_id="pricing_table_id" :publishable_key="publishable_key" />
-```
-
-It declares five attributes:
-
-| Attribute | What it does |
-|---|---|
-| `table_id` | Carried into the element's `pricing-table-id` attribute. Required. |
-| `publishable_key` | Carried into the element's `publishable-key` attribute. Required — and not a secret: it identifies the account, and the provider prints it in its own copy-paste examples. |
-| `client_reference_id` | Carried into the element's `client-reference-id` attribute when there is one. Optional. |
-| `customer_session_client_secret` | Carried into the element's `customer-session-client-secret` attribute when there is one. Optional. |
-| `customer_email` | Carried into the element's `customer-email` attribute when there is an address to carry and no customer session. Optional. |
-
-The component reads no settings and imposes no sign-in requirement, so it can be placed on any
-page of your own project, whether or not this package's Account Center pages are in use.
-
-### What ties a purchase to a person
-
-Stripe's checkout is hosted by Stripe, so the package never sees it. What makes the subscription
-that results belong to a user is a reference that goes out with the pricing table and comes back
-on the completed checkout, where the Stripe app's webhook checks it
-([ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)).
-
-The plans page passes the pricing table two things for a signed-in person:
-
-- **`client-reference-id`** is `Customer.client_reference(request.user)`: the person's primary key
-  and a signature of it. The signature stops anyone embedding your public pricing table with
-  someone else's key.
-- **`customer-session-client-secret`** is passed when the person already has a Stripe customer. The
-  Stripe app creates a customer session for that customer on the server, so a second purchase
-  lands on the customer they have instead of creating another. If Stripe cannot be asked, the
-  page logs the kind of error, leaves the session out, and shows the table anyway. The reference
-  still ties the purchase to them.
-
-For a person with no Stripe customer yet, the page passes no session, and the component passes the
-address on their account, if they have one, as `customer-email`, so Stripe can prefill it. An
-address supplied as the `customer_email` attribute wins over the account's. The provider accepts a
-customer session or an email address, not both, so the component omits the address whenever a
-session is passed. Where there is no address, the attribute is omitted rather than emitted empty.
-
-```html
-<c-stripe.pricing-table :table_id="pricing_table_id"
-                        :publishable_key="publishable_key"
-                        :client_reference_id="client_reference_id"
-                        :customer_session_client_secret="customer_session_client_secret" />
-```
-
-A visitor who is not signed in is not given the table at all (see below). If you place the
-component on a page of your own for such visitors, a purchase made there is tied to nobody: the
-Stripe app's webhook finds no reference to verify and records nothing, and the package does not
-try to match the buyer by email.
-
-## The page
-
-`PlansPageView` adds five names to the template context. The first two are read from your
-settings at render time:
-
-`pricing_table_id`
-: `MVP_PAYMENTS["STRIPE_PRICING_TABLE_ID"]` — the pricing table's id, from the provider's
-  dashboard. `None` when the setting is absent.
-
-`publishable_key`
-: `MVP_PAYMENTS["STRIPE_PUBLISHABLE_KEY"]` — the account's publishable key. `None` when the
-  setting is absent.
-
-`client_reference_id`
-: The signed reference for the signed-in person. `None` for a visitor who is not signed in.
-
-`customer_session_client_secret`
-: The secret of a customer session for the signed-in person's Stripe customer. `None` when they
-  have none, when Stripe could not be asked, and for a visitor who is not signed in.
-
-`sign_in_url`
-: For a visitor who is not signed in, the project's sign-in page with `next` set to the plans
-  page, so signing in brings them back. `None` for a signed-in person.
+## Mounting
 
 ```python
-MVP_PAYMENTS = {
-    "STRIPE_PRICING_TABLE_ID": "prctbl_...",
-    "STRIPE_PUBLISHABLE_KEY": "pk_...",
-}
+urlpatterns = [
+    path("account/billing/", include("mvp_payments.urls")),
+    path("plans/", include("mvp_payments.plans_urls")),
+]
 ```
 
-The shipped page renders the component when both values are present, and a plain sentence in
-their place when either is absent. A visitor who is not signed in gets `<c-stripe.sign-in-notice>`
-in place of the component, which asks them to sign in and links to `sign_in_url`. It takes one attribute, `url`, and renders nothing without it.
+The page is then reached as `payments_plans:stripe-plans`, here at `/plans/`. The user
+subscriptions page links to it through its `plans_url` name, which is `None` while the project has
+not included `mvp_payments.plans_urls`. The page has no entry in the Account Center's navigation.
+To put it in your own navigation, name `payments_plans:stripe-plans` as the view of a menu item.
 
-Where a buyer goes after paying is set on the pricing table in the provider's dashboard. Send them
-to the user subscriptions page with `?returned=1` on the address, so the page waits for the payment to
-reach the Stripe app instead of telling them they have no subscription. See
-[Coming back from the provider](user-subscriptions-page.md#coming-back-from-the-provider).
+## What the page shows
+
+A plan is a Stripe price, shown under its product. A product with a monthly and a yearly price
+gives two plans, and the page offers both.
+
+A price is on offer when it is active, recurring, billed per unit with a fixed amount, and
+licensed rather than metered, and its product is active. A tiered or metered price has no single amount to show, so it is left out. Products come cheapest first,
+and a product's prices come shortest billing period first. Cheapest is judged on the amount in
+minor units, so it is only meaningful within one currency: with prices in more than one currency
+the amounts are compared as they stand, with no conversion.
+
+Each card shows the product's name, the price's amount in its own currency, how often it bills,
+the product's description and its marketing features. A product with no description or no
+features shows neither, and nothing stands in their place. Text that comes from Stripe is
+escaped. When the prices have more than one billing frequency, a switch above the cards chooses
+which frequency is shown, and without JavaScript every frequency is shown, each under its own
+heading.
+
+Two states stand in for the cards:
+
+- When Stripe could not be read (no secret key is set, or Stripe failed), the page says the plans
+  cannot be shown. The failure is remembered for 60 seconds, so an outage does not slow every
+  visit.
+- When Stripe holds no price on offer, the page says there are no plans to choose from.
+
+Amounts go through `mvp_payments.money.Money`, so a zero-decimal currency such as the yen shows
+`500,000 JPY` and a three-decimal one such as the Kuwaiti dinar shows `12.500 KWD`.
+
+## Buying a plan
+
+Each card ends in one control, which depends on who is looking:
+
+| Reader | Control |
+|---|---|
+| Not signed in | A link to `login_url` with `next` set to this page, `?plan=<price id>` and the card's anchor, so signing in lands on the plan they picked |
+| Signed in | A form that posts `price` and `return_to` to [`CheckoutView`](stripe-app.md), which sends them to Stripe's checkout page |
+| Holds the plan | A link to the user subscriptions page. A plan whose subscription has ended is offered again |
+
+The picked plan's billing frequency is selected when the page opens and its card is the target of
+the anchor. Every control is named for its plan, by text only a screen reader hears, and is
+described by the note under the cards that payment is taken on Stripe's checkout page. A checkout
+that cannot start returns the reader to this page with a message above it.
+
+## Where the prices come from
+
+The Stripe app reads the prices from Stripe and keeps them in your project's default cache for
+`MVP_PAYMENTS["STRIPE_CATALOGUE_TIMEOUT"]` seconds, an hour when it is not set. A visit while
+they are cached makes no request to Stripe. A price changed in Stripe's dashboard shows on the
+page when the cached list expires, or sooner when a product or price webhook arrives or
+`stripe_sync` runs. Those two clear the list from other processes, so they reach the page only
+when your default cache is shared across processes, not a local-memory or dummy one. The catalogue, the cache key and the failure handling
+are described in [the Stripe app reference](stripe-app.md#the-catalogue).
+
+## The parts
+
+The page is built from parts that each work on their own, so a project can draw the plans on a page
+of its own, with the same parts or with its own markup for some of them.
+
+`<c-stripe.plans :plans="plans" />`
+: Every plan on offer, one card per price, behind the frequency switch.
+
+`<c-stripe.plan-card :price="price" :plans="plans" />`
+: One plan: the product's name, the price, the description, the features and the way to buy it.
+  A plan the signed-in person already holds carries a badge, and a plan they picked before signing
+  in stands out.
+
+`<c-stripe.plan-price :price="price" />`
+: A price's amount and how often it bills.
+
+`<c-stripe.plan-features :product="product" />`
+: A product's marketing features as a list, or nothing when it has none.
+
+`<c-stripe.plan-choose :price="price" :plans="plans" />`
+: The way to buy one plan. A signed-in person gets a button that submits the price to the checkout
+  address. A visitor who is not signed in gets a link to sign in that brings them back to the page
+  with the plan they picked marked. A person who holds the plan gets a link to their user
+  subscriptions page. The control is described by the element with id
+  `mvp-payments-checkout-note`, which the page must carry. `<c-stripe.plans>` draws it. A page
+  that places this part itself draws it too.
+
+`<c-stripe.no-plans />` and `<c-stripe.plans-unavailable />`
+: The two states above. Neither takes anything.
+
+## The data the parts read
+
+`plans` is a dictionary. The page puts it in its template context under that name, and the tag
+below returns the same dictionary for any template.
+
+`prices`
+: The plans on offer, as the catalogue returns them: Stripe prices with `id`, `unit_amount`,
+  `currency`, `recurring` (`interval`, `interval_count`) and the product expanded under
+  `product` (`id`, `name`, `description`, `marketing_features`). An empty list when nothing is on
+  offer, and `None` when Stripe could not be read.
+
+`intervals`
+: The distinct billing frequencies among the prices, shortest first, each a dictionary with a
+  `key` such as `month_1` and a `label` for the switch.
+
+`first_interval`
+: The key of the frequency the switch starts on: that of the plan picked before signing in,
+  otherwise the shortest.
+
+`held`
+: The price ids the signed-in person currently subscribes to. Empty for a visitor.
+
+`ready`
+: The price id the visitor picked before signing in, read from `?plan=` on the address.
+
+`signed_in`
+: Whether the reader is signed in.
+
+`login_url`, `checkout_url`, `subscriptions_url`
+: The project's sign-in address, the checkout address and the user subscriptions page.
+
+`return_to`
+: The path of the page the plans are on, so signing in and a cancelled checkout come back to it.
+
+`PlanChoices.for_request(request)`, in `mvp_payments.namespaces.stripe_plans`, builds that
+dictionary. The page and the tag both call it, and a view of your own can too.
+
+## The tag and the filters
+
+Load `mvp_payments` to use them.
+
+`{% stripe_plans as plans %}`
+: Puts the same dictionary in any template whose context carries `request`, with no view of your
+  own.
+
+`price|price_money`
+: A price's amount as a `Money` in its own currency, or `None` when it has no amount.
+
+`price|price_frequency`
+: How often a price bills in words, such as "every month" or "every 3 months". An interval this
+  package does not recognise is shown as itself, such as `quarter_1`, never dropped.
+
+`price|price_interval`
+: A price's frequency key, such as `month_1`, the value the switch selects.
 
 ```html
-{% extends "mvp/account/base.html" %}
-{% block account.content %}
-  <c-mvp.page>
-    <c-mvp.page.title :title="page.title" />
-    {% if pricing_table_id and publishable_key %}
-      <c-stripe.sign-in-notice :url="sign_in_url" />
-      <c-stripe.pricing-table :table_id="pricing_table_id"
-                              :publishable_key="publishable_key"
-                              :client_reference_id="client_reference_id"
-                              :customer_session_client_secret="customer_session_client_secret" />
-    {% else %}
-      <c-stripe.plans-unavailable />
-    {% endif %}
-  </c-mvp.page>
-{% endblock account.content %}
+{% load mvp_payments %}
+{% stripe_plans as plans %}
+{% if plans.prices %}<c-stripe.plans :plans="plans" />{% endif %}
 ```
 
-The page extends `mvp/account/base.html`, which draws the project's own base layout and does not
-need a signed-in person.
+## Placing and replacing
 
-## Before it is configured
+### Placing the plans on a page of your own
 
-A project that has not yet supplied `STRIPE_PRICING_TABLE_ID`, `STRIPE_PUBLISHABLE_KEY`, or
-`MVP_PAYMENTS` at all, gets a page that says plans are not available — never an empty region
-with nothing to explain it. `<c-stripe.plans-unavailable>` renders that sentence and takes no
-props of its own.
-
-## Loading the provider's library
-
-The element renders as nothing until `https://js.stripe.com/v3/pricing-table.js` has loaded.
-Self-hosting that library is forbidden by the provider's own terms, so it has to come from the
-provider's own network — and loading it is your project's decision, not this package's. This
-package emits no `<script>` tag for it anywhere, which
-`tests.test_app.TestNoProviderScript` holds as a guarantee across every template it ships.
-
-Load it the way you already load your project's other frontend assets — a CDN tag, a bundler
-entry point, an import map, whatever your project already uses:
+Use the tag and the `<c-stripe.plans>` component in any template whose context carries `request`.
+No view of your own is needed, and nothing calls Stripe from your project:
 
 ```html
-<script defer src="https://js.stripe.com/v3/pricing-table.js"></script>
+{% load mvp_payments %}
+{% stripe_plans as plans %}
+{% if plans.prices %}
+  <section id="pricing">
+    <c-stripe.plans :plans="plans" />
+  </section>
+{% endif %}
 ```
 
-The demo project does this in `demo/templates/base.html`, inside a `{% block provider_library %}`
-labelled a demonstration convenience rather than a recommendation.
+It shows the same plans as the plans page, with the same ways to buy. A visitor who is not signed
+in goes through sign-in and comes back to the page the plans are on, with the plan they picked
+ready. A signed-in person starts checkout exactly as they do from the plans page, and a cancelled
+or failed checkout returns them to the page they started from.
 
-## When the library never arrives
+Without `mvp_payments.stripe` in `INSTALLED_APPS`, `plans.prices` is `None` and
+`<c-stripe.plans>` renders nothing, so the guard above is all a page needs to work in a project
+that has not installed the Stripe app.
 
-Loading the provider's library is your project's decision, and there is no guarantee it always
-succeeds — the project may not have loaded it at all, or a reader's browser could not reach the
-provider's origin. Either way the element renders as nothing, with no event to signal it.
+### Replacing a part everywhere
 
-The component carries a message for exactly this, rendered hidden in the same markup as the
-element rather than injected by JavaScript — the message is translatable this way, and revealing
-it needs no string in a `.js` file (`FR-010`).
-
-`mvp_payments/static/mvp_payments/stripe/pricing_table.js` is what reveals it: after your
-page's `load` event, it checks `customElements.get("stripe-pricing-table")`. Undefined means the
-library never arrived, and the hidden message is shown. Load this file the way you load the
-provider's own library — it emits no message of its own and fetches nothing:
+Supply your own copy of the part's template at `cotton/stripe/<part>.html`, earlier on the
+template search path than this package. Every card then uses it. For example, to show a product's
+features your own way, add `cotton/stripe/plan_features.html` to your application:
 
 ```html
-<script defer src="{% static 'mvp_payments/stripe/pricing_table.js' %}"></script>
+<c-vars product />
+<p>{{ product.name }} includes {{ product.marketing_features|length }} features.</p>
 ```
 
-## Replacing the component or the page
+The part receives what the package's own version receives, under the same names. For
+`plan_features` that is `product`, the Stripe product with its fields as Stripe names them. The
+parts and what each receives are listed under [The parts](#the-parts). Your own application has to
+appear before `mvp_payments` in `INSTALLED_APPS`, because Django's app-directories loader uses the
+first match it finds.
 
-Two different things can be replaced, and what each keeps differs.
+### Replacing a part on one page
 
-### Replacing the component
+Loop over `plans.prices` yourself and compose the parts you keep, writing your own markup for the
+one you replace. Every other placement is unaffected:
 
-Supply your own `cotton/stripe/pricing_table.html`, earlier on the template search path than
-this package, and every `<c-stripe.pricing-table>` tag renders it instead — no view and no
-query of your own is needed. The shipped page still calls the component with the same
-attributes, so this changes only what the tag itself renders; the page's URL, its
-context and its unavailable-state branch all stay the shipped page's.
+```html
+{% for price in plans.prices %}
+  <article>
+    <h3>{{ price.product.name }}</h3>
+    <c-stripe.plan-price :price="price" />
+    <p>{{ price.product.description }}</p>
+    <c-stripe.plan-choose :price="price" :plans="plans" />
+  </article>
+{% endfor %}
+<p id="mvp-payments-checkout-note">Payment is taken on Stripe's secure checkout page.</p>
+```
 
-### Replacing the page
+Keep the note. Each Choose control names it with `aria-describedby`, so a reader using a screen
+reader hears that payment leaves the site. Without an element carrying that id the control has
+no description.
 
-Supply your own template at `mvp_payments/stripe/plans.html`, earlier on the template search
-path than this package, and it is used instead — no view, no context processor and no query of
-your own is needed, and every name listed above is already in the context. This replaces
-everything the template decides, including whether to use the component at all; only the view
-underneath it — the URL, the page being open to everyone, and the names it puts in the context —
-stays the shipped page's.
+To replace the whole page, supply your own template at `mvp_payments/stripe/plans.html`. It
+receives `plans` in its context and replaces everything the template decides. The view underneath
+it, the address and the page being open to everyone, stay the shipped page's.
 
-Django's app-directories template loader checks `INSTALLED_APPS` in order and uses the first
-match it finds, so your own application needs to appear before `mvp_payments` in that list for its
-copy to be found first — the same mechanism that requires this package itself to precede `mvp`
-(see the README's Install step).
+Your own application has to appear before `mvp_payments` in `INSTALLED_APPS` here too.

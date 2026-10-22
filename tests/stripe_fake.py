@@ -59,6 +59,47 @@ class FakeStripe(stripe.HTTPClient):
             {"object": "list", "data": objects, "has_more": False, "url": path},
         )
 
+    def respond_with_pages(self, path: str, pages: list[list[dict]]) -> None:
+        """Answer consecutive GETs on ``path`` with consecutive pages of a list.
+
+        Every page but the last says more follow, so the SDK's auto-paging asks again. A
+        request past the last page repeats it.
+
+        Args:
+            path: The list endpoint's path, such as ``"/v1/prices"``.
+            pages: The Stripe objects each page holds, in order.
+        """
+        self._routes[("GET", path)] = [
+            (
+                json.dumps(
+                    {
+                        "object": "list",
+                        "data": objects,
+                        "has_more": number < len(pages) - 1,
+                        "url": path,
+                    }
+                ),
+                200,
+            )
+            for number, objects in enumerate(pages)
+        ]
+
+    def respond_in_turn(
+        self, method: str, path: str, responses: list[tuple[dict, int]]
+    ) -> None:
+        """Answer consecutive requests to ``method`` on ``path`` with consecutive responses.
+
+        A request past the last response repeats it.
+
+        Args:
+            method: The HTTP method.
+            path: The path without host or query string.
+            responses: The JSON object and HTTP status to return, in order.
+        """
+        self._routes[(method, path)] = [
+            (json.dumps(body), status) for body, status in responses
+        ]
+
     def respond_with_error(
         self, method: str, path: str, code: str, status: int = 404
     ) -> None:
@@ -152,6 +193,11 @@ class FakeStripe(stripe.HTTPClient):
             raise AssertionError(f"no canned Stripe response for {method} {parts.path}")
         if isinstance(canned, Exception):
             raise canned
+        if isinstance(canned, list):
+            asked = sum(
+                1 for m, p, _ in self.requests if (m, p) == (method, parts.path)
+            )
+            canned = canned[min(asked, len(canned)) - 1]
         body, status = canned
         return body, status, {}
 
@@ -200,6 +246,49 @@ def product_payload(stripe_id: str, name: str) -> dict:
         The object as Stripe returns it.
     """
     return {"id": stripe_id, "object": "product", "name": name}
+
+
+def price_payload(
+    stripe_id: str,
+    product: dict,
+    *,
+    unit_amount: int | None = 2000,
+    currency: str = "usd",
+    interval: str = "month",
+    interval_count: int = 1,
+    billing_scheme: str = "per_unit",
+    usage_type: str = "licensed",
+) -> dict:
+    """Build a Stripe recurring price with its product expanded.
+
+    Args:
+        stripe_id: The price's identifier.
+        product: The expanded product object.
+        unit_amount: The amount in the minor unit, or ``None`` for a tiered price.
+        currency: The lower-case currency code.
+        interval: The billing interval unit.
+        interval_count: How many intervals between bills.
+        billing_scheme: ``per_unit`` or ``tiered``.
+        usage_type: ``licensed`` or ``metered``.
+
+    Returns:
+        The object as Stripe returns it from the price list.
+    """
+    return {
+        "id": stripe_id,
+        "object": "price",
+        "active": True,
+        "type": "recurring",
+        "billing_scheme": billing_scheme,
+        "unit_amount": unit_amount,
+        "currency": currency,
+        "recurring": {
+            "interval": interval,
+            "interval_count": interval_count,
+            "usage_type": usage_type,
+        },
+        "product": product,
+    }
 
 
 def subscription_payload(

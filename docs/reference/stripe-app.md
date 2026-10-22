@@ -21,14 +21,9 @@ Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there
 : The signing secret of the webhook endpoint Stripe sends events to, `whsec_...`. Required. Every
   webhook is verified against it.
 
-Two more settings are read by the plans page, not by the app, and are described in
-[the plans page](plans-page.md#the-page):
-
-`STRIPE_PRICING_TABLE_ID`
-: The id of your pricing table, `prctbl_...`, from Stripe's dashboard.
-
-`STRIPE_PUBLISHABLE_KEY`
-: Your publishable key, `pk_...`. Not a secret.
+`STRIPE_CATALOGUE_TIMEOUT`
+: How many seconds the list of plans read from Stripe is kept in your project's cache. Optional,
+  `3600` (an hour) when not set. See [The catalogue](#the-catalogue).
 
 Neither secret value appears in a template, a log message or an error page. The app also never reads or
 writes the Stripe SDK's own module-level configuration, so another integration in the same
@@ -94,6 +89,43 @@ subscribes twice has two rows. Newest billing period first is the default order.
 
 Records change only from what Stripe reports. Nothing here is edited by hand.
 
+## The catalogue
+
+`mvp_payments.stripe.catalogue.Catalogue` reads the plans a project offers from Stripe and keeps
+them in Django's default cache, under the key `mvp_payments_stripe:catalogue`. Nothing is stored in
+the database. Your project's default cache decides how widely the list is shared: a local-memory
+cache keeps one copy per process, and a shared cache (Redis, Memcached, a database or file cache)
+keeps one copy for all of them.
+
+The list is forgotten when `STRIPE_CATALOGUE_TIMEOUT` seconds have passed, when a verified
+`product.*` or `price.*` webhook arrives, and when `stripe_sync` runs. The webhook and the command
+run in their own processes, so they reach the page only through a cache the processes share. With a
+local-memory or dummy cache, a change in Stripe's dashboard shows when each process's copy expires.
+
+A price is on offer when it is active, recurring, billed per unit with a fixed amount, licensed
+(not metered), and its product is active. Tiered, metered, one-off and no-amount prices are left
+out, because a page cannot show one honest amount for them.
+
+`Catalogue.prices()`
+: Every price on offer, as plain dictionaries with the product expanded. Products come cheapest
+  first within a currency (amounts are compared as they stand, with no conversion), with each product's prices together and the shortest billing period first. Reads every
+  page from Stripe on a cache miss. Returns `None`, and caches nothing, when
+  `STRIPE_SECRET_KEY` is not set. Returns `None` when Stripe cannot be asked, and remembers that
+  for 60 seconds under the same key, so an outage does not hold a worker on every request. The
+  log names the kind of error and never Stripe's message.
+
+`Catalogue.price(price_id)`
+: The price on offer with that id, or `None`.
+
+`Catalogue.clear()`
+: Forgets the list and any remembered failure, so the next read asks Stripe.
+
+`Catalogue.timeout()`
+: The seconds a list is kept, from `STRIPE_CATALOGUE_TIMEOUT`.
+
+The interface reaches the catalogue through `apps.get_app_config("mvp_payments_stripe").catalogue`
+and never imports it.
+
 ## Asking whether a user is subscribed
 
 `SubscriptionQuerySet` adds two methods to `Subscription.objects`, and to any queryset made from it.
@@ -133,7 +165,7 @@ all of the customer's subscriptions, whatever their status, and writes what come
 
 - A subscription Stripe returns is created, or updated in place by its Stripe identifier. Running
   `sync()` again with nothing changed at Stripe leaves the same rows.
-- A subscription's price and billing period come from its first item. Stripe's pricing table
+- A subscription's price and billing period come from its first item. Stripe's checkout
   creates subscriptions with one item, and subscriptions with several are not supported.
 - A subscription of the customer's that Stripe no longer returns is deleted.
 - A subscription Stripe reports as ended stays, with the status Stripe gave it.
@@ -168,6 +200,9 @@ secret or a changed address. Running it again straight away changes nothing.
 : The `USERNAME_FIELD` value of one user, such as their username. Only that user's customer is
   synced. A name no user has, or a user with no recorded customer, stops the command with an
   error before Stripe is asked anything.
+
+The command also clears the cached catalogue before it syncs, so the plans page reads Stripe
+again, whether or not any customer is recorded.
 
 A customer Stripe no longer has is removed with its subscriptions, as `sync()` does. Each customer
 is synced in a transaction of its own. When Stripe cannot be asked, the command stops with an
@@ -206,11 +241,11 @@ returns `None` for someone who is not signed in or not saved, so it is safe to c
 A purchase is tied to a user only through the identity of the signed-in user, carried through
 Stripe's checkout. Email addresses are never matched.
 
-`Customer.client_reference(user)` returns the value a page passes to Stripe's pricing table as
-its `client-reference-id`. It is the user's primary key and a signature of it, joined by `_`, so
+`Customer.client_reference(user)` returns the value every checkout the app starts carries as its
+`client_reference_id`. It is the user's primary key and a signature of it, joined by `_`, so
 it holds only letters, digits and underscores. The signature is made with your `SECRET_KEY` and a
-salt of this app's own. Embedding the public pricing table on another page with someone else's
-primary key therefore ties nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
+salt of this app's own. A checkout started with someone else's primary key therefore ties
+nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
 records why.
 
 ```python
@@ -233,7 +268,7 @@ the old one.
 
 ## Handoffs to Stripe's own pages
 
-Three views send a signed-in person to Stripe and bring them back. They are mounted with the
+Four views send a signed-in person to Stripe and bring them back. They are mounted with the
 package's URLs under the same prefix as the webhook, and they exist only while `mvp_payments.stripe`
 is in `INSTALLED_APPS`. Each needs a signed-in person and sends anyone else to the project's sign-in
 page. The user subscriptions page links to them, and a project can too.
@@ -243,6 +278,7 @@ page. The user subscriptions page links to them, and a project can too.
 | `BillingPortalView` | `payments:stripe-billing-portal` | `stripe/billing-portal/` | POST |
 | `PlanSwitchView` | `payments:stripe-plan-switch` | `stripe/plan-switch/` | POST |
 | `BillingReturnView` | `payments:stripe-billing-return` | `stripe/return/` | GET |
+| `CheckoutView` | `payments:stripe-checkout` | `stripe/checkout/` | POST |
 
 `BillingPortalView` and `PlanSwitchView` answer with `{"url": ...}`, the address of a Stripe
 billing-portal session for the person's customer, which a script follows. They answer:
@@ -253,15 +289,44 @@ billing-portal session for the person's customer, which a script follows. They a
 | 409 | The person has no Stripe customer, or, for the plan switch, nothing subscribed. Stripe is not asked and nothing is created |
 | 502 | Stripe could not be asked or refused. The log names the kind of error and never Stripe's message |
 
+`CheckoutView` is where a plan's Choose button posts, with the `price` chosen and a `return_to`
+path on your site. It needs a signed-in person, answers only a POST, and keeps Django's CSRF check.
+It checks the price against the catalogue, then calls `Customer.start_checkout()` and redirects the
+reader to Stripe's checkout page. The session is a subscription for the price, with promotion codes
+allowed and the person's signed reference attached. A person who already has a Stripe customer buys
+as that customer; anyone else gives Stripe their email address, if the account has one. If Stripe no
+longer has the customer, the app deletes its local copy and asks for the session again without it.
+
+Whatever stops the checkout, the reader goes back to `return_to` with a message that
+`mvp/base.html` shows above the page. A `return_to` that is not a path on your site is replaced by
+the plans page.
+
+| Case | What the reader gets |
+|---|---|
+| The catalogue cannot be read | An error message |
+| The price is not on offer, or was not sent | A warning that the plan is no longer on offer |
+| The person already holds the price | A redirect to the user subscriptions page |
+| Stripe refuses or cannot be reached | An error message. The log names the kind of error and never Stripe's message |
+
+`Customer.start_checkout(user, price_id, success_url, cancel_url)` returns the address of the
+Checkout Session and raises `stripe.StripeError` when Stripe cannot be asked. The view builds
+`success_url` from the return view's absolute address with `?session_id={CHECKOUT_SESSION_ID}`
+appended, so Stripe fills the session's id in.
+
 The portal view opens the portal's home. The plan-switch view opens the plan-change screen for the
 person's subscription, or the portal's home when they have several. Both send the reader back
 through the return view.
 
 `BillingReturnView` runs `Customer.sync()` for the signed-in person's customer, so a change made in
 the portal is already recorded, and redirects to the user subscriptions page with `?returned=1`. It
-redirects whatever happens: a person with no customer is not sent to Stripe, and a Stripe failure
-is logged and leaves the page to wait for the webhook. A development server, which Stripe cannot
-reach, relies on this to show a change at once.
+redirects whatever happens: a person with no customer and no `session_id` is not sent to Stripe,
+and a Stripe failure is logged and leaves the page to wait for the webhook. A development server,
+which Stripe cannot reach, relies on this to show a change at once.
+
+Checkout sends the reader back here with `?session_id=` set to the Checkout Session. When the
+person has no customer yet, the view ties the purchase to them with `Customer.from_checkout()`
+before it syncs, so a first purchase shows at once and does not wait for the webhook. A session
+made for another person ties nothing to this one.
 
 The views are classes with hooks `is_offered(customer)` and `get_flow_data(customer, return_url)`,
 so a project can subclass them.
@@ -275,11 +340,6 @@ On the customer, three methods do the Stripe calls:
 `Customer.plan_change_flow(return_url)`
 : The `flow_data` that opens the plan-change screen for the customer's one subscribed
   subscription, or `None` when they have none or more than one.
-
-`Customer.pricing_table_client_secret()`
-: Creates a customer session for the pricing table and returns its client secret, which the plans
-  page passes as `customer-session-client-secret`. Returns `None`, and logs the kind of error,
-  when Stripe cannot be asked: the table works without it.
 
 ## The webhook
 
@@ -303,6 +363,11 @@ newer one about the same subscription therefore leaves the same records.
 | `customer.deleted` | The one whose `stripe_id` is the deleted customer |
 | Any other type | None |
 
+A verified `product.*` or `price.*` event also calls `Catalogue.clear()`, so the next read of the
+catalogue asks Stripe and the plans page shows the change. An event that does not verify clears
+nothing. The clearing reaches the plans page only when the cache is shared across processes; see
+[the catalogue](#the-catalogue).
+
 | Answer | When |
 |---|---|
 | 400 | The signature is missing, wrong or expired, or the body is not a Stripe event |
@@ -324,7 +389,8 @@ undescribed.
 : Turns a Stripe timestamp in epoch seconds into an aware UTC datetime, or `None` when Stripe
   reported none.
 
-`mvp_payments.stripe.views.BillingPortalView`, `PlanSwitchView` and `BillingReturnView`
+`mvp_payments.stripe.views.BillingPortalView`, `PlanSwitchView`, `BillingReturnView` and
+`CheckoutView`
 : The handoff views described above.
 
 `mvp_payments.stripe.views.customer_for(event)`

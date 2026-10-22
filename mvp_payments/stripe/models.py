@@ -18,6 +18,7 @@ from stripe.params.billing_portal import (
     SessionCreateParams,
     SessionCreateParamsFlowData,
 )
+from stripe.params.checkout import SessionCreateParams as CheckoutSessionCreateParams
 
 from .client import client
 
@@ -79,18 +80,18 @@ class Customer(models.Model):
 
     @classmethod
     def client_reference(cls, user) -> str:
-        """Build the reference a page hands to Stripe's pricing table for a signed-in user.
+        """Build the reference a page hands to Stripe's checkout for a signed-in user.
 
         Stripe carries it through checkout and returns it on the completed session, which is
-        how a purchase is tied to a user. It is signed, because the public pricing table could
-        otherwise be embedded on another page with someone else's primary key.
+        how a purchase is tied to a user. It is signed, so that a session created with
+        someone else's primary key ties nothing to them.
 
         Args:
             user: The signed-in user.
 
         Returns:
             The user's primary key and an HMAC of it, joined by ``_``. It holds only letters,
-            digits and underscores, which is all the pricing table accepts.
+            digits and underscores, which is all Stripe accepts.
         """
         return f"{user.pk}_{cls.signature(user.pk)}"
 
@@ -158,6 +159,78 @@ class Customer(models.Model):
             return None
         return cls.objects.create(user=user, stripe_id=stripe_id)
 
+    @classmethod
+    def start_checkout(
+        cls, user, price_id: str, success_url: str, cancel_url: str
+    ) -> str:
+        """Ask Stripe for a subscription Checkout Session for a signed-in user.
+
+        The session carries the user's signed reference (ADR 0011), so the purchase can be
+        tied back to them. A user who already has a customer buys as that customer; anyone
+        else gives Stripe their email address, if they have one, and Stripe makes the customer.
+        A customer Stripe no longer has is synced away and the session asked for again without it.
+
+        Args:
+            user: The signed-in user.
+            price_id: Stripe's identifier for the price to subscribe to.
+            success_url: Where Stripe sends the reader after paying. Stripe replaces
+                ``{CHECKOUT_SESSION_ID}`` in it.
+            cancel_url: Where Stripe sends the reader if they leave.
+
+        Returns:
+            The address of Stripe's hosted checkout page, which the reader is sent to.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused.
+        """
+        customer = cls.for_user(user)
+        params: CheckoutSessionCreateParams = {
+            "mode": "subscription",
+            "line_items": [{"price": price_id, "quantity": 1}],
+            "client_reference_id": cls.client_reference(user),
+            "allow_promotion_codes": True,
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+        }
+        if customer is not None:
+            params["customer"] = customer.stripe_id
+        elif user.email:
+            params["customer_email"] = user.email
+        try:
+            return cls.checkout_url(params)
+        except stripe.InvalidRequestError as error:
+            gone = error.code == "resource_missing" and error.param in (
+                None,
+                "customer",
+            )
+            if customer is None or not gone:
+                raise
+            customer.sync()
+            if cls.objects.filter(pk=customer.pk).exists():
+                raise
+        del params["customer"]
+        if user.email:
+            params["customer_email"] = user.email
+        return cls.checkout_url(params)
+
+    @staticmethod
+    def checkout_url(params: CheckoutSessionCreateParams) -> str:
+        """Create a Checkout Session and give the address of its hosted page.
+
+        Args:
+            params: What to ask Stripe for.
+
+        Returns:
+            The address of Stripe's checkout page.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, refused, or sent no address.
+        """
+        url = client().v1.checkout.sessions.create(params=params).url
+        if url is None:
+            raise stripe.APIError("Stripe sent no checkout address.")
+        return url
+
     def portal_url(
         self, return_url: str, flow_data: SessionCreateParamsFlowData | None = None
     ) -> str:
@@ -204,34 +277,6 @@ class Customer(models.Model):
             },
         }
 
-    def pricing_table_client_secret(self) -> str | None:
-        """Ask Stripe for the secret that lets the pricing table act for this customer.
-
-        Passed to the pricing table, it makes a purchase land on this customer rather than
-        creating a second one. The table works without it, so a Stripe failure is logged and
-        the page carries on.
-
-        Returns:
-            The single-use client secret of a customer session, or ``None`` when Stripe
-            could not be asked or refused.
-        """
-        try:
-            session = client().v1.customer_sessions.create(
-                params={
-                    "customer": self.stripe_id,
-                    "components": {"pricing_table": {"enabled": True}},
-                }
-            )
-        except stripe.StripeError as error:
-            # Not logger.exception: Stripe's message can echo part of the secret key.
-            logger.error(  # noqa: TRY400
-                "Could not create a pricing table session for customer %s: %s.",
-                self.stripe_id,
-                type(error).__name__,
-            )
-            return None
-        return session.client_secret
-
     def sync(self) -> None:
         """Bring this customer's subscriptions into step with what Stripe holds now.
 
@@ -241,7 +286,7 @@ class Customer(models.Model):
         deleted. Rows Stripe did not return are deleted.
 
         Each subscription's price and billing period are read from its first item. Stripe's
-        pricing table creates subscriptions with exactly one item, and a project that builds
+        checkout creates subscriptions with exactly one item, and a project that builds
         subscriptions with several has outgrown this app (ADR 0010).
 
         Raises:

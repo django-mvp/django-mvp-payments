@@ -1,0 +1,111 @@
+{
+ "story": "FIX-1",
+ "repo": "django-mvp/django-mvp-payments",
+ "issue": 63,
+ "worktree": "/home/sam/projects/worktrees/dmp-005-plans",
+ "tasks": [
+  "T012",
+  "T013",
+  "T014",
+  "T015",
+  "T016",
+  "T017",
+  "T018"
+ ],
+ "required_skills": [
+  {
+   "name": "craft-tdd",
+   "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-tdd/SKILL.md",
+   "receipt": "craft-tdd/2026-09-28/b19e4d07"
+  },
+  {
+   "name": "craft-increments",
+   "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-increments/SKILL.md",
+   "receipt": "craft-increments/2026-10-15/1ffa47c3"
+  }
+ ],
+ "context": {
+  "why": "Feature 005-plans-drawn-here. Every story is built and accepted. The code review found no blocking issue; this dispatch makes its seven small fixes, T012-T018 in specs/005-plans-drawn-here/tasks.md under 'Review fixes' (authoritative, each names the review finding and what the repaired test must fail under). The finding details with file:line evidence are in specs/005-plans-drawn-here/S6-findings.json (CR-001..CR-007). Commit one task per commit, task id in the subject. For each repaired test, run the mutation its task names, watch it go red, restore, and put the command in the task's evidence. Protocol: /home/sam/.openclaw/workspaces/forge/skills/forge-feature-request/references/implement-story.md. Write your completion report JSON (schema /home/sam/.openclaw/workspaces/forge/engineering-org/kit/schemas/completion-report.schema.json) to specs/005-plans-drawn-here/FIX-1-report.json.",
+  "spec_sections": [
+   "US2 scenarios 1-13, US3 scenarios 1-6, US4 scenarios 1-7 and FR-007..FR-013, FR-015, FR-018..FR-022 in specs/005-plans-drawn-here/spec.md. Article XI: Stripe calls live only in mvp_payments/stripe/; the interface never imports it (tests/test_app.py). Article V: CheckoutView behind LoginRequiredMixin, POST only, CSRF kept, return_to checked with url_has_allowed_host_and_scheme, Stripe errors logged by error type only (never the message; it can echo the key). Article VIII: strings translatable. ADR 0011: client_reference_id from Customer.client_reference(user). No leading-underscore names. Line length 88."
+  ],
+  "plan_sections": [
+   "plan.md Design",
+   "plan.md Constitution check"
+  ],
+  "prior_decisions": [
+   "D2 failure notices are Django messages; mvp/base.html already renders them above the page, so add no template notice",
+   "D3 replacing a part for one placement is composition: a project loop over plans.prices composing the parts it keeps; no slot or attribute mechanism",
+   "D6 design review applied: success_url built absolute then '?session_id={CHECKOUT_SESSION_ID}' appended (braces unencoded, asserted literally); check Catalogue.prices() is None before 'no longer on offer'; resource_missing customer synced away and session recreated without it; webhook/sync clearing documented as needing a shared cache; no test of the card outline"
+  ],
+  "glossary_terms": [
+   "Plan",
+   "Plans page",
+   "Checkout",
+   "Provider app",
+   "Webhook",
+   "Billing portal"
+  ],
+  "environment": "uv project; 'uv run ...' from /home/sam/projects/worktrees/dmp-005-plans (git worktree on branch 005-plans-drawn-here, identity bound to the bot). Narrow test scope per task. Lint gate 'uv run pre-commit run --all-files' (git add new files first). Full verify ONCE at report: '/home/sam/.openclaw/workspaces/forge/engineering-org/kit/forge verify --repo . --base origin/main'. Stripe SDK 16 source: .venv/lib/python3.13/site-packages/stripe (client().v1.checkout.sessions.create params; InvalidRequestError.code). Tests use tests/stripe_fake.py FakeStripe via the stripe_fake fixture; never mock the app's own code; assert on FakeStripe.requests for what Stripe was asked. For the demo (T010): CACHES file-based in a git-ignored directory under the repo (add it to .gitignore); the offline branch of seed_demo primes the catalogue cache key with a Stripe-shaped demo catalogue (Basic/Pro/Team, monthly and yearly; Basic monthly id 'price_demo_regular' to match the seeded subscription). The dev server on port 8020 serves this worktree; ignore it.",
+  "verified_base": {
+   "commit": "018fe276d89e70f6e864cf41915768fc863948b0",
+   "verified_at": "2026-10-22T17:15:00Z",
+   "steps": [
+    "conformance",
+    "docs",
+    "lint",
+    "typecheck",
+    "test",
+    "build"
+   ],
+   "note": "kit/forge verify green at b58c4b4 (498 passed); since then only specs/ changed. Expect 498 passed."
+  },
+  "acceptance": [
+   {
+    "task": "T012",
+    "given_when_then": "As written for T012 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   },
+   {
+    "task": "T013",
+    "given_when_then": "As written for T013 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   },
+   {
+    "task": "T014",
+    "given_when_then": "As written for T014 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   },
+   {
+    "task": "T015",
+    "given_when_then": "As written for T015 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   },
+   {
+    "task": "T016",
+    "given_when_then": "As written for T016 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   },
+   {
+    "task": "T017",
+    "given_when_then": "As written for T017 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   },
+   {
+    "task": "T018",
+    "given_when_then": "As written for T018 in tasks.md 'Review fixes', with the named mutation turning the repaired test red"
+   }
+  ]
+ },
+ "budgets": {
+  "attempts_per_task": 5
+ },
+ "rituals": [
+  "Read this brief fully",
+  "Read tasks T012-T018 and S6-findings.json",
+  "git log --oneline -5",
+  "Confirm HEAD equals context.verified_base.commit"
+ ],
+ "prohibitions": [
+  "Do not change the approved templates' markup, layout or copy except to wire real behaviour",
+  "No models, no migrations, no new dependency",
+  "Do not push, merge, or use gh; do not edit feature-state.json except via kit/forge ledger-task",
+  "Do not write decisions.md entries in the orchestrator's voice or claim checks you did not run",
+  "Do not edit CONSTITUTION.md, ADRs, CONTEXT.md or specs/003-*: the orchestrator writes those at convergence",
+  "Modify only the pre-existing tests T012 and T018 name; no other existing test"
+ ]
+}

@@ -51,21 +51,35 @@ class CurrentSubscription:
         "year": lambda n: ngettext("every year", "every %(count)d years", n),
     }
 
-    @property
-    def frequency_display(self) -> str:
-        """The billing frequency in words, or the raw value where it is not recognised.
+    @staticmethod
+    def frequency_words(interval: str, interval_count: int) -> str:
+        """Say how often something bills, in words.
 
         An unrecognised interval is shown as itself rather than dropped (Article XV).
+
+        Args:
+            interval: The billing interval's unit, as Stripe reports it.
+            interval_count: How many intervals pass between bills.
+
+        Returns:
+            Words such as "every month" or "every 3 months" under the current language, the
+            raw ``interval_count`` form for an interval not recognised, and an empty string
+            for no interval.
         """
-        if not self.interval:
+        if not interval:
             return ""
-        translator = self.FREQUENCY_TRANSLATORS.get(self.interval)
+        translator = CurrentSubscription.FREQUENCY_TRANSLATORS.get(interval)
         if translator is None:
-            return f"{self.interval}_{self.interval_count}"
-        text = translator(self.interval_count)
-        if self.interval_count == 1:
+            return f"{interval}_{interval_count}"
+        text = translator(interval_count)
+        if interval_count == 1:
             return text
-        return text % {"count": self.interval_count}
+        return text % {"count": interval_count}
+
+    @property
+    def frequency_display(self) -> str:
+        """The billing frequency in words, or the raw value where it is not recognised."""
+        return self.frequency_words(self.interval, self.interval_count)
 
 
 class SubscriptionReader:

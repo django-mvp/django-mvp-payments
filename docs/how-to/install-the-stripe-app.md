@@ -47,6 +47,28 @@ user subscribed?" without calling Stripe.
    python manage.py check
    ```
 
+To offer the plans page, add its URLs at the address you choose, beside the single include of
+`mvp_payments.urls`:
+
+```python
+urlpatterns = [
+    ...,
+    path("account/billing/", include("mvp_payments.urls")),
+    path("plans/", include("mvp_payments.plans_urls")),
+]
+```
+
+The page is then at `/plans/`, reachable as `payments_plans:stripe-plans`, and open to every
+visitor. It draws every recurring price in your Stripe account, so there is nothing else to
+configure. See [the plans page](../reference/plans-page.md).
+
+The list of plans is kept in your default cache for an hour, or for
+`MVP_PAYMENTS["STRIPE_CATALOGUE_TIMEOUT"]` seconds. A change in Stripe's dashboard shows when it
+expires. To show it sooner, [send Stripe's product and price events to the
+webhook](point-stripe-at-the-webhook.md) and run `stripe_sync`, which both clear the list. They
+run in other processes than the page, so they reach it only when your default cache is shared
+across processes (Redis, Memcached, a database or a file cache), not a local-memory or dummy one.
+
 The app is on while it is in `INSTALLED_APPS` and off when it is not. A project that installs the
 extra but leaves the app out gets no tables, no pages and no URLs from it.
 

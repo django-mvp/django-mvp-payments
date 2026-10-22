@@ -1,0 +1,459 @@
+{
+  "feature": "005-plans-drawn-here",
+  "branch": "005-plans-drawn-here",
+  "repo": "django-mvp/django-mvp-payments",
+  "state": "PR_READY",
+  "state_history": [
+    {
+      "state": "PLAN",
+      "at": "2026-10-22T16:30:02Z",
+      "note": "sketch approved; build started in the session that specified the feature; branch level with main"
+    },
+    {
+      "state": "DESIGN_REVIEW",
+      "at": "2026-10-22T16:30:25Z",
+      "note": "plan, research and tasks committed; design reviewer dispatched"
+    },
+    {
+      "state": "IMPLEMENT",
+      "at": "2026-10-22T16:39:20Z",
+      "note": "design review applied; plan gate open; US1 dispatched"
+    },
+    {
+      "state": "CONVERGE",
+      "at": "2026-10-22T17:15:48Z",
+      "note": "every story accepted; entering convergence"
+    },
+    {
+      "state": "REVIEW",
+      "at": "2026-10-22T17:17:00Z",
+      "note": "convergence complete: ADRs 0013 and 0014 graduated, S5 green"
+    },
+    {
+      "state": "PR_READY",
+      "at": "2026-10-22T17:32:12Z",
+      "note": "review recorded; walkthrough laid out"
+    }
+  ],
+  "gates": {
+    "spec": {
+      "approved_by": "Sam",
+      "at": "2026-10-22T16:04:33Z",
+      "self_resolved": [
+        "approved in session at 291ee8f013f97010ec5e3a8910900e8206b6ea09"
+      ]
+    },
+    "sketch": {
+      "approved_by": "Sam",
+      "at": "2026-10-22T16:26:42Z",
+      "self_resolved": [
+        "public page at /plans/, not under the account address \u2014 moved out of the Account Center to /plans/",
+        "design and inspect in the browser before reporting \u2014 browser pass at desktop and phone widths, light and dark, layout defects fixed"
+      ]
+    },
+    "plan": {
+      "approved_by": "open",
+      "at": "2026-10-22T16:39:19Z"
+    },
+    "merge": {
+      "approved_by": null,
+      "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-10-22T16:39:19Z",
+      "self_resolved": [
+        "0 critical, 0 high; 6 medium and 5 low applied to plan.md and tasks.md (decisions.md D6)"
+      ]
+    },
+    "review": {
+      "approved_by": "review-panel",
+      "at": "2026-10-22T17:29:59Z",
+      "self_resolved": [
+        "CR-001..CR-007 (3 medium, 4 low) remedied by T012-T018, each repaired test checked against its mutation; editorial notes fixed"
+      ]
+    },
+    "walkthrough": {
+      "approved_by": null,
+      "at": "2026-10-22T17:32:11Z",
+      "self_resolved": []
+    }
+  },
+  "stories": [
+    {
+      "id": "US1",
+      "priority": "P1",
+      "issue": 63,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T001",
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_catalogue.py::TestCatalogue",
+              "tests/test_stripe/test_catalogue.py::TestStripeConfigCatalogue"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_catalogue.py"
+            ],
+            "code": [
+              "mvp_payments/stripe/catalogue.py:1"
+            ]
+          }
+        },
+        {
+          "id": "T002",
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_stripe_plans.py",
+              "tests/test_namespaces/test_stripe_records.py::TestFrequencyWords",
+              "tests/test_templatetags/test_mvp_payments.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_namespaces tests/test_templatetags tests/test_app.py tests/test_stripe"
+            ],
+            "code": [
+              "mvp_payments/namespaces/stripe_plans.py:1",
+              "mvp_payments/namespaces/stripe_records.py:55"
+            ]
+          }
+        },
+        {
+          "id": "T003",
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansPage",
+              "tests/test_views.py::TestSubscriptionPage",
+              "tests/test_views.py::TestPlansPageOverride",
+              "tests/test_urls.py",
+              "tests/test_plans_urls.py",
+              "tests/test_contributions.py",
+              "tests/test_namespaces/test_stripe.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py tests/test_urls.py tests/test_plans_urls.py tests/test_contributions.py tests/test_namespaces tests/test_components/test_stripe.py::TestPlansUnavailable tests/test_app.py"
+            ],
+            "code": [
+              "mvp_payments/views.py:150",
+              "mvp_payments/plans_urls.py:1"
+            ]
+          }
+        },
+        {
+          "id": "T004",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py",
+              "tests/test_components/test_stripe.py",
+              "tests/test_app.py::TestNoProviderScript"
+            ],
+            "commands": [
+              "uv run pytest tests/test_demo.py tests/test_components tests/test_stripe/test_models.py tests/test_views.py tests/test_app.py"
+            ],
+            "code": [
+              "docs/reference/plans-page.md:1",
+              "docs/how-to/install-the-stripe-app.md:1"
+            ]
+          }
+        },
+        {
+          "id": "T012",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansPage::test_a_catalogue_that_cannot_be_read_is_stated_and_offers_no_plan,tests/test_views.py::TestPlansPage::test_a_catalogue_with_nothing_on_offer_is_stated_and_offers_no_plan"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py -k 'cannot_be_read or nothing_on_offer' (green); mutation: swap the two components in plans.html, same command, 2 failed; restored"
+            ],
+            "code": [
+              "mvp_payments/templates/mvp_payments/stripe/plans.html:4"
+            ]
+          }
+        },
+        {
+          "id": "T013",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_stripe_plans.py::TestPlanChoices::test_the_switch_is_ordered_by_the_catalogues_own_billing_lengths"
+            ],
+            "commands": [
+              "uv run pytest tests/test_namespaces/test_stripe_plans.py tests/test_app.py (31 passed); mutation: intervals given a local copy of the table instead of the catalogue's, 1 failed; restored"
+            ],
+            "code": [
+              "mvp_payments/namespaces/stripe_plans.py:80"
+            ]
+          }
+        },
+        {
+          "id": "T014",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "uv run pre-commit run --all-files (all passed); documentation and docstring change, no behaviour, no test"
+            ],
+            "code": [
+              "docs/reference/plans-page.md:32",
+              "mvp_payments/stripe/catalogue.py:45"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US2",
+      "priority": "P1",
+      "issue": 64,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T005",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_views.py::TestCheckout"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe -q"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:161"
+            ]
+          }
+        },
+        {
+          "id": "T006",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_views.py::TestBillingReturn"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_views.py -q"
+            ],
+            "code": [
+              "mvp_payments/stripe/views.py:192"
+            ]
+          }
+        },
+        {
+          "id": "T007",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansWayToBuy"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py -k TestPlansWayToBuy -q"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/stripe/plan_choose.html:1"
+            ]
+          }
+        },
+        {
+          "id": "T015",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py::TestCustomerStartCheckout::test_a_missing_price_is_raised_without_asking_stripe_for_the_customer"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_models.py (107 passed); mutation: drop the param condition, 1 failed; restored"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:201"
+            ]
+          }
+        },
+        {
+          "id": "T016",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "commands": [
+              "uv run pre-commit run --all-files (all passed); documentation change, no behaviour, no test"
+            ],
+            "code": [
+              "docs/reference/user-subscriptions-page.md:222"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US3",
+      "priority": "P2",
+      "issue": 65,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T008",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_management/test_commands/test_stripe_sync.py::TestStripeSyncClearsTheCatalogue"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe -q"
+            ],
+            "code": [
+              "mvp_payments/stripe/management/commands/stripe_sync.py:46"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "US4",
+      "priority": "P2",
+      "issue": 66,
+      "worktree": null,
+      "status": "done",
+      "replans": 0,
+      "tasks": [
+        {
+          "id": "T009",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansWithoutTheStripeApp"
+            ],
+            "commands": [
+              "uv run pytest tests/test_templatetags tests/test_views.py tests/test_namespaces tests/test_components -q"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/stripe/plans.html:1"
+            ]
+          }
+        },
+        {
+          "id": "T010",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py::TestSeedDemoAgainstTheSandbox"
+            ],
+            "commands": [
+              "uv run pytest tests/test_demo.py -q"
+            ],
+            "code": [
+              "demo/settings.py:62"
+            ]
+          }
+        },
+        {
+          "id": "T011",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_stripe.py::TestStripeContribution"
+            ],
+            "commands": [
+              "uv run pytest tests/test_contributions.py tests/test_namespaces tests/test_views.py -q"
+            ],
+            "code": [
+              "mvp_payments/contributions.py:25"
+            ]
+          }
+        },
+        {
+          "id": "T017",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_templatetags/test_mvp_payments.py::TestStripePlansPlacement::test_a_project_loop_carries_the_note_the_choose_control_is_described_by"
+            ],
+            "commands": [
+              "uv run pytest tests/test_templatetags/test_mvp_payments.py (17 passed); mutation: delete the note paragraph from the loop in the test, 1 failed; restored"
+            ],
+            "code": [
+              "docs/reference/plans-page.md:223"
+            ]
+          }
+        },
+        {
+          "id": "T018",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansPageOverride::test_a_part_the_project_replaces_changes_on_every_card_and_nothing_else"
+            ],
+            "commands": [
+              "uv run pytest tests/test_views.py -k TestPlansPageOverride (2 passed); mutation: override template renders only for one product, 1 failed; restored"
+            ],
+            "code": [
+              "tests/test_views.py:960"
+            ]
+          }
+        },
+        {
+          "id": "T019",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_demo.py"
+            ],
+            "code": [
+              "demo/management/commands/seed_demo.py:287"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "budgets": {
+    "converge_cycles": {
+      "used": 1,
+      "max": 2
+    },
+    "review_cycles": {
+      "used": 1,
+      "max": 1
+    },
+    "tokens": {
+      "used": 29.09,
+      "max": 120
+    },
+    "design_review_cycles": {
+      "used": 1,
+      "max": 1
+    }
+  },
+  "pr": {
+    "number": 62,
+    "draft": false
+  }
+}

@@ -3,7 +3,7 @@
 {# @prop url:text | description:"Where the plans page is mounted." #}
 {# @prop subscribed:boolean | default:False | description:"Whether the reader is on a plan already." #}
 {# @prop switch_endpoint:text | description:"The project's plan-change endpoint. Without it a subscriber is offered nothing." #}
-{# A subscriber never gets the plans page, whose pricing table would sell them a second subscription (ADR 0008). #}
+{# A subscriber is offered the plan switch rather than the plans page, which would start a second subscription (ADR 0008). #}
 {# The control carries portal-link's data attributes so billing_portal.js binds it, and reads csrf_token from context for the same reason. #}
 <c-vars url subscribed=False switch_endpoint />
 {% if subscribed %}

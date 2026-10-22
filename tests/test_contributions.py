@@ -46,20 +46,6 @@ def _make_contribution(app_label="mvp_payments.stripe", namespace="fixture-names
     )
 
 
-class TestPage:
-    def test_a_page_requires_a_signed_in_visitor_unless_it_says_otherwise(self):
-        page = Page(slug="a", label="A", icon="a", template_name="a.html")
-
-        assert page.login_required is True
-
-    def test_the_stripe_namespace_opens_only_its_plans_page_to_everyone(self):
-        open_pages = [
-            page.slug for page in stripe_contribution.pages if not page.login_required
-        ]
-
-        assert open_pages == ["plans"]
-
-
 class TestContribution:
     def test_reports_available_when_its_backend_is_installed(self):
         assert (
@@ -98,12 +84,12 @@ class TestContribution:
             "register-count-fixture-two",
         ]
 
-    def test_a_page_kept_out_of_the_navigation_is_routed_but_not_listed(
+    def test_every_page_of_a_contribution_is_listed_and_routed(
         self, account_center_menu
     ):
         contribution = Contribution(
             backend_app_name="mvp_payments.stripe",
-            namespace="unnavigated-fixture",
+            namespace="listed-fixture",
             pages=(
                 Page(
                     slug="one",
@@ -115,8 +101,7 @@ class TestContribution:
                     slug="two",
                     label="Two",
                     icon="overview",
-                    template_name="mvp_payments/stripe/plans.html",
-                    in_navigation=False,
+                    template_name="mvp_payments/stripe/subscription.html",
                 ),
             ),
             card_template="mvp_payments/card.html",
@@ -124,14 +109,17 @@ class TestContribution:
         )
 
         assert {pattern.name for pattern in contribution.url_patterns()} == {
-            "unnavigated-fixture-one",
-            "unnavigated-fixture-two",
+            "listed-fixture-one",
+            "listed-fixture-two",
         }
 
         contribution.register()
 
         group = account_center_menu.children[-1]
-        assert [child.name for child in group.children] == ["unnavigated-fixture-one"]
+        assert [child.name for child in group.children] == [
+            "listed-fixture-one",
+            "listed-fixture-two",
+        ]
 
     def test_asking_for_a_page_that_does_not_exist_says_which_one(self):
         contribution = _make_contribution(namespace="page-url-fixture")
@@ -140,9 +128,7 @@ class TestContribution:
             contribution.page_url("three")
 
     def test_the_shipped_namespace_offers_one_entry_under_one_group(self):
-        navigated = [page for page in stripe_contribution.pages if page.in_navigation]
-
-        assert [page.slug for page in navigated] == ["subscription"]
+        assert [page.slug for page in stripe_contribution.pages] == ["subscription"]
 
 
 class TestPageView:
@@ -229,13 +215,11 @@ class TestRepeatedRegistration:
         assert len(regions) == 1
         for region in regions:
             for page in stripe_contribution.pages:
-                # A navigated page renders once per region; one kept out of
-                # the navigation renders in neither, however often the
+                # A page renders once per region, however often the
                 # contribution registered.
-                expected = 1 if page.in_navigation else 0
                 assert (
                     region.count(f'href="{reverse(f"payments:stripe-{page.slug}")}"')
-                    == expected
+                    == 1
                 )
 
 
@@ -295,7 +279,6 @@ response = client.get(reverse("account-center"))
 reverses = {}
 for name in (
     "payments:stripe-subscription",
-    "payments:stripe-plans",
     "payments:second-namespace-overview",
 ):
     try:
@@ -330,10 +313,7 @@ class TestNamespaceIndependence:
         assert card_href in alone["content"]
         assert card_href in alongside["content"]
 
-        for name in (
-            "payments:stripe-subscription",
-            "payments:stripe-plans",
-        ):
+        for name in ("payments:stripe-subscription",):
             assert alongside["reverses"][name] == alone["reverses"][name]
 
     def test_neither_namespaces_pages_resolve_to_the_others(self) -> None:

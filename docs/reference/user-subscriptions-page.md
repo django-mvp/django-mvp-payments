@@ -44,8 +44,10 @@ disagree with the rest of your application on the day the app's line moved. See
   [Switching plans](#switching-plans).
 
 `plans_url`
-: Where the plans page is mounted. The plans page is not in the Account Center's navigation, so
-  this page carries the way to it, for a person with no subscription to choose one.
+: Where the plans page is mounted, the reverse of `payments_plans:stripe-plans`. `None` when the
+  project has not included `mvp_payments.plans_urls`, in which case the page offers no way to it.
+  The plans page is outside the Account Center, so this page carries the way to it, for a person
+  with no subscription to choose one.
 
 `provider_return`
 : Set when the reader has just paid and nothing current shows yet: the page was reached with
@@ -219,9 +221,11 @@ Stripe sends a person back to your site separately from telling the Stripe app w
 so the page they land on can be reached before the app has heard. Somebody who has just paid could
 be told they have no subscription.
 
-So have the provider's checkout send them back to the user subscriptions page with `?returned=1` on the
-address. In the provider's dashboard, set the pricing table to redirect to your website after
-payment, at that address.
+A checkout started from the plans page already does this. Its success address is
+`payments:stripe-billing-return`, which sends the buyer on to the user subscriptions page with
+`?returned=1` on the address, and there is nothing to set. Only a checkout your project builds
+itself needs the instruction: where a buyer lands after paying is the success address of that
+checkout, so point it at that return view, or at the user subscriptions page with `?returned=1`.
 
 On that visit, with nothing current showing yet, the page says the payment is being confirmed
 instead of saying there is no subscription, and polls for it with htmx, which django-mvp already

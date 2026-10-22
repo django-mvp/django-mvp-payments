@@ -1,0 +1,13 @@
+{# @description A product's marketing features, as a list, or nothing when it has none. #}
+{# @prop product:text | description:"A Stripe product: marketing_features is read." | required #}
+<c-vars product />
+{% if product.marketing_features %}
+  <ul class="flex flex-col gap-2">
+    {% for feature in product.marketing_features %}
+      <li class="flex items-start gap-2">
+        <c-icon name="check" class="text-success mt-1" aria-hidden="true" />
+        <span>{{ feature.name }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

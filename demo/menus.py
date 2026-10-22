@@ -17,5 +17,10 @@ AppMenu.extend(
             view_name="home",
             extra_context={"label": "Home", "icon": "home"},
         ),
+        MenuItem(
+            name="plans",
+            view_name="payments_plans:stripe-plans",
+            extra_context={"label": "Plans", "icon": "plan"},
+        ),
     ]
 )

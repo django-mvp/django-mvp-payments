@@ -53,8 +53,8 @@ migrations, and a raw invocation reports findings in paths the gate does not cov
 ## Component layout
 
 Components live at `mvp_payments/templates/cotton/<backend>/<component>.html`. Cotton maps a tag's
-first segment onto that directory and hyphens onto underscores, so `<c-stripe.pricing-table>`
-resolves to `cotton/stripe/pricing_table.html`.
+first segment onto that directory and hyphens onto underscores, so `<c-stripe.plan-card>`
+resolves to `cotton/stripe/plan_card.html`.
 
 The directory is named for the **backend**, not for this package — unlike most packages in this
 organisation, which namespace by package name. That is deliberate: the namespace is how a template

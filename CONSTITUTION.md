@@ -116,9 +116,11 @@ The package has two kinds of part, and the rules differ between them.
   migration. Installing it alone changes nothing about a project's schema.
 - **A page has whatever view it needs.** A page the package ships may have a view, a URLconf and
   a menu registration, built on django-mvp's view classes, which is where the page layout, the
-  heading and the list behaviour already live. A view may read the records an installed provider
-  app keeps and put them in a template's context. It may not hold state of its own, compute what a
-  person is charged, or reach a provider.
+  heading and the list behaviour already live. A view or a template tag may read the records an
+  installed provider app keeps, and ask it for the provider's catalogue, and put them in a
+  template's context. The provider app answers from the project's cache and reads the provider
+  only when the cache is empty. An interface view may not hold state of its own, compute what a
+  person is charged, or reach a provider itself.
 - **No forms, no admin, no serializers, no provider SDK.** Nothing in the interface accepts a
   submission, exposes a record for editing, defines a wire format or imports a provider's library.
   `tests/test_app.py` asserts this, because the rule is worth more as a failing test than as a
@@ -126,6 +128,10 @@ The package has two kinds of part, and the rules differ between them.
 
 **A provider app mirrors the provider, and decides nothing.**
 
+- **The catalogue is cached, never stored.** A provider app may keep the provider's catalogue of
+  products and prices in the project's cache, exactly as the provider reported it, so a page can
+  show what is on offer. It never copies the catalogue into the database. A verified webhook about
+  a product or a price clears it, and it also expires on its own.
 - **The provider is the source of truth.** A provider app keeps the smallest local copy that lets
   a page show a person where they stand and lets the host project ask whether someone is
   subscribed: who the provider's customer is, and that customer's subscription with its status,
@@ -138,10 +144,11 @@ The package has two kinds of part, and the rules differ between them.
   in the request is read, with the provider's own SDK. A verified event is then a reason to fetch
   the current state from the provider, rather than the state itself, so events that arrive late,
   twice or out of order leave the same record behind. An unverified request changes nothing.
-- **Everything that changes what a person pays happens on the provider's hosted pages.** Choosing
-  a plan, switching, cancelling and updating payment details are done in the provider's checkout,
-  pricing table and portal. A provider app creates the sessions that send a reader there and
-  records what comes back. It never builds a checkout, plan-change or cancellation screen of its
+- **Everything that changes what a person pays happens on the provider's hosted pages.** The
+  plans on offer are drawn by this package, and a person picks one there. Paying for it,
+  switching, cancelling and updating payment details are done in the provider's checkout and
+  portal. A provider app creates the sessions that send a signed-in reader there, and records
+  what comes back. It never builds a checkout, plan-change or cancellation screen of its
   own.
 - **No payment logic.** What a subscription costs, when a trial ends, what a proration comes to
   and whether a card is about to expire are the provider's to decide, and the package only shows
@@ -181,9 +188,8 @@ third-party origin on a reader's behalf. Stripe forbids self-hosting `stripe.js`
 must come from their CDN, but choosing to load it, and how, belongs to the host project. A project
 installing this package gains no external origin it did not already have.
 
-A component that wraps a provider's embed emits the provider's mount point, such as a
-`<stripe-pricing-table>` element and the attributes it needs, and the host project loads the
-script that brings the element to life.
+A component that wraps a provider's embed emits only the provider's mount point and the attributes
+it needs, and the host project loads the script that brings the element to life.
 
 Where a component needs logic of its own, it ships as a small static file in this repository, with
 no build step and no bundler. Components state which global or module they require and fail
@@ -214,7 +220,9 @@ card on its overview, with no further code in the project.
 One step is not automatic and cannot be made so: Django has no mechanism for an installed app to
 add routes to a project's root URLconf, so a project includes this package's URLs once, the same
 way it already includes django-mvp's Account Center. That include also carries a provider app's
-own endpoints, its webhook among them. A change that tries to route around this, by import-time
+own endpoints, its webhook among them. A public page that belongs outside the Account Center,
+such as the plans page, has a URLconf of its own, which a project includes at the address it
+chooses, as a second line. A change that tries to route around this, by import-time
 patching of a project's URLconf or anything else that mounts a URL a project did not ask for, is
 refused.
 
@@ -321,4 +329,4 @@ first. Do not cite it as an enforced standard until it runs in CI.
 
 ---
 
-**Version**: 3.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-10-20
+**Version**: 3.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-10-22

@@ -1,6 +1,7 @@
 """Shared fixtures for the test suite."""
 
 import pytest
+from django.core.cache import cache
 from django.test import Client
 from django.urls import reverse
 
@@ -11,6 +12,14 @@ from tests.factories import (
     UserFactory,
 )
 from tests.stripe_fake import FakeStripe
+
+
+@pytest.fixture(autouse=True)
+def empty_cache():
+    """Start and finish every test with nothing cached, so one test cannot feed another."""
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture

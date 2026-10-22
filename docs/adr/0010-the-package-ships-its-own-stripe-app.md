@@ -12,8 +12,9 @@ supported backend, and its namespace is replaced by `stripe`.
 The app keeps the least it can: who each user's Stripe customer is, and that customer's
 subscription with its status, price and period. It learns about changes from Stripe's webhooks
 and from Stripe directly when a reader comes back from a hosted page. Products and prices are not
-copied, because the plans page uses Stripe's own pricing table. Choosing, switching and cancelling
-a plan, and updating payment details, stay on Stripe's hosted pages, as they were under ADR 0009.
+copied: the plans page reads them from Stripe and keeps them in the project's cache
+([ADR 0013](0013-the-plans-are-drawn-from-a-cached-catalogue.md)). Paying for a plan, switching,
+cancelling and updating payment details stay on Stripe's hosted pages, as they were under ADR 0009.
 
 ## Why
 

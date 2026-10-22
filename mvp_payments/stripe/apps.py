@@ -12,6 +12,17 @@ class StripeConfig(AppConfig):
     label = "mvp_payments_stripe"
     verbose_name = _("Stripe")
 
+    @property
+    def catalogue(self):
+        """The plans on offer, which the interface reaches without importing this app.
+
+        Returns:
+            The ``Catalogue`` class.
+        """
+        from .catalogue import Catalogue
+
+        return Catalogue
+
     def ready(self) -> None:
         """Register the system checks."""
         from . import checks  # noqa: F401
