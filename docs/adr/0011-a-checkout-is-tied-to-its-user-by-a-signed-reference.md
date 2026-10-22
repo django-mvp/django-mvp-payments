@@ -7,20 +7,20 @@
 The Stripe app ties a completed checkout to a user only through the checkout's
 `client_reference_id`, and only when that reference verifies. The reference is built by
 `Customer.client_reference(user)`: the user's primary key and an HMAC-SHA256 of it under the
-project's `SECRET_KEY` and the app's own salt, joined by an underscore. Any page that starts a
-checkout for a signed-in user, the plans page included, passes that value as the pricing table's
-`client-reference-id`. Email addresses are never used to match a purchase to a user.
+project's `SECRET_KEY` and the app's own salt, joined by an underscore. Every checkout the app starts
+for a signed-in user, from the plans page included, carries that value as the Checkout Session's
+`client_reference_id`. Email addresses are never used to match a purchase to a user.
 
 ## Why
 
 - **Email matching loses purchases.** The first backend (ADR 0009) matched on email address, so a
   person who typed a different address at checkout paid for a subscription that was attached to
   nobody.
-- **A bare id can be forged.** A pricing table's id and publishable key are public by design. If
-  the reference were the user's primary key alone, anyone could embed the table on a page of
-  their own, put someone else's id in it, and tie their purchase, and their card details in the
+- **A bare id can be forged.** If the reference were the user's primary key alone, anyone able
+  to start a checkout outside this app, with an embed or a payment link, could put someone else's
+  id in it, and tie their purchase, and their card details in the
   billing portal, to that person's account.
-- **The pricing table limits the characters.** It accepts only letters, digits, dashes and
+- **Stripe limits the characters.** Its embeds accept only letters, digits, dashes and
   underscores, which rules out `django.core.signing`, whose separator is a colon. An HMAC in hex
   with an underscore separator fits.
 

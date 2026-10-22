@@ -32,7 +32,7 @@ namespace changes nothing about an existing one.
 A demo project that runs the package the way a real project would, so every page can be looked at
 and clicked through while it is being built. It signs in with fixed demo accounts, seeds the data
 each page needs, and, given a Stripe sandbox's keys in `demo/.env`, reaches the real provider:
-real customers and subscriptions, the real pricing table, the real portal. Without that file it
+real customers and subscriptions, the real catalogue and checkout, the real portal. Without that file it
 still runs, on obviously fake values, which is what a fresh clone and CI see.
 
 ### R2 — The first backend: the package's own Stripe app
@@ -56,8 +56,8 @@ Anything that changes what they pay is handed to Stripe's own hosted pages.
 **And a subscriber can:**
 
 - see every plan they hold, what it costs, how often they pay and the current billing period
-- read the plans on offer, signed in or not, through Stripe's pricing table, and have a purchase
-  made while signed in tied to them
+- read the plans on offer, signed in or not, and buy one once signed in, with the purchase tied
+  to them
 - switch plans, cancel, or update their payment details, through Stripe's customer portal
 - come back from Stripe and see what they just did, not the state from before it
 

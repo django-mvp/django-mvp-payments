@@ -78,7 +78,7 @@ the Stripe contribution and is routed by `mvp_payments/plans_urls.py`, which a p
 the address it chooses. Article XIII's single include becomes two for a project that offers the
 plans page.
 
-**ADR:** pending convergence.
+**ADR:** docs/adr/0014-the-plans-page-has-an-address-of-its-own.md
 
 ## D2 — Notices on return use Django's messages
 
@@ -126,3 +126,12 @@ the Article XI amendments named (plan, documentation); the catalogue-unavailable
 helper (T002); the tag without the Stripe app (T009).
 
 **ADR:** none — review record.
+
+## D7 — The plans come from a cached catalogue, bought through a checkout the app starts
+
+The Stripe app reads the catalogue from Stripe and keeps it in the project's cache, cleared by
+verified product and price webhooks and by `stripe_sync`, with an expiry. Checkout is started by a
+sign-in-only view of the app. This replaces the pricing table and the rule that kept plans from
+visitors who are not signed in, and amends Article XI.
+
+**ADR:** docs/adr/0013-the-plans-are-drawn-from-a-cached-catalogue.md

@@ -146,7 +146,7 @@
       "priority": "P1",
       "issue": 64,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -204,7 +204,7 @@
       "priority": "P2",
       "issue": 65,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -230,7 +230,7 @@
       "priority": "P2",
       "issue": 66,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -294,7 +294,7 @@
       "max": 1
     },
     "tokens": {
-      "used": 20.23,
+      "used": 29.09,
       "max": 120
     },
     "design_review_cycles": {

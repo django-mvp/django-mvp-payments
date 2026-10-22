@@ -1,7 +1,6 @@
 # ADR 0012 — The plans page is open to everyone
 
-**Status:** accepted. Replaces the rule in [ADR 0008](0008-a-subscriber-switches-plans-in-the-providers-portal.md)
-that kept the pricing table from a current subscriber.
+**Status:** superseded by [ADR 0013](0013-the-plans-are-drawn-from-a-cached-catalogue.md)
 
 ## Decision
 
