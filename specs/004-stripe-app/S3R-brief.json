@@ -1,0 +1,41 @@
+{
+  "stage": "S3R",
+  "role": "design_reviewer",
+  "repo": "django-mvp/django-mvp-payments",
+  "feature": "004-stripe-app",
+  "worktree": "/home/sam/projects/worktrees/dmp-fs004",
+  "required_skills": [
+    {
+      "name": "craft-review",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-review/SKILL.md",
+      "receipt": "craft-review/2026-10-15/6b8372b4"
+    },
+    {
+      "name": "craft-security",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-security/SKILL.md",
+      "receipt": "craft-security/2026-08-04/ea3d6742"
+    },
+    {
+      "name": "craft-simplify",
+      "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-simplify/SKILL.md",
+      "receipt": "craft-simplify/2026-08-04/69038ce1"
+    }
+  ],
+  "protocol": "/home/sam/.openclaw/workspaces/forge/skills/forge-feature-request/references/design-review.md",
+  "inputs": [
+    "specs/004-stripe-app/spec.md",
+    "specs/004-stripe-app/decisions.md",
+    "specs/004-stripe-app/planning-notes.md",
+    "specs/004-stripe-app/plan.md",
+    "specs/004-stripe-app/research.md",
+    "specs/004-stripe-app/tasks.md",
+    "CONSTITUTION.md",
+    "CONTEXT.md",
+    "docs/contributing/standards/django.md",
+    "docs/contributing/standards/testing.md",
+    "docs/adr/0010-the-package-ships-its-own-stripe-app.md"
+  ],
+  "resolved_sdk": "/home/sam/projects/worktrees/fs004-scratch/sdk/x/stripe (stripe 16.0.0, unpacked wheel; the worktree venv still resolves stripe 7 until T001)",
+  "output": "specs/004-stripe-app/S3R-findings.json",
+  "schema": "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/schemas/review-findings.schema.json"
+}

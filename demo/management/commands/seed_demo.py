@@ -103,22 +103,45 @@ class Command(BaseCommand):
         other_user.save()
 
         price_id = self.cheapest_monthly_price()
+        sandbox_customers = {}
         for username, trial_days in SANDBOX_SUBSCRIBERS:
             user = user_model.objects.get(username=username)
             stripe_user = self._stripe_user(stripe_user_model, user, None)
             self.ensure_sandbox_subscription(
                 stripe_user.customer_id, price_id, trial_days
             )
+            sandbox_customers[user] = stripe_user.customer_id
 
         subscription_model.objects.filter(
             subscription_id__startswith="sub_demo_"
         ).delete()
+        if apps.is_installed("mvp_payments.stripe"):
+            self.record_in_the_stripe_app(sandbox_customers)
         with contextlib.redirect_stdout(io.StringIO()):
             stripe_api_update_products_prices()
             stripe_api_update_subscriptions(
                 status="all", ignore_new_user_creation_errors=True
             )
         self.stdout.write("pulled sandbox products, prices and subscriptions")
+
+    def record_in_the_stripe_app(self, sandbox_customers):
+        """Tie each sandbox customer to its demo account in the Stripe app, then sync it.
+
+        A real project ties a customer to a user when the user's own checkout completes. The
+        demo's subscriptions are created here rather than through a checkout, so the tie is made
+        here too, with the customer identifier Stripe gave the account. Everything else is read
+        from Stripe by the app's own ``sync()``.
+
+        Args:
+            sandbox_customers: Each demo account and its sandbox customer identifier.
+        """
+        customer_model = apps.get_model("mvp_payments_stripe", "Customer")
+        for user, stripe_id in sandbox_customers.items():
+            customer, _ = customer_model.objects.update_or_create(
+                user=user, defaults={"stripe_id": stripe_id}
+            )
+            customer.sync()
+        self.stdout.write("recorded the sandbox subscriptions in the Stripe app")
 
     def cheapest_monthly_price(self):
         """Find the sandbox's cheapest active monthly price, so every run picks the same one.

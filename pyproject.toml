@@ -30,6 +30,11 @@ classifiers = [
     "Topic :: Office/Business :: Financial",
 ]
 
+[project.optional-dependencies]
+# What `mvp_payments.stripe` needs, and nothing else: Stripe's own SDK, for
+# signature checks and API calls. Imported only under mvp_payments/stripe/.
+stripe-lite = ["stripe>=16,<17"]
+
 [project.urls]
 Homepage = "https://github.com/django-mvp/django-mvp-payments"
 Repository = "https://github.com/django-mvp/django-mvp-payments"
@@ -52,6 +57,9 @@ include = ["/mvp_payments", "/README.md", "/LICENSE"]
 # which backend it runs. That is also what keeps the UI layer alive when a
 # backend is replaced.
 #
+# The one thing installable beside the package is a provider's own SDK, for the
+# provider app that talks to it, and only through that app's extra.
+#
 # django-cotton is deliberately absent for a different reason: django-mvp pins
 # it exactly, a second constraint here could only ever fight that one, and this
 # package has no say in which version a project runs.
@@ -67,11 +75,11 @@ dev = [
     # development dependency is inherited by nobody. The demo needs the real
     # backend because what it demonstrates is a real backend's pages arriving.
     "drf-stripe-subscription>=1.2.2,<2",
-    # `stripe` is held below 8 because drf_stripe/serializers.py imports
-    # `stripe.error.StripeError`, removed at version 8, so mounting the backend's
-    # URL configuration raises without the bound. The backend's own metadata
-    # declares no upper bound on anything, so nothing else needs pinning.
-    "stripe<8",
+    # The Stripe app's own SDK, through its extra. drf-stripe-subscription's
+    # metadata bounds nothing, so it runs on this version; only its URL
+    # configuration imports the removed `stripe.error`, and the demo no longer
+    # mounts that.
+    "django-mvp-payments[stripe-lite]",
 ]
 
 [tool.uv.sources]
@@ -139,7 +147,6 @@ warn_return_any = "True"
 warn_unused_ignores = "True"
 show_error_codes = "True"
 exclude = ["docs/", "migrations/", "tests/settings.py"]
-mypy_path = "mvp_payments/"
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]

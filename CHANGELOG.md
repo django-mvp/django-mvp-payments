@@ -56,6 +56,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they have no subscription. The page's subscription region polls for itself with htmx every three
   seconds until the subscription appears, up to five times, then says to reload later. New:
   `<c-drf-stripe.provider-return>` and the page's `provider_return` context name.
+- `mvp_payments.stripe`, an app that keeps each user's Stripe customer and subscriptions in your
+  database. Add it to `INSTALLED_APPS` and install the `stripe-lite` extra (`stripe>=16,<17`). It
+  verifies Stripe's webhooks, then fetches the current state from Stripe, against Stripe API
+  version `2026-09-30.endive`, whatever your account's default is. It needs
+  `MVP_PAYMENTS["STRIPE_SECRET_KEY"]` and `MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]`, and a system
+  check names whichever is missing without printing a value. Your views ask
+  `Subscription.objects.for_user(user).subscribed()`. `python manage.py stripe_sync` re-syncs
+  every recorded customer, or one with `--user`, after webhooks were missed. Its admin pages are
+  read-only for everyone, a superuser included. The demo documents forwarding a sandbox's
+  webhooks to it with `stripe listen`.
 
 ### Changed
 

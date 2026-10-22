@@ -81,3 +81,26 @@ class SubscriptionItemFactory(factory.django.DjangoModelFactory):
     subscription = factory.SubFactory(SubscriptionFactory)
     price = factory.SubFactory(PriceFactory)
     quantity = 1
+
+
+class StripeCustomerFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "mvp_payments_stripe.Customer"
+
+    user = factory.SubFactory(UserFactory)
+    stripe_id = factory.Sequence(lambda n: f"cus_app_{n}")
+
+
+class StripeSubscriptionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "mvp_payments_stripe.Subscription"
+
+    customer = factory.SubFactory(StripeCustomerFactory)
+    stripe_id = factory.Sequence(lambda n: f"sub_app_{n}")
+    status = "active"
+    price_id = factory.Sequence(lambda n: f"price_app_{n}")
+    product_name = "Pro"
+    amount = 2000
+    currency = "usd"
+    interval = "month"
+    interval_count = 1

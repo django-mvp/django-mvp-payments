@@ -84,6 +84,31 @@ section of the Account Center's navigation and its own card to the Account Cente
 backend you have not installed contributes nothing. There is no settings block, no flag to turn on
 and no registry to populate — what is in `INSTALLED_APPS` decides what exists.
 
+### The Stripe app
+
+To keep each user's Stripe subscription in your database, install the extra and add the app:
+
+```bash
+pip install "django-mvp-payments[stripe-lite]"
+```
+
+```python
+INSTALLED_APPS = [
+    ...,
+    "mvp_payments",
+    "mvp_payments.stripe",
+    "mvp",
+]
+```
+
+Then set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `MVP_PAYMENTS` and run
+`python manage.py migrate`.
+[How to install the Stripe app](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/how-to/install-the-stripe-app.md)
+has the steps, [how to point Stripe at the webhook](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/how-to/point-stripe-at-the-webhook.md)
+the rest of the setup, and the
+[Stripe app reference](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/stripe-app.md)
+the settings, the records and the webhook.
+
 ## Namespaces
 
 Components are grouped by the backend they speak to, and the namespace is that backend's name:
@@ -192,8 +217,22 @@ Sign in as `regular.user`, `staff.user` or `super.user`, password `password`. Ou
 pages run on fake Stripe values, so the billing portal and the pricing table say they could not be
 reached. To see them working, copy `demo/.env.example` to `demo/.env` and fill it in from your own
 Stripe sandbox. That file is gitignored. Then run `seed_demo` again so the demo accounts get real
-sandbox customers and subscriptions. The file lists the one portal setting "Switch plans" needs
+sandbox customers and subscriptions, recorded by the Stripe app as well, where `super.user` can
+look at them in the admin at `/admin/`. The file lists the one portal setting "Switch plans" needs
 from your sandbox.
+
+To have the demo record subscriptions made in the sandbox, forward Stripe's webhooks to it with the
+[Stripe CLI](https://docs.stripe.com/stripe-cli) in a second terminal:
+
+```bash
+stripe listen --forward-to localhost:8020/account/billing/stripe/webhook/ \
+  --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.deleted
+```
+
+It prints a `whsec_...` signing secret. Put it in `demo/.env` as `STRIPE_TEST_WEBHOOK_SECRET` and
+restart the demo. Subscribing, switching plans and cancelling in the sandbox then show up in the
+demo's records. The demo starts without the command
+running, and `python manage.py stripe_sync` brings the records up to date after a gap.
 
 ## Contributing
 

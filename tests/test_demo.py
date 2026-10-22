@@ -8,7 +8,9 @@ the sidebar. None of that raises, so none of it shows up anywhere except in a
 browser.
 """
 
+import importlib.util
 import re
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -18,7 +20,11 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.urls import reverse
 
+from mvp_payments.stripe.models import Customer as StripeCustomer
 from tests.factories import StripeUserFactory, SubscriptionFactory, UserFactory
+from tests.stripe_fake import customer_payload
+
+SANDBOX_SUBSCRIBER_NAMES = ("regular.user", "staff.user", "other.subscriber")
 
 
 class TestHomePage:
@@ -66,6 +72,56 @@ class TestUnavailableStateRoutes:
     def test_both_routes_are_reachable_from_the_landing_page(self, home_page):
         assert "/plans-unconfigured/" in home_page
         assert "/no-library/" in home_page
+
+
+class TestDemoStripeSetup:
+    def test_the_global_api_version_is_the_one_drf_stripe_was_written_against(
+        self, monkeypatch
+    ):
+        import stripe
+
+        monkeypatch.setattr(stripe, "api_version", "2026-09-30.endive")
+
+        apps.get_app_config("demo").ready()
+
+        assert stripe.api_version == "2020-08-27"
+
+    def test_the_demo_does_not_mount_the_backends_url_configuration(self, db):
+        from django.urls import Resolver404, resolve
+
+        with pytest.raises(Resolver404):
+            resolve("/api/stripe/customer-portal/")
+
+
+def load_demo_settings():
+    """Run demo/settings.py afresh, so the environment it reads is the one the test set."""
+    spec = importlib.util.spec_from_file_location(
+        "demo_settings_probe", "demo/settings.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TestDemoWebhookSecret:
+    def test_the_secret_stripe_listen_prints_is_taken_from_the_environment(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv("STRIPE_TEST_WEBHOOK_SECRET", "whsec_from_stripe_listen")
+
+        settings = load_demo_settings()
+
+        assert (
+            settings.MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"] == "whsec_from_stripe_listen"
+        )
+
+    def test_without_one_the_demo_still_has_a_value_so_it_runs(self, monkeypatch):
+        monkeypatch.delenv("STRIPE_TEST_WEBHOOK_SECRET", raising=False)
+        monkeypatch.setattr(Path, "exists", lambda self: False)
+
+        settings = load_demo_settings()
+
+        assert settings.MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]
 
 
 class TestSidebarMenu:
@@ -287,8 +343,13 @@ class TestBillingReturn:
 @pytest.mark.django_db
 class TestSeedDemoAgainstTheSandbox:
     @pytest.fixture
-    def sandbox(self, settings):
+    def sandbox(self, settings, stripe_fake):
         settings.DEV_ENV = {"STRIPE_TEST_SECRET_KEY": "sk_test_sandbox"}
+        for name in SANDBOX_SUBSCRIBER_NAMES:
+            stripe_fake.respond(
+                "GET", f"/v1/customers/cus_{name}", customer_payload(f"cus_{name}")
+            )
+        stripe_fake.respond_with_list("/v1/subscriptions", [])
         stripe_module = "demo.management.commands.seed_demo.stripe"
         with (
             patch(f"{stripe_module}.Customer") as customer,
@@ -371,6 +432,21 @@ class TestSeedDemoAgainstTheSandbox:
         assert not Subscription.objects.filter(
             subscription_id__startswith="sub_demo_"
         ).exists()
+
+    def test_each_subscriber_is_recorded_by_the_stripe_app_from_the_sandbox(
+        self, sandbox, stripe_fake
+    ):
+        call_command("seed_demo")
+
+        recorded = dict(
+            StripeCustomer.objects.values_list("user__username", "stripe_id")
+        )
+        assert recorded == {
+            "regular.user": "cus_regular.user",
+            "staff.user": "cus_staff.user",
+            "other.subscriber": "cus_other.subscriber",
+        }
+        assert "/v1/customers/cus_regular.user" in stripe_fake.paths("GET")
 
     def test_the_backends_own_synchronisation_reads_everything_back(self, sandbox):
         call_command("seed_demo")

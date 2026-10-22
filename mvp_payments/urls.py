@@ -9,6 +9,9 @@ from one include line::
     ]
 """
 
+from django.apps import apps
+from django.urls import URLPattern, URLResolver, include, path
+
 from mvp_payments.contributions import APP_NAMESPACE
 from mvp_payments.namespaces import available_contributions
 
@@ -16,8 +19,11 @@ from mvp_payments.namespaces import available_contributions
 # copy of the string here could silently stop every one of them reversing.
 app_name = APP_NAMESPACE
 
-urlpatterns = [
+urlpatterns: list[URLPattern | URLResolver] = [
     pattern
     for contribution in available_contributions()
     for pattern in contribution.url_patterns()
 ]
+
+if apps.is_installed("mvp_payments.stripe"):
+    urlpatterns.append(path("", include("mvp_payments.stripe.urls")))

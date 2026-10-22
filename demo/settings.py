@@ -33,6 +33,7 @@ def _dev_env() -> dict[str, str]:
             key: os.environ[key]
             for key in (
                 "STRIPE_TEST_SECRET_KEY",
+                "STRIPE_TEST_WEBHOOK_SECRET",
                 "STRIPE_TEST_PUBLISHABLE_KEY",
                 "STRIPE_TEST_PRICING_TABLE_ID",
                 "DEMO_BASE_URL",
@@ -66,6 +67,7 @@ CSRF_COOKIE_SECURE = False
 INSTALLED_APPS = [
     "demo",
     "mvp_payments",
+    "mvp_payments.stripe",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -100,6 +102,14 @@ DRF_STRIPE = {
 # who has used it before (demo/views.py). The pricing table values come from `demo/.env`,
 # or are obviously fake, and the provider's embed then reports that it could not load.
 MVP_PAYMENTS = {
+    # The Stripe app's two secrets. Without `demo/.env` they are obviously fake, which keeps
+    # the system checks quiet and makes any call that needs the real ones fail visibly.
+    "STRIPE_SECRET_KEY": DEV_ENV.get(
+        "STRIPE_TEST_SECRET_KEY", "sk_test_not_a_real_key"
+    ),
+    "STRIPE_WEBHOOK_SECRET": DEV_ENV.get(
+        "STRIPE_TEST_WEBHOOK_SECRET", "whsec_not_a_real_secret"
+    ),
     "DRF_STRIPE_BILLING_PORTAL": "/api/billing-portal/",
     "DRF_STRIPE_PLAN_SWITCH": "/api/plan-switch/",
     "DRF_STRIPE_PRICING_TABLE_ID": DEV_ENV.get(
