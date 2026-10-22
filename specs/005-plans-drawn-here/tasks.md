@@ -100,3 +100,4 @@ name lands in the task that introduces it.
 - [ ] T016 [US2] CR-006: `docs/reference/user-subscriptions-page.md` says checkout from the plans page already returns through `payments:stripe-billing-return`; the instruction to set a success address stays only for a checkout the project builds itself.
 - [ ] T017 [US4] CR-002: the documented one-page loop example carries the checkout note with its id, and the plan-choose entry says the control is described by it. A test of the loop placement asserts the id the control names is on the page.
 - [ ] T018 [US4] CR-007: the every-card override test uses two prices and asserts the override's marker once per price.
+- [x] T019 [US4] Browser check: the demo catalogue carries the descriptions and features approved in the sketch, not placeholders.
