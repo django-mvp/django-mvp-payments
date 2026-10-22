@@ -214,6 +214,31 @@ def _from_epoch(seconds: int | None) -> datetime | None:
 class SubscriptionQuerySet(models.QuerySet["Subscription"]):
     """Queries over subscriptions."""
 
+    def for_user(self, user) -> SubscriptionQuerySet:
+        """Limit to one user's subscriptions.
+
+        Args:
+            user: The user, who may be anonymous or not yet saved.
+
+        Returns:
+            The user's subscriptions, or none at all for someone not signed in or not saved.
+        """
+        if not user.is_authenticated or user.pk is None:
+            return self.none()
+        return self.filter(customer__user=user)
+
+    def subscribed(self) -> SubscriptionQuerySet:
+        """Limit to the subscriptions that count as being subscribed.
+
+        Stripe's active and trialing statuses count, including a subscription set to cancel
+        at the end of its period. Every other status, and any status the app does not know,
+        does not.
+
+        Returns:
+            The active and trialing subscriptions.
+        """
+        return self.filter(status__in=("active", "trialing"))
+
 
 class Subscription(models.Model):
     """One Stripe subscription, as Stripe last reported it.

@@ -58,7 +58,8 @@ changed on Stripe.
 
 ### `Subscription`
 
-`Subscription.objects` is a `SubscriptionQuerySet`. It adds no methods yet.
+`Subscription.objects` is a `SubscriptionQuerySet`, described under
+[Asking whether a user is subscribed](#asking-whether-a-user-is-subscribed).
 
 One row per Stripe subscription, reached from a customer as `customer.subscriptions`. A user who
 subscribes twice has two rows. Newest billing period first is the default order.
@@ -79,6 +80,32 @@ subscribes twice has two rows. Newest billing period first is the default order.
 | `updated` | When the row was last written from Stripe |
 
 Records change only from what Stripe reports. Nothing here is edited by hand.
+
+## Asking whether a user is subscribed
+
+`SubscriptionQuerySet` adds two methods to `Subscription.objects`, and to any queryset made from it.
+
+`for_user(user)`
+: The user's subscriptions, newest billing period first. It returns an empty queryset for someone
+  who is not signed in and for a user who has not been saved, so it is safe to call with
+  `request.user`.
+
+`subscribed()`
+: Only the subscriptions whose status is `active` or `trialing`. A subscription set to cancel at
+  the end of its period still has one of those statuses until the period ends, so it counts.
+  `past_due`, `unpaid`, `incomplete`, `incomplete_expired`, `paused`, `canceled`, and any status
+  this version does not know, do not.
+
+```python
+from mvp_payments.stripe.models import Subscription
+
+Subscription.objects.for_user(request.user).subscribed().exists()  # True or False
+Subscription.objects.for_user(request.user).subscribed().first()  # the current one, or None
+```
+
+A user with several subscriptions is subscribed when any one of them counts. What being subscribed
+lets a user see is for your views to decide. See
+[how to check whether a user is subscribed](../how-to/check-whether-a-user-is-subscribed.md).
 
 ## `Customer.sync()`
 

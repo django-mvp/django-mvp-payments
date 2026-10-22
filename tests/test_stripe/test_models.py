@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 import pytest
 import stripe
 from django.apps import apps
+from django.contrib.auth.models import AnonymousUser, User
 from django.core.management import call_command
 from django.db import IntegrityError, connection, transaction
 from django.test.utils import CaptureQueriesContext
@@ -564,3 +565,97 @@ class TestCustomerFromCheckout:
 
         with pytest.raises(stripe.APIConnectionError):
             Customer.from_checkout("cs_1")
+
+
+COUNTS_AS_SUBSCRIBED = {"active", "trialing"}
+
+
+@pytest.mark.django_db
+class TestSubscriptionQuerySet:
+    @pytest.mark.parametrize(
+        "status",
+        [
+            *Subscription.Status.values,
+            pytest.param("a_status_not_yet_invented", id="unknown"),
+        ],
+    )
+    def test_a_user_is_subscribed_for_exactly_the_statuses_that_count(self, status):
+        subscription = StripeSubscriptionFactory(status=status)
+
+        answer = (
+            Subscription.objects.for_user(subscription.customer.user)
+            .subscribed()
+            .exists()
+        )
+
+        assert answer is (status in COUNTS_AS_SUBSCRIBED)
+
+    def test_a_subscription_set_to_cancel_at_period_end_still_counts(self):
+        subscription = StripeSubscriptionFactory(
+            status="active", cancel_at_period_end=True
+        )
+
+        assert Subscription.objects.for_user(subscription.customer.user).subscribed()
+
+    def test_a_user_with_no_customer_is_not_subscribed(self):
+        assert not Subscription.objects.for_user(UserFactory()).subscribed().exists()
+
+    def test_a_user_with_a_customer_and_no_subscription_is_not_subscribed(self):
+        customer = StripeCustomerFactory()
+
+        assert not Subscription.objects.for_user(customer.user).subscribed().exists()
+
+    def test_any_one_subscription_that_counts_is_enough(self):
+        customer = StripeCustomerFactory()
+        StripeSubscriptionFactory(customer=customer, status="canceled")
+        StripeSubscriptionFactory(customer=customer, status="past_due")
+        StripeSubscriptionFactory(customer=customer, status="trialing")
+
+        assert Subscription.objects.for_user(customer.user).subscribed().exists()
+
+    def test_several_subscriptions_none_of_which_count_do_not_add_up_to_one(self):
+        customer = StripeCustomerFactory()
+        StripeSubscriptionFactory(customer=customer, status="canceled")
+        StripeSubscriptionFactory(customer=customer, status="unpaid")
+
+        assert not Subscription.objects.for_user(customer.user).subscribed().exists()
+
+    def test_anyone_not_signed_in_is_not_subscribed(self):
+        StripeSubscriptionFactory()
+
+        assert not Subscription.objects.for_user(AnonymousUser()).exists()
+
+    def test_a_user_who_was_never_saved_is_not_subscribed(self):
+        StripeSubscriptionFactory()
+
+        assert not Subscription.objects.for_user(User()).exists()
+
+    def test_only_the_named_users_subscriptions_are_returned(self):
+        mine = StripeSubscriptionFactory()
+        StripeSubscriptionFactory()
+
+        assert list(Subscription.objects.for_user(mine.customer.user)) == [mine]
+
+    def test_the_current_subscription_is_the_one_with_the_latest_period(self):
+        customer = StripeCustomerFactory()
+        StripeSubscriptionFactory(
+            customer=customer, current_period_end="2026-01-01T00:00:00Z"
+        )
+        newest = StripeSubscriptionFactory(
+            customer=customer, current_period_end="2026-06-01T00:00:00Z"
+        )
+
+        current = Subscription.objects.for_user(customer.user).subscribed().first()
+
+        assert current == newest
+
+    def test_there_is_no_current_subscription_when_none_counts(self):
+        subscription = StripeSubscriptionFactory(status="canceled")
+
+        current = (
+            Subscription.objects.for_user(subscription.customer.user)
+            .subscribed()
+            .first()
+        )
+
+        assert current is None
