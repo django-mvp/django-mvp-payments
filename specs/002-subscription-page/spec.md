@@ -120,7 +120,7 @@ through. It arrives at the provider's own portal for that person.
 A person holds more than one subscription, bought separately from the plans page. The page lists
 every one of them, each with its own plan, amount, frequency, status and period.
 
-**Why this priority**: Stripe's pricing table starts a new subscription with every purchase, so a
+**Why this priority**: Every purchase from the plans page starts a new subscription, so a
 person who buys twice holds two, and a page that showed one would misstate what they pay. It is
 second because the single-user subscriptions page works without it.
 

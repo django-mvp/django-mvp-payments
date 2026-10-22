@@ -152,14 +152,15 @@ questions it answers about itself, and what it may not do.
 
 ## JavaScript
 
-A component that starts a checkout needs the provider's own script, and Stripe in particular
-forbids self-hosting `stripe.js`. This package does not emit a script tag for it.
+No component here needs a payment provider's script. The plans are drawn on the server, and
+checkout, the billing portal and plan changes all happen on Stripe's own pages. This package never
+emits a script tag for a provider's library, and should a future component need one, loading it is
+your project's decision.
 
-Loading the libraries your components need is your project's decision — a CDN tag, a bundler
-entry point, an import map, whatever you already use. Where a component needs logic of its own
-beyond that, it arrives as a small static file you include the same way. The demo project loads
-Stripe from their CDN, which is the right trade for looking at something locally and the wrong
-one to copy into production without thinking about it.
+The one script of its own, `mvp_payments/stripe/billing_portal.js`, binds the "Manage
+subscription" and "Switch plans" controls. Include it with
+`{% static %}` on any page that shows those controls, as
+[the user subscriptions page reference](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/user-subscriptions-page.md) shows.
 
 ## Scope & philosophy
 

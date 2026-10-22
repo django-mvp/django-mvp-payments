@@ -119,8 +119,7 @@ _Avoid_: skin, palette, colour scheme.
 **Delivery**:
 How a provider's JavaScript reaches the browser. It is the host project's decision, made however
 that project already manages its frontend — a CDN tag, a bundler entry point, an import map. This
-package emits no script tag for a provider's library, and the demo project's CDN tag is a
-demonstration convenience rather than a recommendation.
+package emits no script tag for a provider's library.
 _Avoid_: bundling (names only one of the answers), asset pipeline, static files.
 
 ## Terms deliberately not used

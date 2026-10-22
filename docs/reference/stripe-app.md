@@ -3,8 +3,9 @@
 `mvp_payments.stripe` keeps a small copy of each user's Stripe subscription in your project's
 database. Stripe stays the source of truth: the app records who each user's Stripe customer is
 and that customer's subscriptions, with their status, price and period, and refreshes the copy
-from Stripe whenever Stripe reports a change. It adds no payment logic. Choosing a plan,
-switching, cancelling and updating a card all happen on Stripe's own hosted pages.
+from Stripe whenever Stripe reports a change. It adds no payment logic. A plan is chosen on
+the plans page; paying for it, switching, cancelling and updating a card all happen on Stripe's
+own hosted pages.
 
 To set it up, see [how to install the Stripe app](../how-to/install-the-stripe-app.md) and
 [how to point Stripe at the webhook](../how-to/point-stripe-at-the-webhook.md).
