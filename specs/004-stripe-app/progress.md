@@ -85,3 +85,10 @@ Did: demo/.env.example and the README's demo section document `stripe listen --f
 Verified: uv run pytest tests/test_demo.py (all passed). The demo settings already read the secret, so the first test passed on first run; probed by mutation: renaming the environment key in demo/settings.py fails it.
 Next: T012 secrets and changelog.
 Watch: US5 scenario 1 needs a real sandbox and is documented only; the tests show what settings can show.
+
+## 2026-10-22T09:04:48Z · Implementer US5 · T012
+
+Did: tests that the configured secret key and signing secret appear in no admin page (all four of the app's pages), no webhook response body or log record (refused request, Stripe error that quotes a masked key, unset signing secret, handled event), and no stripe_sync error or output. The existing check test already covers messages and hints. CHANGELOG entry under Unreleased/Added. tests/stripe_fake.py gains respond_with_message_echoing. Reference page notes the SDK's own `stripe` logger.
+Verified: uv run pytest tests/test_stripe -k KeepsSecretsOut (6 passed). Probe by mutation: logging the error object instead of its type in the webhook fails the webhook test. Finding: the Stripe SDK itself logs the response body at debug and the error message at info on the `stripe` logger, so a real masked key reaches logs through the SDK if that logger is enabled; documented rather than suppressed.
+Next: T013 rename leading-underscore names.
+Watch: the webhook test asserts the full secrets are absent from every record and the masked echo is absent from the app's own records only, since the SDK's records carry it.

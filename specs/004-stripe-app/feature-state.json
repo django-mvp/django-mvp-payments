@@ -285,8 +285,19 @@
         },
         {
           "id": "T012",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_views.py::TestWebhookKeepsSecretsOut,tests/test_stripe/test_admin.py::TestAdminKeepsSecretsOut,tests/test_stripe/test_management/test_commands/test_stripe_sync.py::TestStripeSyncKeepsSecretsOut,tests/test_stripe/test_checks.py::TestSettingsChecks"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe -k KeepsSecretsOut"
+            ],
+            "code": [
+              "mvp_payments/stripe/views.py:55"
+            ]
+          }
         },
         {
           "id": "T013",
