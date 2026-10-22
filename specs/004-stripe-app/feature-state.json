@@ -191,8 +191,19 @@
       "tasks": [
         {
           "id": "T008",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py::TestSubscriptionQuerySet"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_models.py::TestSubscriptionQuerySet"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:217"
+            ]
+          }
         }
       ]
     },

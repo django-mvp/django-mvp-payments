@@ -57,3 +57,10 @@ Did: acted on the first full verify, which went red on three things. (1) docs/st
 Verified: uv run pytest tests/test_stripe (112 passed); pre-commit clean.
 Next: second verify run, then the report.
 Watch: later stories add to the reference page rather than to a docs/stripe.md, which no longer exists.
+
+## 2026-10-22T08:58:17Z · Implementer US2 · T008
+
+Did: SubscriptionQuerySet.for_user(user) (none() for anonymous or unsaved users) and .subscribed() (active, trialing). Reference section "Asking whether a user is subscribed" and a how-to for checking in a view.
+Verified: uv run pytest tests/test_stripe/test_models.py::TestSubscriptionQuerySet (19 passed). Red first: AttributeError on for_user before the methods existed. Parametrised over every Subscription.Status plus an unknown status.
+Next: T009 stripe_sync command.
+Watch: Meta.ordering makes .first() the latest period.
