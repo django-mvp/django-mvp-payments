@@ -2,7 +2,7 @@
   "feature": "004-stripe-app",
   "branch": "004-stripe-app",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "IMPLEMENT",
+  "state": "CONVERGE",
   "state_history": [
     {
       "state": "PLAN",
@@ -18,6 +18,11 @@
       "state": "IMPLEMENT",
       "at": "2026-10-22T08:39:34Z",
       "note": "design review applied; plan gate open; US1 dispatched"
+    },
+    {
+      "state": "CONVERGE",
+      "at": "2026-10-22T09:12:07Z",
+      "note": "every story accepted; entering convergence"
     }
   ],
   "gates": {
@@ -186,7 +191,7 @@
       "priority": "P1",
       "issue": 56,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -212,7 +217,7 @@
       "priority": "P2",
       "issue": 57,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -238,7 +243,7 @@
       "priority": "P2",
       "issue": 58,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -264,7 +269,7 @@
       "priority": "P3",
       "issue": 59,
       "worktree": null,
-      "status": "todo",
+      "status": "done",
       "replans": 0,
       "tasks": [
         {
@@ -320,7 +325,7 @@
   ],
   "budgets": {
     "converge_cycles": {
-      "used": 0,
+      "used": 1,
       "max": 2
     },
     "review_cycles": {
@@ -332,7 +337,7 @@
       "max": 1
     },
     "tokens": {
-      "used": 13.51,
+      "used": 20.22,
       "max": 120
     }
   },

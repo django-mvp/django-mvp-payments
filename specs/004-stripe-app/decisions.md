@@ -13,7 +13,7 @@ leaves no case where a purchase lands on the wrong account. A customer that arri
 is left unrecorded rather than guessed at, because a wrong match shows one person another
 person's subscription.
 
-**ADR:** none — a rule of this app's checkout handling, stated in the spec (FR-007)
+**ADR:** docs/adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md
 
 ## D0b — Every subscription is kept, not one per user
 

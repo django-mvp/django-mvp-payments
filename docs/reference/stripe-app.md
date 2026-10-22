@@ -187,7 +187,8 @@ Stripe's checkout. Email addresses are never matched.
 its `client-reference-id`. It is the user's primary key and a signature of it, joined by `_`, so
 it holds only letters, digits and underscores. The signature is made with your `SECRET_KEY` and a
 salt of this app's own. Embedding the public pricing table on another page with someone else's
-primary key therefore ties nothing to that person.
+primary key therefore ties nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
+records why.
 
 ```python
 from mvp_payments.stripe.models import Customer
