@@ -153,6 +153,27 @@ is synced in a transaction of its own. When Stripe cannot be asked, the command 
 error that says how many customers it had synced. Those stay synced, and running the command again
 finishes the rest. The error names the kind of failure and never Stripe's message.
 
+## The admin
+
+Both models are registered in the Django admin, and both are read-only for everyone, a superuser
+included. Nothing can be added, changed or deleted from their pages, and the bulk delete action is
+not offered. Whether a staff user sees them at all follows Django's view permissions, so grant
+`view_customer` and `view_subscription` to the staff who answer billing questions.
+
+Subscriptions are listed with their Stripe ID, user, status, product name and period end. Filter
+them by status, and search by the user's username or email address, the subscription's Stripe ID
+or the customer's. A subscription's page shows the user, both Stripe identifiers, the status
+exactly as stored, the price identifier, the amount with its currency (`1,500 JPY` for a
+zero-decimal price, `20.00 USD` for two decimals), the billing interval, the period and whether
+it cancels at its end. Customers are listed with their user, Stripe ID and creation time, and
+searched the same way.
+
+Deleting a user in the user admin still removes their customer and subscriptions with them, since
+a deletion that cascades to a record asks that record's admin whether it may go. Only the app's own
+delete pages are refused. Nothing is changed on Stripe.
+
+The package does not mount the admin. Your project does, as it does for its own models.
+
 ## `Customer.client_reference()` and `Customer.from_checkout()`
 
 A purchase is tied to a user only through the identity of the signed-in user, carried through
