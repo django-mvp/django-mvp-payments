@@ -27,17 +27,24 @@
       "approved_by": "Sam",
       "at": "2026-10-22T16:26:42Z",
       "self_resolved": [
-        "public page at /plans/, not under the account address \u2014 moved out of the Account Center to /plans/",
-        "design and inspect in the browser before reporting \u2014 browser pass at desktop and phone widths, light and dark, layout defects fixed"
+        "public page at /plans/, not under the account address — moved out of the Account Center to /plans/",
+        "design and inspect in the browser before reporting — browser pass at desktop and phone widths, light and dark, layout defects fixed"
       ]
     },
     "plan": {
-      "approved_by": null,
-      "at": null
+      "approved_by": "open",
+      "at": "2026-10-22T16:39:19Z"
     },
     "merge": {
       "approved_by": null,
       "at": null
+    },
+    "design_review": {
+      "approved_by": "design-panel",
+      "at": "2026-10-22T16:39:19Z",
+      "self_resolved": [
+        "0 critical, 0 high; 6 medium and 5 low applied to plan.md and tasks.md (decisions.md D6)"
+      ]
     }
   },
   "stories": [
