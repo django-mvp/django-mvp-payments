@@ -72,8 +72,23 @@
         },
         {
           "id": "T002",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_client.py",
+              "tests/test_stripe/test_checks.py",
+              "tests/test_stripe/test_apps.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe tests/test_app.py",
+              "uv run mypy"
+            ],
+            "code": [
+              "mvp_payments/stripe/client.py:12",
+              "mvp_payments/stripe/checks.py:15"
+            ]
+          }
         },
         {
           "id": "T003",

@@ -147,7 +147,6 @@ warn_return_any = "True"
 warn_unused_ignores = "True"
 show_error_codes = "True"
 exclude = ["docs/", "migrations/", "tests/settings.py"]
-mypy_path = "mvp_payments/"
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
@@ -172,4 +171,4 @@ extend_exclude = ["tests/", "demo/", "docs/"]
 # inside django-mvp's layout and take their appearance from the daisyUI theme it
 # supplies. Dropping the dependency would leave every component unstyled while
 # every import still resolved.
-DEP002 = ["django-mvp", "stripe"]
+DEP002 = ["django-mvp"]
