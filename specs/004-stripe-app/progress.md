@@ -92,3 +92,10 @@ Did: tests that the configured secret key and signing secret appear in no admin 
 Verified: uv run pytest tests/test_stripe -k KeepsSecretsOut (6 passed). Probe by mutation: logging the error object instead of its type in the webhook fails the webhook test. Finding: the Stripe SDK itself logs the response body at debug and the error message at info on the `stripe` logger, so a real masked key reaches logs through the SDK if that logger is enabled; documented rather than suppressed.
 Next: T013 rename leading-underscore names.
 Watch: the webhook test asserts the full secrets are absent from every record and the masked echo is absent from the app's own records only, since the SDK's records carry it.
+
+## 2026-10-22T09:05:46Z · Implementer US5 · T013
+
+Did: renamed _http_client, _customer_for, _REQUIRED, _REFERENCE_SALT, _signature, _from_epoch and _logger to plain names, plus the test module's _WEBHOOK_ADDRESS_PROBE and the unused _separator in from_checkout (now read by index). Left alone: _usage in the fake's request(), which is the SDK's own keyword in the HTTPClient signature; Django's _meta, _default_manager and the admin's _selected_action; the `_` gettext alias.
+Verified: uv run pytest tests/test_stripe tests/test_demo.py (206 passed); pre-commit clean. No new tests: behaviour unchanged.
+Next: full verify and the report.
+Watch: the earlier docs step flagged `logger` as an undocumented public name before it was made private; if the verify flags the plain names, the answer is a reference entry or an __all__, not underscores.
