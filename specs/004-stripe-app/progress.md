@@ -64,3 +64,10 @@ Did: SubscriptionQuerySet.for_user(user) (none() for anonymous or unsaved users)
 Verified: uv run pytest tests/test_stripe/test_models.py::TestSubscriptionQuerySet (19 passed). Red first: AttributeError on for_user before the methods existed. Parametrised over every Subscription.Status plus an unknown status.
 Next: T009 stripe_sync command.
 Watch: Meta.ordering makes .first() the latest period.
+
+## 2026-10-22T08:59:43Z · Implementer US3 · T009
+
+Did: management command stripe_sync with --user (USERNAME_FIELD value). Customers synced in pk order, each by Customer.sync() in its own transaction; a StripeError becomes a CommandError naming how many were synced and the error type only. A name no user has, or a user with no customer, is a CommandError before Stripe is asked. Reference section and a pointer from the webhook how-to.
+Verified: uv run pytest tests/test_stripe/test_management (9 passed); pre-commit clean. Red first: Unknown command 'stripe_sync'.
+Next: T010 read-only admin.
+Watch: the fake answers by path, so tests with several customers use customers Stripe does not have (resource_missing) rather than distinct subscription lists. Command help text is a plain string because mypy rejects a lazy string for BaseCommand.help.

@@ -217,8 +217,19 @@
       "tasks": [
         {
           "id": "T009",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_management/test_commands/test_stripe_sync.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe/test_management"
+            ],
+            "code": [
+              "mvp_payments/stripe/management/commands/stripe_sync.py:31"
+            ]
+          }
         }
       ]
     },
