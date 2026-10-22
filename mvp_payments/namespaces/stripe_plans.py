@@ -61,6 +61,13 @@ class PlanChoices:
             key = cls.interval_key(price)
             if key not in [i["key"] for i in intervals]:
                 intervals.append({"key": key, "label": cls.interval_label(price)})
+        days = {"day": 1, "week": 7, "month": 30, "year": 365}
+        intervals.sort(
+            key=lambda i: (
+                days.get(i["key"].rsplit("_", 1)[0], 0)
+                * int(i["key"].rsplit("_", 1)[1])
+            )
+        )
         held: list[str] = []
         user = request.user
         if user.is_authenticated:

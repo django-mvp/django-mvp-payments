@@ -4,7 +4,7 @@
 {# @prop plans:text | description:"What {% stripe_plans %} returns." | required #}
 <c-vars price plans />
 {% if price.id in plans.held %}
-  <c-button href="{{ plans.subscriptions_url }}" text="{% translate 'Manage' %}" outline>
+  <c-button href="{{ plans.subscriptions_url }}" text="{% translate 'Manage' %}" outline block>
     <span class="sr-only">{% blocktranslate with name=price.product.name %}your {{ name }} subscription{% endblocktranslate %}</span>
   </c-button>
 {% elif plans.signed_in %}
@@ -12,7 +12,7 @@
     {% csrf_token %}
     <input type="hidden" name="price" value="{{ price.id }}">
     <input type="hidden" name="return_to" value="{{ plans.return_to }}">
-    <c-button type="submit" variant="primary" text="{% translate 'Choose' %}" icon="external-link"
+    <c-button type="submit" variant="primary" block text="{% translate 'Choose' %}"
               aria-describedby="mvp-payments-checkout-note">
       <span class="sr-only">{{ price.product.name }}, {{ price|price_frequency }}</span>
     </c-button>
@@ -20,6 +20,7 @@
 {% else %}
   <c-button href="{{ plans.login_url }}?next={{ plans.return_to|urlencode:'' }}%3Fplan%3D{{ price.id }}%23{{ price.id }}"
             variant="primary"
+            block
             text="{% translate 'Choose' %}"
             aria-describedby="mvp-payments-checkout-note">
     <span class="sr-only">{{ price.product.name }}, {{ price|price_frequency }}</span>

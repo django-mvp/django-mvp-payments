@@ -13,6 +13,7 @@ from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from django.utils.functional import Promise
+from django.utils.translation import gettext_lazy as _
 from mvp.views import MVPTemplateView
 
 from .namespaces.stripe_records import SubscriptionReader
@@ -121,7 +122,7 @@ class SubscriptionPageView(PaymentPageView):
         context["plan_switch_endpoint"] = (
             reverse(f"{namespace}:stripe-plan-switch") if subscriptions else None
         )
-        context["plans_url"] = self.get_contribution().page_url("plans")
+        context["plans_url"] = reverse("stripe-plans")
         return context
 
     def provider_return(self, subscriptions: Any) -> dict[str, Any] | None:
@@ -138,14 +139,18 @@ class SubscriptionPageView(PaymentPageView):
         }
 
 
-class PlansPageView(PaymentPageView):
-    """The Stripe namespace's plans page: the plans on offer, drawn from Stripe's catalogue.
+class PlansPageView(MVPTemplateView):
+    """The Stripe plans page: the plans on offer, drawn from Stripe's catalogue.
 
-    Open to every visitor, signed in or not, whatever they are subscribed to.
+    A public page, outside the Account Center, mounted wherever the project includes
+    ``mvp_payments.plans_urls`` (``/plans/`` in the demo). Open to every visitor.
 
     SKETCH (FS-005): adds ``plans``, what the plans components read, and the two notices
     a return from a failed checkout can carry.
     """
+
+    template_name = "mvp_payments/stripe/plans.html"
+    page_title = _("Plans")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         """Add the plans, and any notice about a checkout that did not start."""

@@ -13,8 +13,8 @@
 - **Money.** `mvp_payments.money.Money` formats a minor-unit amount in its own currency, and
   `<c-stripe.amount>` renders one. `CurrentSubscription.frequency_display` turns an interval
   into words ("every month", "every 3 months").
-- **Page.** `PlansPageView` renders `mvp_payments/stripe/plans.html` inside the Account
-  Center, open to everyone. `<c-stripe.plans-unavailable>` is the "not available" empty state.
+- **Page.** Before this feature `PlansPageView` rendered `mvp_payments/stripe/plans.html`
+  inside the Account Center, routed by the Stripe contribution, open to everyone. `<c-stripe.plans-unavailable>` is the "not available" empty state.
 - **Components to compose.** `<c-mvp.card>` (title, badges, footer slots), `<c-mvp.grid>`,
   `<c-join>`, `<c-button>`, `<c-badge>`, `<c-alert>`, `<c-icon>`, and
   `<c-mvp.page.list.empty>` for empty states. Alpine.js is already loaded by django-mvp's base
@@ -35,6 +35,10 @@
 - Whether the reader is signed in, the sign-in address, the checkout address, the user
   subscriptions address, and the path of the page the plans are on, so sign-in and a cancelled
   checkout come back to it.
+- A public address for the plans page outside the Account Center. The sketch adds
+  `mvp_payments.plans_urls`, which the demo mounts at `/plans/` with a second include line,
+  and takes the plans page out of the Stripe contribution. The plan decides how a project
+  mounts it, given Article XIII's single include.
 - A way to put all of that in any template without a view: the sketch uses a template tag,
   `{% stripe_plans as plans %}`, and the plans page puts the same thing in its context.
 - Two notices on return to the page: the checkout could not be started, and the plan picked is
@@ -60,13 +64,22 @@
 
 ## What was ruled by eye
 
-Taste decisions taken for the first round, for Sam to keep or change:
+Ruled by Sam:
+
+- The plans page is public, so it is not under the account address. It lives at `/plans/`,
+  outside the Account Center, with an entry in the demo's sidebar (round 1).
+
+Taste decisions, for Sam to keep or change:
 
 - One card per price, grouped by billing frequency behind a switch, the pattern Stripe's own
   pricing table uses. Without JavaScript every frequency shows, each under its own heading.
 - The switch is shown only when there is more than one billing frequency.
-- Card order: name, description, price, features, then the way to buy at the bottom, so the
-  buttons line up across a row.
+- Card order: name, then price, then description and features, then the way to buy at the
+  bottom. The price sits straight under the name so prices line up across a row whatever the
+  descriptions' lengths, and the buttons line up along the bottom.
+- Full-width buttons in the cards.
+- The switch and the checkout note align left with the page title.
+- Billing frequencies in the switch run shortest first.
 - Price shown large, with the frequency in words beside it.
 - The plan picked before signing in is outlined in the primary colour, and the page scrolls to it.
 - A plan the person holds carries a "Current" badge and a "Manage" button to the user

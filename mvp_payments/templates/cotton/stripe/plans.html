@@ -6,7 +6,7 @@
 <div class="flex flex-col gap-6"
      x-data="{ interval: '{{ plans.first_interval }}' }">
   {% if plans.intervals|length > 1 %}
-    <c-join class="self-center" role="radiogroup" aria-label="{% translate 'Billing frequency' %}">
+    <c-join class="self-start" role="radiogroup" aria-label="{% translate 'Billing frequency' %}">
       {% for interval in plans.intervals %}
         <input class="join-item btn"
                type="radio"
@@ -34,7 +34,7 @@
       </c-mvp.grid>
     </section>
   {% endfor %}
-  <p id="mvp-payments-checkout-note" class="text-sm text-base-content/60 text-center">
+  <p id="mvp-payments-checkout-note" class="text-sm text-base-content/60">
     {% translate "Payment is taken on Stripe's secure checkout page." %}
   </p>
 </div>

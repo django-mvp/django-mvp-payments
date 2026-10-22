@@ -1,24 +1,25 @@
 {% load i18n %}
-{# @description One plan: a price under its product's name, description and features, and the way to buy it. #}
+{# @description One plan: its product's name, the price and how often it is billed, the description and features, and the way to buy it. #}
 {# @prop price:text | description:"A Stripe price, with its product expanded." | required #}
 {# @prop plans:text | description:"What {% stripe_plans %} returns, for how this reader buys it." | required #}
+{# The price comes straight after the name, so prices line up across a row whatever the descriptions' lengths. #}
 <c-vars price plans />
 <c-mvp.card id="{{ price.id }}"
             title="{{ price.product.name }}"
-            class="h-full {% if price.id == plans.ready %}border-2 border-primary{% endif %}">
+            class="h-full border-2 {% if price.id == plans.ready %}border-primary{% else %}border-base-100{% endif %}">
   {% if price.id in plans.held %}
     <c-slot name="badges">
       <c-badge variant="primary" soft size="sm" text="{% translate 'Current' %}" title="{% translate 'You are subscribed to this plan' %}" />
     </c-slot>
   {% endif %}
-  {% if price.product.description %}
-    <p class="text-base-content/70">{{ price.product.description }}</p>
-  {% endif %}
   <c-stripe.plan-price :price="price" />
-  <div class="grow">
+  <div class="flex flex-col gap-4 grow">
+    {% if price.product.description %}
+      <div class="text-base-content/70">{{ price.product.description }}</div>
+    {% endif %}
     <c-stripe.plan-features :product="price.product" />
   </div>
-  <c-slot name="footer_end">
+  <div class="pt-4">
     <c-stripe.plan-choose :price="price" :plans="plans" />
-  </c-slot>
+  </div>
 </c-mvp.card>

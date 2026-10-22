@@ -1,28 +1,28 @@
-{% extends "mvp/account/base.html" %}
-{% load i18n mvp_payments %}
-{% block account.content %}
-  <c-mvp.page>
-    {% if checkout_failed %}
-      <c-alert variant="error" icon="error">
-        <span>{% translate "The checkout could not be started. Please try again in a moment." %}</span>
-      </c-alert>
-    {% elif plan_gone %}
-      <c-alert variant="warning" icon="warning">
-        <span>{% translate "That plan is no longer on offer. Please choose another." %}</span>
-      </c-alert>
-    {% endif %}
-    {% if request.GET.sketch_checkout %}
-      <c-alert variant="info" icon="info">
-        <span>Sketch: the build opens Stripe's checkout here, for {{ request.GET.sketch_checkout }}.</span>
-      </c-alert>
-    {% endif %}
-    <c-mvp.page.title :title="page.title" />
-    {% if plans.prices is None %}
-      <c-stripe.plans-unavailable />
-    {% elif not plans.prices %}
-      <c-stripe.no-plans />
-    {% else %}
-      <c-stripe.plans :plans="plans" />
-    {% endif %}
-  </c-mvp.page>
-{% endblock account.content %}
+{% extends "page_view.html" %}
+{% load i18n %}
+{% block page.header %}
+  {% if checkout_failed %}
+    <c-alert variant="error" icon="error">
+      <span>{% translate "The checkout could not be started. Please try again in a moment." %}</span>
+    </c-alert>
+  {% elif plan_gone %}
+    <c-alert variant="warning" icon="warning">
+      <span>{% translate "That plan is no longer on offer. Please choose another." %}</span>
+    </c-alert>
+  {% endif %}
+  {% if request.GET.sketch_checkout %}
+    <c-alert variant="info" icon="info">
+      <span>Sketch: the build opens Stripe's checkout here, for {{ request.GET.sketch_checkout }}.</span>
+    </c-alert>
+  {% endif %}
+  {{ block.super }}
+{% endblock page.header %}
+{% block page.content %}
+  {% if plans.prices is None %}
+    <c-stripe.plans-unavailable />
+  {% elif not plans.prices %}
+    <c-stripe.no-plans />
+  {% else %}
+    <c-stripe.plans :plans="plans" />
+  {% endif %}
+{% endblock page.content %}
