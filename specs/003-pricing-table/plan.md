@@ -83,9 +83,7 @@ specs/003-pricing-table/
 ├── decisions.md         # merged with it; appended to here
 ├── plan.md              # this file
 ├── research.md          # what was read in the dependency and the provider's guide
-├── tasks.md             # the task graph
-├── progress.md          # run narrative
-└── feature-state.json   # the ledger
+└── tasks.md             # the task graph
 ```
 
 No `data-model.md` and no `contracts/`: the feature defines no data, and the rendered page is the
