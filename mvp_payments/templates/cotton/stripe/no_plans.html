@@ -2,4 +2,5 @@
 {# @description Stands in for the plans when the catalogue has none on offer. Takes no props. #}
 {% translate "No plans on offer" as heading %}
 {% translate "There are no plans to choose from at the moment." as message %}
-<c-mvp.page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
+<c-mvp.page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}"
+                       data-mvp-payments-no-plans />

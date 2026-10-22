@@ -2,4 +2,5 @@
 {# @description Stands in for the plans when they cannot be read, so the reader gets a sentence instead of empty space. Takes no props. #}
 {% translate "Plans not available" as heading %}
 {% translate "The plans cannot be shown right now. Please try again later." as message %}
-<c-mvp.page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}" />
+<c-mvp.page.list.empty icon="info" heading="{{ heading }}" message="{{ message }}"
+                       data-mvp-payments-plans-unavailable />

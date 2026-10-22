@@ -373,7 +373,8 @@ class TestPlansPage:
         assert response.status_code == 200
         assert response.context["plans"]["prices"] is None
         content = response.content.decode()
-        assert "mvp-list-empty" in content
+        assert "data-mvp-payments-plans-unavailable" in content
+        assert "data-mvp-payments-no-plans" not in content
         assert 'id="price_' not in content
 
     def test_a_missing_secret_key_is_stated_without_asking_stripe(
@@ -397,7 +398,8 @@ class TestPlansPage:
         assert response.status_code == 200
         assert response.context["plans"]["prices"] == []
         content = response.content.decode()
-        assert "mvp-list-empty" in content
+        assert "data-mvp-payments-no-plans" in content
+        assert "data-mvp-payments-plans-unavailable" not in content
         assert 'id="price_' not in content
 
     def test_a_plan_the_person_holds_is_marked_as_theirs(
