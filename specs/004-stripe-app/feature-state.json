@@ -105,7 +105,7 @@
             "code": [
               "mvp_payments/stripe/models.py:15",
               "mvp_payments/stripe/migrations/0001_initial.py:9",
-              "docs/stripe.md:1"
+              "docs/reference/stripe-app.md:1"
             ]
           }
         },
@@ -115,10 +115,11 @@
           "attempts": 2,
           "evidence": {
             "tests": [
-              "tests/test_stripe_fake.py"
+              "tests/test_stripe/test_client.py::TestFakeStripe",
+              "tests/test_stripe/test_client.py::TestSignWebhook"
             ],
             "commands": [
-              "uv run pytest tests/test_stripe_fake.py"
+              "uv run pytest tests/test_stripe/test_client.py"
             ],
             "code": [
               "tests/stripe_fake.py:28"
