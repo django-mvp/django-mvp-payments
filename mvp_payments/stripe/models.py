@@ -78,6 +78,15 @@ class Customer(models.Model):
 
     @staticmethod
     def signature(pk) -> str:
+        """Sign a user's primary key for a checkout reference.
+
+        Args:
+            pk: The user's primary key.
+
+        Returns:
+            An HMAC-SHA256 of the key under the project's ``SECRET_KEY`` and this app's salt,
+            in hex.
+        """
         return salted_hmac(REFERENCE_SALT, str(pk), algorithm="sha256").hexdigest()
 
     @classmethod
@@ -138,6 +147,10 @@ class Customer(models.Model):
         locked first, so two webhooks for one customer cannot write an older state over a
         newer one. When Stripe no longer has the customer, the row and its subscriptions are
         deleted. Rows Stripe did not return are deleted.
+
+        Each subscription's price and billing period are read from its first item. Stripe's
+        pricing table creates subscriptions with exactly one item, and a project that builds
+        subscriptions with several has outgrown this app (ADR 0010).
 
         Raises:
             stripe.StripeError: When Stripe could not be asked, or refused. Nothing changes.

@@ -2,7 +2,7 @@
   "feature": "004-stripe-app",
   "branch": "004-stripe-app",
   "repo": "django-mvp/django-mvp-payments",
-  "state": "CONVERGE",
+  "state": "REVIEW",
   "state_history": [
     {
       "state": "PLAN",
@@ -23,6 +23,11 @@
       "state": "CONVERGE",
       "at": "2026-10-22T09:12:07Z",
       "note": "every story accepted; entering convergence"
+    },
+    {
+      "state": "REVIEW",
+      "at": "2026-10-22T09:14:42Z",
+      "note": "convergence complete: ADR 0011 graduated, S5 green"
     }
   ],
   "gates": {
@@ -183,6 +188,39 @@
               "mvp_payments/urls.py:27"
             ]
           }
+        },
+        {
+          "id": "T014",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py"
+            ],
+            "commands": [
+              "uv run pytest"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:80"
+            ]
+          }
+        },
+        {
+          "id": "T015",
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe/test_models.py"
+            ],
+            "commands": [
+              "uv run pytest"
+            ],
+            "code": [
+              "mvp_payments/stripe/models.py:140",
+              "docs/reference/stripe-app.md:121"
+            ]
+          }
         }
       ]
     },
@@ -329,7 +367,7 @@
       "max": 2
     },
     "review_cycles": {
-      "used": 0,
+      "used": 1,
       "max": 1
     },
     "design_review_cycles": {

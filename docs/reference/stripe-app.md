@@ -118,6 +118,8 @@ all of the customer's subscriptions, whatever their status, and writes what come
 
 - A subscription Stripe returns is created, or updated in place by its Stripe identifier. Running
   `sync()` again with nothing changed at Stripe leaves the same rows.
+- A subscription's price and billing period come from its first item. Stripe's pricing table
+  creates subscriptions with one item, and subscriptions with several are not supported.
 - A subscription of the customer's that Stripe no longer returns is deleted.
 - A subscription Stripe reports as ended stays, with the status Stripe gave it.
 - A customer Stripe reports as deleted, or no longer has, is deleted here with its subscriptions.

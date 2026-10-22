@@ -79,3 +79,9 @@ Suite green on stripe 16.
 - [ ] T013 Rename the leading-underscore names the app introduced (`_http_client`, `_customer_for`,
   `_REQUIRED`, `_REFERENCE_SALT`, `_signature`, `_from_epoch`, `_logger`) to plain names. The
   repository's convention is no leading underscores. Behaviour unchanged, so no new tests.
+
+## Review fixes
+
+- [x] T014 Docstring for `Customer.signature()` (review REV-003).
+- [x] T015 State in `Customer.sync()` and the reference page that a subscription's price and
+  period come from its first item (review REV-002).
