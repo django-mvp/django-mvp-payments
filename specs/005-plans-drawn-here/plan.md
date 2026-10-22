@@ -46,7 +46,7 @@ pytest with `tests/stripe_fake.py` for Stripe. No new dependency. No model and n
 - **`apps.py`** — `StripeConfig.catalogue`, a property returning `Catalogue` (imported inside it),
   which is how the interface reaches it.
 - **`models.py`** — `Customer.start_checkout(user, price_id, success_url, cancel_url) -> str`
-  creates the Checkout Session and returns its URL. Raises `stripe.StripeError`.
+  creates the Checkout Session and returns its URL. The success URL is built absolute first and `?session_id={CHECKOUT_SESSION_ID}` appended after, so the braces are not encoded. A customer Stripe no longer has is synced away and the session created without it. Raises `stripe.StripeError`.
   `pricing_table_client_secret()` is removed. `client_reference()`'s docstring stops naming the
   pricing table.
 - **`views.py`** — `CheckoutView(LoginRequiredMixin, View)`, POST only: safe `return_to` (else
@@ -86,7 +86,7 @@ monthly and yearly). The pricing-table settings, pages and routes are removed.
 placing and replacing, cache and webhook events). `docs/reference/stripe-app.md` (catalogue,
 checkout view, settings). `docs/how-to/install-the-stripe-app.md` (the second include).
 `docs/how-to/point-stripe-at-the-webhook.md` (product and price events). README, CHANGELOG,
-CONTEXT.md, CONSTITUTION.md Articles XI and XIII, ADRs 0010 and 0012 brought to current state,
+CONTEXT.md, CONSTITUTION.md Article XIII and three named Article XI amendments (an interface view or tag may ask a provider app for its cached catalogue, which the app reads from the provider on a miss; a provider app may keep the provider's catalogue in the project's cache, never in the database; plans are chosen on a page the package draws and paid for on the provider's checkout), ADRs 0010 and 0012 brought to current state,
 `specs/003-pricing-table/spec.md` rewritten to describe the plans page as it now is, and two new
 ADRs: the plans are drawn from a cached catalogue and bought through a checkout the app starts,
 and the plans page has an address of its own.

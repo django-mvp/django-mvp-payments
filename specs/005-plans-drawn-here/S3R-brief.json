@@ -1,0 +1,44 @@
+{
+ "stage": "S3R",
+ "role": "design_reviewer",
+ "repo": "django-mvp/django-mvp-payments",
+ "feature": "005-plans-drawn-here",
+ "worktree": "/home/sam/projects/worktrees/dmp-005-plans",
+ "required_skills": [
+  {
+   "name": "craft-review",
+   "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-review/SKILL.md",
+   "receipt": "craft-review/2026-10-15/6b8372b4"
+  },
+  {
+   "name": "craft-security",
+   "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-security/SKILL.md",
+   "receipt": "craft-security/2026-08-04/ea3d6742"
+  },
+  {
+   "name": "craft-simplify",
+   "path": "/home/sam/.openclaw/workspaces/forge/skills/craft-simplify/SKILL.md",
+   "receipt": "craft-simplify/2026-08-04/69038ce1"
+  }
+ ],
+ "protocol": "/home/sam/.openclaw/workspaces/forge/skills/forge-feature-request/references/design-review.md",
+ "inputs": [
+  "specs/005-plans-drawn-here/spec.md",
+  "specs/005-plans-drawn-here/decisions.md",
+  "specs/005-plans-drawn-here/planning-notes.md",
+  "specs/005-plans-drawn-here/sketch.md",
+  "specs/005-plans-drawn-here/plan.md",
+  "specs/005-plans-drawn-here/research.md",
+  "specs/005-plans-drawn-here/tasks.md",
+  "CONSTITUTION.md",
+  "CONTEXT.md",
+  "docs/contributing/standards/django.md",
+  "docs/contributing/standards/testing.md",
+  "docs/adr/0010-the-package-ships-its-own-stripe-app.md",
+  "docs/adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md",
+  "docs/adr/0012-the-plans-page-is-open-to-everyone.md"
+ ],
+ "context": "The branch already carries the approved sketch: the templates under mvp_payments/templates/cotton/stripe/plan*.html and plans.html, mvp_payments/namespaces/stripe_plans.py, the template tag and filters in mvp_payments/templatetags/mvp_payments.py, PlansPageView, mvp_payments/plans_urls.py and a fake CheckoutView. The screens are approved by Sam and kept; the code behind them is the plan's to keep or rebuild test-first. The virtualenv is .venv in the worktree (stripe 16 installed).",
+ "output": "specs/005-plans-drawn-here/S3R-findings.json",
+ "schema": "/home/sam/.openclaw/workspaces/forge/engineering-org/kit/schemas/review-findings.schema.json"
+}

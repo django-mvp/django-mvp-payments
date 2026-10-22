@@ -94,3 +94,35 @@ keeps. No attribute or slot passes a replacement component in, because compositi
 the job (Article III).
 
 **ADR:** none — documented usage of components that already exist.
+
+## D4 — The tests the route move turned red
+
+The sketch moved the plans page out of the Account Center and replaced the pricing table, which
+turned 26 tests red on the branch. T003 and T004 dispose of each: tests of the pricing table
+element, its settings, its sign-in notice and its customer session are retired with the pricing
+table; tests of the plans page's route, its open access and its link from the user subscriptions
+page are rewritten against `payments_plans:stripe-plans`; contribution tests that counted two
+Stripe pages now count one; the namespace-independence and URL-name tests keep their rule and
+lose the plans page as an example.
+
+**ADR:** none — local to this feature.
+
+## D5 — `Page.login_required` is removed
+
+The option existed so the plans page could be open to everyone inside the Account Center. The
+plans page now has its own address, so no page uses it. Kept, it would be an option nobody asked
+for (Article III), and the package is unreleased (Article XVI).
+
+**ADR:** none — removal of an unused option.
+
+## D6 — Design review dispositions
+
+One review, verdict approve, no critical or high. Every medium and low was applied to `plan.md` and
+`tasks.md`: a missing Stripe customer recovered at checkout and tied at return (T005, T006); cache
+sharing documented (T008); a Stripe failure cached for 60 seconds (T001); the red tests disposed
+of (T003, D4); the session-id placeholder appended after `build_absolute_uri` and asserted (T005);
+the Article XI amendments named (plan, documentation); the catalogue-unavailable check ahead of
+"no longer on offer" (T005); a paged fake (T001); no test of the outline (T007); one frequency
+helper (T002); the tag without the Stripe app (T009).
+
+**ADR:** none — review record.
