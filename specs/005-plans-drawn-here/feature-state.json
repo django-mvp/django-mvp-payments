@@ -235,18 +235,51 @@
       "tasks": [
         {
           "id": "T009",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_views.py::TestPlansWithoutTheStripeApp"
+            ],
+            "commands": [
+              "uv run pytest tests/test_templatetags tests/test_views.py tests/test_namespaces tests/test_components -q"
+            ],
+            "code": [
+              "mvp_payments/templates/cotton/stripe/plans.html:1"
+            ]
+          }
         },
         {
           "id": "T010",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_demo.py::TestSeedDemoAgainstTheSandbox"
+            ],
+            "commands": [
+              "uv run pytest tests/test_demo.py -q"
+            ],
+            "code": [
+              "demo/settings.py:62"
+            ]
+          }
         },
         {
           "id": "T011",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 1,
+          "evidence": {
+            "tests": [
+              "tests/test_namespaces/test_stripe.py::TestStripeContribution"
+            ],
+            "commands": [
+              "uv run pytest tests/test_contributions.py tests/test_namespaces tests/test_views.py -q"
+            ],
+            "code": [
+              "mvp_payments/contributions.py:25"
+            ]
+          }
         }
       ]
     }

@@ -57,3 +57,24 @@ Did: verified product.* and price.* webhooks and stripe_sync clear the catalogue
 Verified: uv run pytest tests/test_stripe -q -> 270 passed.
 Next: US3 records, then T009.
 Watch: none.
+
+## 2026-10-22T17:08:27Z · Implementer US4 · T009
+
+Did: PlanChoices.for_request no longer raises without the Stripe app (prices None, empty addresses), and cotton/stripe/plans.html renders nothing when there are no prices. Tests for the tag in a project template, sign-in return, checkout from there, a loop replacing one part on one page, a site-wide plan_features override and the tag without the Stripe app. Docs: placing and replacing with examples.
+Verified: uv run pytest tests/test_templatetags tests/test_views.py tests/test_namespaces tests/test_components -q -> 150 passed.
+Next: T010 demo.
+Watch: the without-app test failed first on LookupError, as expected.
+
+## 2026-10-22T17:10:13Z · Implementer US4 · T010
+
+Did: the demo keeps its cache in files under a git-ignored .demo-cache directory; the offline seed primes a Basic/Pro/Team demo catalogue (Basic monthly price_demo_regular) with no expiry; the sandbox seed clears it. /plans/ and the sidebar entry were already in place. README updated.
+Verified: uv run pytest tests/test_demo.py -q -> 27 passed.
+Next: T011.
+Watch: the primed entry never expires; stripe_sync clears it.
+
+## 2026-10-22T17:11:41Z · Implementer US4 · T011
+
+Did: removed Page.in_navigation and its filter; retired/rewrote the tests tied to it (every page listed; a page takes no such option); docs/namespaces.md and CHANGELOG brought to current state, including stale lines about the plans page being in the contribution.
+Verified: uv run pytest tests/test_contributions.py tests/test_namespaces tests/test_views.py -q -> 127 passed after the change; new rejection test failed first with DID NOT RAISE.
+Next: US4 records, full verify, report.
+Watch: tests/test_contributions.py, tests/test_namespaces/test_stripe.py and tests/test_views.py tests tied to in_navigation were edited as the brief allows.
