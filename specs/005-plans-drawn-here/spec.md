@@ -128,8 +128,10 @@ to start a checkout signed out without going through the page, and confirm none 
    sent to a Stripe-hosted checkout for that price, carrying their signed reference (ADR 0011).
 2. **Given** a signed-in person who already has a Stripe customer, **When** the checkout is
    created, **Then** it is for that customer, so the purchase does not create another one.
-3. **Given** a signed-in person with no Stripe customer whose account has an email address,
-   **When** the checkout is created, **Then** Stripe is given that address to fill in.
+3. **Given** a signed-in person with no Stripe customer, **When** the checkout is created,
+   **Then** a Stripe customer is made for them first, with their account's email address when it
+   has one, and the checkout is for that customer, so buying again can never make a second one
+   (ADR 0015).
 4. **Given** a visitor who is not signed in, **When** they pick a plan, **Then** they are sent
    to the sign-in page, and no checkout is created.
 5. **Given** that visitor signs in, or creates an account from the sign-in page, **When** they
@@ -235,8 +237,9 @@ other part is unchanged.
   the visitor is returned to the plans page and told the plan is no longer on offer.
 - A request to start a checkout for a price that is not on offer: archived, one-off, from another
   account, or made up. No checkout is created.
-- A signed-in person whose Stripe customer Stripe no longer has. Checkout is created without it,
-  as for a person with no customer, and the signed reference still ties the purchase to them.
+- A signed-in person whose Stripe customer Stripe no longer has. A new customer is made, as for a
+  person with no customer, the checkout is created for it, and the signed reference still ties the
+  purchase to them.
 - A visitor who picks a plan, signs in, and turns out to hold that price already. The plan comes
   back marked as theirs, leading to their user subscriptions page.
 - A project that has not added the product and price events to its Stripe webhook. Changes reach
@@ -261,8 +264,8 @@ other part is unchanged.
   state, and MUST NOT send anyone to sign in to read it.
 - **FR-007**: A signed-in person picking a plan MUST be sent to a Stripe-hosted checkout for that
   price, created on the server by the Stripe app, carrying the person's signed reference, for
-  their existing Stripe customer when they have one, and otherwise with their account's email
-  address when it has one.
+  their Stripe customer, which is made first, with their account's email address when it has one,
+  when they have none.
 - **FR-008**: A checkout MUST NOT be created for anyone who is not signed in, whatever route the
   request takes.
 - **FR-009**: A checkout MUST NOT be created for a price that is not on offer.

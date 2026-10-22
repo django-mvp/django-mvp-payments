@@ -1,6 +1,7 @@
 """The Stripe app's local copy of a customer and their subscriptions."""
 
 import re
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 import pytest
@@ -566,6 +567,42 @@ class TestCustomerFromCheckout:
         with pytest.raises(stripe.APIConnectionError):
             Customer.from_checkout("cs_1")
 
+    def test_a_customer_the_webhook_records_meanwhile_is_returned_not_an_error(
+        self, stripe_fake
+    ):
+        """The webhook and the return view both tie a first purchase, and can collide."""
+        user = UserFactory()
+        completed_checkout(stripe_fake, Customer.client_reference(user))
+
+        with recorded_first(user, "cus_new"):
+            customer = Customer.from_checkout("cs_1")
+
+        assert customer == Customer.objects.get()
+        assert (customer.user, customer.stripe_id) == (user, "cus_new")
+
+    def test_a_reference_signed_before_the_secret_key_was_rotated_still_ties_the_user(
+        self, stripe_fake, settings
+    ):
+        user = UserFactory()
+        completed_checkout(stripe_fake, Customer.client_reference(user))
+        settings.SECRET_KEY_FALLBACKS = [settings.SECRET_KEY]
+        settings.SECRET_KEY = "a-key-rotated-in-while-the-checkout-was-open"
+
+        customer = Customer.from_checkout("cs_1")
+
+        assert customer.user == user
+
+    def test_a_reference_signed_with_a_key_since_dropped_ties_nobody(
+        self, stripe_fake, settings
+    ):
+        user = UserFactory()
+        completed_checkout(stripe_fake, Customer.client_reference(user))
+        settings.SECRET_KEY = "a-key-rotated-in-while-the-checkout-was-open"
+        settings.SECRET_KEY_FALLBACKS = []
+
+        assert Customer.from_checkout("cs_1") is None
+        assert Customer.objects.count() == 0
+
 
 COUNTS_AS_SUBSCRIBED = {"active", "trialing"}
 HAS_ENDED = {"canceled", "incomplete_expired"}
@@ -768,12 +805,14 @@ class TestCustomerForUser:
 
 
 SESSIONS = "/v1/checkout/sessions"
+CUSTOMERS = "/v1/customers"
 SUCCESS = "https://site.example/back/?session_id={CHECKOUT_SESSION_ID}"
 CANCEL = "https://site.example/plans/"
 
 
 @pytest.fixture
 def session_created(stripe_fake):
+    stripe_fake.respond("POST", CUSTOMERS, customer_payload("cus_made"))
     stripe_fake.respond(
         "POST",
         SESSIONS,
@@ -793,6 +832,28 @@ def emailed(user):
     return user
 
 
+@contextmanager
+def recorded_first(user, stripe_id):
+    """Record a customer for the user just before the code starts writing, as a racing request would."""
+    done = False
+
+    def record(execute, sql, params, many, context):
+        nonlocal done
+        if not done and sql.lstrip().upper().startswith(("SAVEPOINT", "INSERT")):
+            done = True
+            Customer.objects.bulk_create([Customer(user=user, stripe_id=stripe_id)])
+        return execute(sql, params, many, context)
+
+    with connection.execute_wrapper(record):
+        yield
+
+
+def posted(fake, path):
+    return [
+        params for method, p, params in fake.requests if (method, p) == ("POST", path)
+    ]
+
+
 @pytest.mark.django_db
 class TestCustomerStartCheckout:
     def test_asks_stripe_for_a_subscription_session_and_returns_its_address(
@@ -801,7 +862,7 @@ class TestCustomerStartCheckout:
         url = Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
 
         assert url == "https://checkout.stripe.com/c/pay/cs_1"
-        ((_, _, params),) = session_created.requests
+        (params,) = posted(session_created, SESSIONS)
         assert params["mode"] == ["subscription"]
         assert params["line_items[0][price]"] == ["price_1"]
         assert params["line_items[0][quantity]"] == ["1"]
@@ -817,30 +878,60 @@ class TestCustomerStartCheckout:
 
         Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
 
-        ((_, _, params),) = session_created.requests
+        (params,) = posted(session_created, SESSIONS)
         assert params["customer"] == ["cus_mine"]
         assert "customer_email" not in params
+        assert posted(session_created, CUSTOMERS) == []
 
-    def test_a_person_with_no_customer_is_checked_out_with_their_email(
+    def test_a_person_with_no_customer_has_one_made_first_and_checks_out_as_it(
         self, session_created, emailed
     ):
+        """So a second checkout can never make a second customer the site does not know."""
         Customer.start_checkout(emailed, "price_1", SUCCESS, CANCEL)
 
-        ((_, _, params),) = session_created.requests
-        assert params["customer_email"] == ["pat@example.com"]
-        assert "customer" not in params
+        (made,) = posted(session_created, CUSTOMERS)
+        assert made["email"] == ["pat@example.com"]
+        assert Customer.objects.get(user=emailed).stripe_id == "cus_made"
+        (params,) = posted(session_created, SESSIONS)
+        assert params["customer"] == ["cus_made"]
+        assert "customer_email" not in params
 
-    def test_an_account_with_no_email_sends_none(self, session_created, user):
+    def test_an_account_with_no_email_has_a_customer_made_without_one(
+        self, session_created, user
+    ):
         Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
 
-        ((_, _, params),) = session_created.requests
-        assert "customer_email" not in params
-        assert "customer" not in params
+        (made,) = posted(session_created, CUSTOMERS)
+        assert "email" not in made
+        (params,) = posted(session_created, SESSIONS)
+        assert params["customer"] == ["cus_made"]
 
-    def test_a_customer_stripe_no_longer_has_is_dropped_and_the_session_made_without_it(
-        self, stripe_fake, emailed
+    def test_a_customer_recorded_meanwhile_by_another_request_is_the_one_used(
+        self, session_created, user
+    ):
+        with recorded_first(user, "cus_first"):
+            Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
+
+        assert Customer.objects.get(user=user).stripe_id == "cus_first"
+        (params,) = posted(session_created, SESSIONS)
+        assert params["customer"] == ["cus_first"]
+
+    def test_a_customer_stripe_could_not_make_is_raised_and_nothing_recorded(
+        self, stripe_fake, user
+    ):
+        stripe_fake.become_unreachable("POST", CUSTOMERS)
+
+        with pytest.raises(stripe.StripeError):
+            Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
+
+        assert not Customer.objects.exists()
+        assert posted(stripe_fake, SESSIONS) == []
+
+    def test_a_customer_stripe_no_longer_has_is_replaced_and_the_session_made_for_the_new_one(
+        self, session_created, emailed
     ):
         user = emailed
+        stripe_fake = session_created
         StripeCustomerFactory(user=user, stripe_id="cus_gone")
         stripe_fake.respond_with_error(
             "GET", "/v1/customers/cus_gone", "resource_missing"
@@ -872,11 +963,12 @@ class TestCustomerStartCheckout:
         url = Customer.start_checkout(user, "price_1", SUCCESS, CANCEL)
 
         assert url == "https://checkout.stripe.com/c/pay/cs_2"
-        assert not Customer.objects.filter(user=user).exists()
-        posts = [p for method, _, p in stripe_fake.requests if method == "POST"]
-        assert posts[0]["customer"] == ["cus_gone"]
-        assert "customer" not in posts[1]
-        assert posts[1]["customer_email"] == ["pat@example.com"]
+        assert Customer.objects.get(user=user).stripe_id == "cus_made"
+        first, second = posted(stripe_fake, SESSIONS)
+        assert first["customer"] == ["cus_gone"]
+        assert second["customer"] == ["cus_made"]
+        (made,) = posted(stripe_fake, CUSTOMERS)
+        assert made["email"] == ["pat@example.com"]
 
     def test_a_refusal_that_is_not_about_the_customer_is_raised(
         self, stripe_fake, user
@@ -917,6 +1009,7 @@ class TestCustomerStartCheckout:
         assert [method for method, _, _ in stripe_fake.requests] == ["POST"]
 
     def test_a_stripe_failure_is_raised(self, stripe_fake, user):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
         stripe_fake.become_unreachable("POST", SESSIONS)
 
         with pytest.raises(stripe.StripeError):

@@ -133,7 +133,10 @@ class SubscriptionPageView(PaymentPageView):
         returned = self.request.GET.get("returned")
         if returned is None or subscriptions:
             return None
-        attempt = int(returned) if returned.isdigit() and int(returned) > 0 else 1
+        try:
+            attempt = max(int(returned), 1)
+        except ValueError:
+            attempt = 1
         return {
             "attempt": attempt,
             "poll_url": f"{self.request.path}?returned={attempt + 1}"

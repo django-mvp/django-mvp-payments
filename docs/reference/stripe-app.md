@@ -26,7 +26,9 @@ Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there
 : How many seconds the list of plans read from Stripe is kept in your project's cache. Optional,
   `3600` (an hour) when not set. See [The catalogue](#the-catalogue).
 
-Neither secret value appears in a template, a log message or an error page. The app also never reads or
+Neither secret value appears in a template, a log message or an error page. The webhook marks the
+signing secret as sensitive, so an error report Django builds with `DEBUG` off, such as the one
+`AdminEmailHandler` mails, shows it as stars. The app also never reads or
 writes the Stripe SDK's own module-level configuration, so another integration in the same
 process cannot change the key or the API version the app uses.
 
@@ -40,6 +42,7 @@ at info and debug level, so leave that logger above those levels in production.
 |---|---|
 | `mvp_payments_stripe.E001` | `MVP_PAYMENTS["STRIPE_SECRET_KEY"]` is missing or empty |
 | `mvp_payments_stripe.E002` | `MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]` is missing or empty |
+| `mvp_payments_stripe.W001` | `CACHES["default"]` is Django's dummy cache, so the catalogue is never kept and every view of the plans page asks Stripe |
 
 A message names the setting. It never prints a value.
 
@@ -55,8 +58,9 @@ Both tables carry the `mvp_payments_stripe` label.
 
 ### `Customer`
 
-One row per user who has become a Stripe customer, tied to the user by `user` (reverse name
-`stripe_customer`). Deleting the user deletes the customer and its subscriptions here. Nothing is
+One row per user who has a Stripe customer, tied to the user by `user` (reverse name
+`stripe_customer`). The customer is made when the user first starts a checkout, so a row says
+nothing about whether they ever paid. Deleting the user deletes the customer and its subscriptions here. Nothing is
 changed on Stripe.
 
 | Field | Holds |
@@ -102,6 +106,8 @@ The list is forgotten when `STRIPE_CATALOGUE_TIMEOUT` seconds have passed, when 
 `product.*` or `price.*` webhook arrives, and when `stripe_sync` runs. The webhook and the command
 run in their own processes, so they reach the page only through a cache the processes share. With a
 local-memory or dummy cache, a change in Stripe's dashboard shows when each process's copy expires.
+A dummy cache keeps nothing at all, so every view of the plans page asks Stripe, and the
+`mvp_payments_stripe.W001` check warns about it.
 
 A price is on offer when it is active, recurring, billed per unit with a fixed amount, licensed
 (not metered), and its product is active. Tiered, metered, one-off and no-amount prices are left
@@ -246,7 +252,8 @@ Stripe's checkout. Email addresses are never matched.
 `client_reference_id`. It is the user's primary key and a signature of it, joined by `_`, so
 it holds only letters, digits and underscores. The signature is made with your `SECRET_KEY` and a
 salt of this app's own. A checkout started with someone else's primary key therefore ties
-nothing to that person. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
+nothing to that person. A signature made before you rotated `SECRET_KEY` still verifies while the
+old key is in `SECRET_KEY_FALLBACKS`, so a checkout open at the moment of the rotation is not lost. [ADR 0011](../adr/0011-a-checkout-is-tied-to-its-user-by-a-signed-reference.md)
 records why.
 
 ```python
@@ -265,7 +272,8 @@ returns the customer to sync, or `None`. It returns `None`, and records nothing,
   for another user. Both cases are logged as errors naming the identifiers and nothing else.
 
 A user who subscribes again keeps the same customer, and the new subscription is recorded beside
-the old one.
+the old one. The webhook and the return view can both tie the same first purchase at once. Whichever
+records the customer second gets the row the first recorded.
 
 ## Handoffs to Stripe's own pages
 
@@ -294,9 +302,11 @@ billing-portal session for the person's customer, which a script follows. They a
 path on your site. It needs a signed-in person, answers only a POST, and keeps Django's CSRF check.
 It checks the price against the catalogue, then calls `Customer.start_checkout()` and redirects the
 reader to Stripe's checkout page. The session is a subscription for the price, with promotion codes
-allowed and the person's signed reference attached. A person who already has a Stripe customer buys
-as that customer; anyone else gives Stripe their email address, if the account has one. If Stripe no
-longer has the customer, the app deletes its local copy and asks for the session again without it.
+allowed and the person's signed reference attached. It is always for the person's own Stripe
+customer. A person who has none has one made first, with their email address if the account has one,
+so buying twice can never leave a paid subscription on a second customer the site does not know
+([ADR 0015](../adr/0015-a-customer-is-made-before-the-first-checkout.md)). If Stripe no longer has
+the customer, the app deletes its local copy, makes a new one and asks for the session again.
 
 Whatever stops the checkout, the reader goes back to `return_to` with a message that
 `mvp/base.html` shows above the page. A `return_to` that is not a path on your site is replaced by
@@ -321,7 +331,10 @@ through the return view.
 `BillingReturnView` runs `Customer.sync()` for the signed-in person's customer, so a change made in
 the portal is already recorded, and redirects to the user subscriptions page with `?returned=1`. It
 redirects whatever happens: a person with no customer and no `session_id` is not sent to Stripe,
-and a Stripe failure is logged and leaves the page to wait for the webhook. A development server,
+and a Stripe failure is logged and leaves the page to wait for the webhook. It asks Stripe at most
+once per person every `BillingReturnView.REFRESH_PAUSE` seconds (ten). Any page can make a browser
+load it, and without the pause one account could spend the Stripe account's rate limit for
+everyone. A return inside the pause redirects straight away and leaves the update to the webhook. A development server,
 which Stripe cannot reach, relies on this to show a change at once.
 
 Checkout sends the reader back here with `?session_id=` set to the Checkout Session. When the
@@ -332,7 +345,13 @@ made for another person ties nothing to this one.
 The views are classes with hooks `is_offered(customer)` and `get_flow_data(customer, return_url)`,
 so a project can subclass them.
 
-On the customer, three methods do the Stripe calls:
+On the customer, three more methods do the Stripe calls:
+
+`Customer.make_for(user)`
+: Makes a Stripe customer for a user who has none, with their email address when they have one,
+  records it and returns it. When another request recorded one for the user first, that one is
+  returned and the one just made is left on Stripe with nothing bought on it. Raises
+  `stripe.StripeError` when Stripe cannot be asked, and records nothing.
 
 `Customer.portal_url(return_url, flow_data=None)`
 : Creates a billing-portal session and returns its address. Raises `stripe.StripeError` when
