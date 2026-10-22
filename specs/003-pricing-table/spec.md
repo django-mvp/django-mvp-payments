@@ -101,7 +101,7 @@ checkout.
 
 ### User Story 2 - A purchase belongs to the person who made it (Priority: P1)
 
-A signed-in person picks a plan and pays. Their subscription appears on their own subscription page
+A signed-in person picks a plan and pays. Their subscription appears on their own user subscriptions page
 afterwards, because the customer the provider created is tied to their account by the reference the
 page passed through checkout.
 
@@ -286,7 +286,7 @@ know before they choose. It is second because the table works without it.
   from the documentation's own navigation.
 - **FR-014**: The Plans page MUST render the provider's pricing table for a person who already has
   a current subscription exactly as it does for anyone else.
-- **FR-015**: The subscription page's way to another plan MUST, for a current subscriber, lead to
+- **FR-015**: The user subscriptions page's way to another plan MUST, for a current subscriber, lead to
   the provider's own plan-change screen through the Stripe app's plan-switch view: for their
   subscription when they hold one, and for the portal's home when they hold several. A person with
   no current subscription MUST be led to the Plans page.

@@ -48,7 +48,7 @@ acme_payments = Contribution(
   `template_name` is the template the page renders.
 - **`Page.in_navigation`** decides whether that page gets an entry in the menu. It defaults to
   `True`. Set it `False` for a page that is reached from somewhere else — the shipped namespace's
-  plans page is reached from a control on its subscription page — and the page is still routed,
+  plans page is reached from a control on its user subscriptions page — and the page is still routed,
   still reverses and still renders. Reachable and navigable are different questions, and a menu
   only answers the second. django-mvp shows the Account Center's navigation in the sidebar only on
   a page that navigation has an entry for, so a page kept out of it is drawn with the project's own
@@ -60,15 +60,15 @@ acme_payments = Contribution(
 - **`group_label`** heads the section this namespace's pages sit under in the Account Center's
   navigation, and must be translatable. Label it for what a reader will find there, not for the
   library behind it — django-accounts-center heads its own section of the same menu
-  "Email & Authentication", and nobody reading their own subscription page has a use for the name
+  "Email & Authentication", and nobody reading their own user subscriptions page has a use for the name
   of a Python package.
 
 The shipped namespace follows exactly that shape: `stripe_contribution`, in
-`mvp_payments/namespaces/stripe.py`, declaring a subscription page and a plans page against the
-`mvp_payments.stripe` application name, under a `Billing` group. Only the subscription page is in
+`mvp_payments/namespaces/stripe.py`, declaring a user subscriptions page and a plans page against the
+`mvp_payments.stripe` application name, under a `Billing` group. Only the user subscriptions page is in
 the navigation, and only the plans page is open to everyone. One entry rather than several is a
 deliberate choice about what an adopter's readers see: the plans page is reached from the
-subscription page.
+user subscriptions page.
 
 Register a new contribution by adding it to `CONTRIBUTIONS` in
 `mvp_payments/namespaces/__init__.py`. Everything else follows from that: the URL configuration
@@ -104,7 +104,7 @@ to the Account Center's navigation.
 
 A view is handed its contribution as well as its own page, so a page can address a sibling without
 a copy of the URL-name format anywhere: `self.get_contribution().page_url("plans")` returns that
-page's address. That is how the shipped subscription page links to a plans page that is no longer
+page's address. That is how the shipped user subscriptions page links to a plans page that is no longer
 in the menu.
 
 ## What a namespace may not do

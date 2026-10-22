@@ -12,7 +12,7 @@
 
 **Issue**: #16
 
-**Input**: The Subscription page shows a signed-in person every subscription they currently hold, what each costs and how often it is billed, and a link out to the provider's portal to manage them. It is built from what the Stripe app records and guesses at nothing else. The deliverable is that page as a reasonable default plus the context and components behind it, so an app developer can change it with a template edit rather than a rewrite. Reading only: nothing here changes a subscription and the page works out no figure of its own.
+**Input**: The User subscriptions page shows a signed-in person every subscription they currently hold, what each costs and how often it is billed, and a link out to the provider's portal to manage them. It is built from what the Stripe app records and guesses at nothing else. The deliverable is that page as a reasonable default plus the context and components behind it, so an app developer can change it with a template edit rather than a rewrite. Reading only: nothing here changes a subscription and the page works out no figure of its own.
 
 ## Clarifications
 
@@ -64,7 +64,7 @@ Stripe app's own behaviour and the project's standards document. Longer rational
 ### User Story 1 - The page says what you are subscribed to (Priority: P1)
 
 Someone signed in to a project that has installed this package and the Stripe app opens the
-Subscription page in the Account Center. They are on a paid plan. The page names the plan, what it
+User subscriptions page in the Account Center. They are on a paid plan. The page names the plan, what it
 costs and how often they are charged for it, the state the subscription is in, and the period it is
 in now. They wrote nothing and their project supplied no template.
 
@@ -122,7 +122,7 @@ every one of them, each with its own plan, amount, frequency, status and period.
 
 **Why this priority**: Stripe's pricing table starts a new subscription with every purchase, so a
 person who buys twice holds two, and a page that showed one would misstate what they pay. It is
-second because the single-subscription page works without it.
+second because the single-user subscriptions page works without it.
 
 **Independent Test**: Give a person two current subscriptions and open the page. Both are on it.
 
@@ -176,7 +176,7 @@ unrelated template and confirm it renders on its own.
 
 **Acceptance Scenarios**:
 
-1. **Given** a project supplying its own template for the subscription page, **When** that template
+1. **Given** a project supplying its own template for the user subscriptions page, **When** that template
    renders, **Then** every value the shipped page shows is available to it under a documented name.
 2. **Given** a project placing one of this page's components in a template of its own, **When** that
    template renders, **Then** the component renders from the attributes it was given.
@@ -210,7 +210,7 @@ unrelated template and confirm it renders on its own.
 
 ### Functional Requirements
 
-- **FR-001**: The subscription page MUST show every subscription the Stripe app holds as current
+- **FR-001**: The user subscriptions page MUST show every subscription the Stripe app holds as current
   for the signed-in person, and MUST take the app's own definition rather than applying
   one of its own.
 - **FR-002**: For each of those subscriptions the page MUST show its status, and its current
@@ -256,7 +256,7 @@ unrelated template and confirm it renders on its own.
 ### Measurable Outcomes
 
 - **SC-001**: A project that installs this package and the Stripe app and mounts the package's URLs
-  gets a subscription page naming the plan, amount, frequency, status and period of every
+  gets a user subscriptions page naming the plan, amount, frequency, status and period of every
   subscription, having written no view and no template.
 - **SC-002**: A signed-in subscriber reaches the provider's management portal from the subscription
   page in one step.

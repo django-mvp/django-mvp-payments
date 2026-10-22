@@ -89,7 +89,7 @@ class PaymentPageView(AccessMixin, MVPTemplateView):
 
 
 class SubscriptionPageView(PaymentPageView):
-    """The Stripe namespace's subscription page: what the signed-in person is on.
+    """The Stripe namespace's user subscriptions page: what the signed-in person is on.
 
     Adds to the context:
 

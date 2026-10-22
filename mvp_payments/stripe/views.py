@@ -157,7 +157,7 @@ class BillingPortalView(LoginRequiredMixin, View):
 class PlanSwitchView(BillingPortalView):
     """Open the portal on the plan-change screen for this person's subscription.
 
-    The subscription page's "Switch plans" control posts here. The pricing table is the wrong
+    The user subscriptions page's "Switch plans" control posts here. The pricing table is the wrong
     place for a subscriber: buying from it starts a second subscription beside the first
     (ADR 0008). With several subscriptions there is no one to open on, so the portal's home
     lets them pick.
@@ -190,7 +190,7 @@ class PlanSwitchView(BillingPortalView):
 
 
 class BillingReturnView(LoginRequiredMixin, View):
-    """Where the portal sends a reader back to: refresh, then the subscription page.
+    """Where the portal sends a reader back to: refresh, then the user subscriptions page.
 
     A change made in the portal reaches the site through Stripe's webhook, which can arrive
     after the reader does, and a development server is not reachable from Stripe at all. So
@@ -205,7 +205,7 @@ class BillingReturnView(LoginRequiredMixin, View):
             request: The signed-in person's GET.
 
         Returns:
-            A redirect to the subscription page. A Stripe failure does not stop it: the
+            A redirect to the user subscriptions page. A Stripe failure does not stop it: the
             webhook is still coming.
         """
         customer = Customer.for_user(request.user)

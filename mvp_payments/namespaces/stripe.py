@@ -2,7 +2,7 @@
 
 One navigation entry, Subscription, under a Billing group. The plans page is
 routed but not listed, because it is reached from a control on the
-subscription page. It is open to every visitor, signed in or not. A group
+user subscriptions page. It is open to every visitor, signed in or not. A group
 holding a single entry is deliberate, and leaves an obvious place for invoices
 and payment methods to arrive later.
 """

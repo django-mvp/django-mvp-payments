@@ -65,7 +65,7 @@ _Avoid_: prefix, module, family.
 **Plan**:
 What a customer chooses — a named thing at a price, on a billing frequency. It is a presentation
 term, and deliberately not a data term: no backend has a `Plan` record, and Stripe retired the
-word in favour of prices. The subscription page shows a plan because that is what a person is
+word in favour of prices. The user subscriptions page shows a plan because that is what a person is
 looking at. The record behind it is the backend's, named in the backend's own words.
 _Avoid_: tier, package (means this distribution), SKU, product (which is a specific record in some
 backends and must keep that meaning).
@@ -85,6 +85,17 @@ _Avoid_: purchase, cart, payment form, payment flow.
 The provider-hosted page where a customer changes payment method, reads invoices and cancels. Like
 checkout, a component sends them there rather than reproducing it.
 _Avoid_: billing page, account centre, customer centre.
+
+**Plans page**:
+The page showing the plans on offer, through Stripe's own pricing table. Anyone can open it,
+signed in or not, whatever they are already subscribed to. A signed-in visitor's purchase is tied
+to their account.
+_Avoid_: pricing page, subscribe page, upgrade page.
+
+**User subscriptions page**:
+The page showing a signed-in person the subscriptions they hold, each with its status, and the
+way through to Stripe's portal. Only that person's own subscriptions, and only when signed in.
+_Avoid_: subscription page, billing page, account page, my plan.
 
 **Billing**:
 The Account Center section this package's pages sit under, and nothing else. It is a navigation

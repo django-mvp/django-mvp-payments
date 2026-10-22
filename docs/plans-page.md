@@ -2,7 +2,7 @@
 
 The `stripe` namespace contributes a page offering every visitor the plans they can choose from.
 It arrives with the package: add `mvp_payments.stripe` to `INSTALLED_APPS`, mount this package's
-URLs once, and the page is routed and reached from the subscription page. There is no view to
+URLs once, and the page is routed and reached from the user subscriptions page. There is no view to
 write. It has no entry in the Account Center's navigation, so it is drawn with the project's own
 sidebar.
 
@@ -10,7 +10,7 @@ The page is open to everyone. A visitor who is not signed in sees it, a signed-i
 and a person who already has a subscription sees it, with the same pricing table. Signing in
 changes what the table is given, not whether it is shown.
 
-Unlike the subscription page, this page shows nothing of the Stripe app's own records. It mounts
+Unlike the user subscriptions page, this page shows nothing of the Stripe app's own records. It mounts
 the provider's own embeddable pricing table — [Stripe's pricing
 table](https://docs.stripe.com/payments/checkout/pricing-table) — and reads two settings to
 configure it. No amount, currency, billing frequency or plan name is produced anywhere by this
@@ -109,9 +109,9 @@ their place when either is absent. Above the component, a visitor who is not sig
 `sign_in_url`. It takes one attribute, `url`, and renders nothing without it.
 
 Where a buyer goes after paying is set on the pricing table in the provider's dashboard. Send them
-to the subscription page with `?returned=1` on the address, so the page waits for the payment to
+to the user subscriptions page with `?returned=1` on the address, so the page waits for the payment to
 reach the Stripe app instead of telling them they have no subscription. See
-[Coming back from the provider](subscription-page.md#coming-back-from-the-provider).
+[Coming back from the provider](user-subscriptions-page.md#coming-back-from-the-provider).
 
 ```html
 {% extends "mvp/account/base.html" %}

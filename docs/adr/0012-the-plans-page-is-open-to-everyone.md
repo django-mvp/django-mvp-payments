@@ -6,7 +6,7 @@ that kept the pricing table from a current subscriber.
 ## Decision
 
 Any visitor can read the plans page, signed in or not, in any subscription state. It renders the
-provider's pricing table for all of them. Only the subscription page, which shows a person their
+provider's pricing table for all of them. Only the user subscriptions page, which shows a person their
 own subscriptions, requires a signed-in person.
 
 For a signed-in person the page passes the table their signed reference
@@ -20,7 +20,7 @@ and the package does not try to recover it.
 
 The plans a project offers are not private, so there is no reason to withhold them from someone
 who has not signed in or who already subscribes. A subscriber may want a second subscription, and
-the subscription page lists every one they hold.
+the user subscriptions page lists every one they hold.
 
 Keeping a subscriber from the table was meant to stop a second purchase from creating a second
 customer. The customer session does that directly, so the page no longer needs to hide the table.

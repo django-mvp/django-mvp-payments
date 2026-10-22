@@ -1,4 +1,4 @@
-# The subscription page
+# The user subscriptions page
 
 The `stripe` namespace contributes a page showing a signed-in person every subscription they
 currently hold. It arrives with the package: add `mvp_payments.stripe` to `INSTALLED_APPS`, mount
@@ -181,7 +181,7 @@ page, the control says the page is out of date and to reload it. On any other fa
 portal could not be reached.
 
 It listens for clicks on the whole document rather than binding each control when the page loads,
-so a control that arrives later still works. That happens on the subscription page when it polls
+so a control that arrives later still works. That happens on the user subscriptions page when it polls
 for a payment and swaps its own contents in.
 
 You load that file yourself, the way you already load your project's other static assets — this
@@ -219,7 +219,7 @@ Stripe sends a person back to your site separately from telling the Stripe app w
 so the page they land on can be reached before the app has heard. Somebody who has just paid could
 be told they have no subscription.
 
-So have the provider's checkout send them back to the subscription page with `?returned=1` on the
+So have the provider's checkout send them back to the user subscriptions page with `?returned=1` on the
 address. In the provider's dashboard, set the pricing table to redirect to your website after
 payment, at that address.
 

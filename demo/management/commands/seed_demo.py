@@ -213,7 +213,7 @@ class Command(BaseCommand):
         return stripe.Customer.create(email=email, name=email.partition("@")[0]).id
 
     def seed_offline_subscriptions(self, user_model):
-        """Give the demo something for the subscription page to show, without Stripe.
+        """Give the demo something for the user subscriptions page to show, without Stripe.
 
         ``regular.user`` gets two active subscriptions in different currencies, which is the
         several-at-once case. ``staff.user`` gets a trialing one. ``super.user`` is left with no

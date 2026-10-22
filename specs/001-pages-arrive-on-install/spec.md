@@ -215,8 +215,8 @@ the first namespace's entries, card and pages before and after.
   overview, leading to that backend's pages.
 - **FR-007**: The Stripe namespace MUST contribute two pages — the person's subscription and the
   plans available — each rendering its title and heading inside the Account Center layout. The
-  subscription page has a navigation entry. The plans page is routed and reversible but not listed,
-  because it is reached from a control on the subscription page. What each page shows beyond that is
+  user subscriptions page has a navigation entry. The plans page is routed and reversible but not listed,
+  because it is reached from a control on the user subscriptions page. What each page shows beyond that is
   delivered by later features.
 - **FR-008**: A contributed page MUST require a signed-in person and MUST send anyone else to the
   project's sign-in page, unless its namespace declares the page open to everyone. The package MUST
@@ -262,8 +262,8 @@ The last three apply across every story rather than to any one of them.
 ## Assumptions
 
 - The pages this feature contributes arrive before they have content. Each one is filled by a later
-  roadmap item: the subscription page by R2 and the plans page by R3. Managing a subscription is
-  reached from the subscription page through the provider's own portal, not through a page of
+  roadmap item: the user subscriptions page by R2 and the plans page by R3. Managing a subscription is
+  reached from the user subscriptions page through the provider's own portal, not through a page of
   its own.
 - The demo project installs the Stripe app, and its pages are what the demo shows. The provider's
   SDK reaches the demo and the test suite through the package's `stripe-lite` extra, and nothing

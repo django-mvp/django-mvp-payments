@@ -20,18 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and page addresses unchanged, and that no two declared namespaces can share a URL name.
 - `docs/namespaces.md`, covering what a namespace declares and how to add one, and the first two
   architecture decision records.
-- The subscription page now renders what the signed-in person currently holds: six components
+- The user subscriptions page now renders what the signed-in person currently holds: six components
   (`<c-drf-stripe.subscription>`, `<c-drf-stripe.plan>`, `<c-drf-stripe.amount>`,
   `<c-drf-stripe.features>`, `<c-drf-stripe.portal-link>`, `<c-drf-stripe.no-subscription>`) and
   two names on its template context, `subscriptions` and `billing_portal_endpoint`, so a project
   overriding the template needs no view, context processor or query of its own.
-  `docs/subscription-page.md` documents both.
-- `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, telling the subscription page where a project
+  `docs/user-subscriptions-page.md` documents both.
+- `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]`, telling the user subscriptions page where a project
   mounted the backend's billing-portal endpoint (`customer-portal/`).
 - `Page.in_navigation`, so a namespace can contribute a page that is routed and reverses without
   taking an entry in the Account Center's navigation.
 - `<c-drf-stripe.plans-link>`, the control that leads to the plans page, and `plans_url` on the
-  subscription page's template context.
+  user subscriptions page's template context.
 - A page's view now receives its `Contribution` as well as its `Page`, so a page can address a
   sibling with `get_contribution().page_url(slug)` rather than a hard-coded URL name.
 - The plans page now mounts the provider's own pricing table with `<c-drf-stripe.pricing-table>`,
@@ -48,10 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reader looking at empty space.
 - `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`, naming an endpoint of the project's own that opens the
   provider's plan-change screen for a subscriber's existing subscription. "Switch plans" posts to
-  it. `docs/subscription-page.md` says what the endpoint does, and the demo has a working one.
+  it. `docs/user-subscriptions-page.md` says what the endpoint does, and the demo has a working one.
 - `<c-drf-stripe.already-subscribed>`, shown on the plans page to somebody who already has a
-  subscription, with a link to their subscription page.
-- A reader who comes back from paying at the provider to the subscription page with `?returned=1`
+  subscription, with a link to their user subscriptions page.
+- A reader who comes back from paying at the provider to the user subscriptions page with `?returned=1`
   on the address is told their payment is being confirmed while the backend catches up, never that
   they have no subscription. The page's subscription region polls for itself with htmx every three
   seconds until the subscription appears, up to five times, then says to reload later. New:
@@ -82,7 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `sign_in_url`.
 - `Page.login_required`, so a namespace can contribute a page open to everyone. It defaults to
   `True`.
-- The subscription page lists every subscription a person currently holds, where it could show only
+- The user subscriptions page lists every subscription a person currently holds, where it could show only
   those the former backend called current. [ADR 0012](docs/adr/0012-the-plans-page-is-open-to-everyone.md)
   records why the plans page is open.
 
@@ -113,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `INSTALLED_APPS`, the `mvp_forms` form pack in place of `crispy_tailwind`, and `mvp.urls`
   included at the site root.
 - From django-mvp 0.25.0 the Account Center's navigation is drawn once, in the sidebar, and only
-  on a page that navigation has an entry for. The subscription page has an entry and shows it. The
+  on a page that navigation has an entry for. The user subscriptions page has an entry and shows it. The
   plans page has none, so it is drawn inside the Account Center's layout with the project's own
   sidebar.
 - The demo now signs in and out through django-mvp's own
@@ -122,7 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refuses the plain link a project without it would need.
 - **A subscriber no longer sees the pricing table.** It cannot show which plan they are on, and
   buying from it started a second subscription beside the first. The plans page now sends them to
-  their subscription page, and "Switch plans" there opens the provider's plan-change screen instead
+  their user subscriptions page, and "Switch plans" there opens the provider's plan-change screen instead
   of linking to the plans page. Without `DRF_STRIPE_PLAN_SWITCH`, a subscriber is offered no switch
   control. `<c-drf-stripe.plans-link>` takes a new `switch_endpoint` attribute.
 - `<c-drf-stripe.no-subscription>` says one thing, "You don't have an active subscription.", in
@@ -138,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the page itself to supply the attribute.
 - The drf-stripe namespace contributes one navigation entry, Subscription, under a **Billing**
   group, in place of three entries under a Payments group. The plans page is still there and is
-  reached from a control on the subscription page.
+  reached from a control on the user subscriptions page.
 - `<c-drf-stripe.portal-link>` now reads "Manage subscription" rather than "Manage billing", since
   no page is named for billing any more. It sits in a row beside the way to the plans page rather
   than beneath it.
@@ -175,11 +175,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The drf-stripe billing page and its address (`payments:drf-stripe-billing`). It never had
   content, and what it was going to hold is the portal control that already sits on the
-  subscription page.
+  user subscriptions page.
 - `drf-stripe-subscription` as a development dependency, and with it everything that read its
   records: `MVP_PAYMENTS["DRF_STRIPE_BILLING_PORTAL"]` and `MVP_PAYMENTS["DRF_STRIPE_PLAN_SWITCH"]`
   (the pages link to the Stripe app's own views), the demo's portal, plan-switch and return views,
   and the global `stripe.api_version` pin in the demo.
 - `<c-stripe.plan>`, `<c-stripe.features>` and `<c-stripe.already-subscribed>`, and the plan
-  features on the subscription page, which the Stripe app does not record. A plan's quantity is
+  features on the user subscriptions page, which the Stripe app does not record. A plan's quantity is
   not shown either.

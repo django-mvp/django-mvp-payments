@@ -4,7 +4,7 @@
 
 ## Decision
 
-On the subscription page, "Switch plans" is shown only to a current subscriber. It posts to the
+On the user subscriptions page, "Switch plans" is shown only to a current subscriber. It posts to the
 Stripe app's plan-switch view and follows the address it answers with, which is the provider's
 plan-change screen. With exactly one current subscription the screen is for that subscription. With
 several, the view opens the portal's home and the person picks. It is bound by the same static file

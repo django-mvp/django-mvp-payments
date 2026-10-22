@@ -236,7 +236,7 @@ the old one.
 Three views send a signed-in person to Stripe and bring them back. They are mounted with the
 package's URLs under the same prefix as the webhook, and they exist only while `mvp_payments.stripe`
 is in `INSTALLED_APPS`. Each needs a signed-in person and sends anyone else to the project's sign-in
-page. The subscription page links to them, and a project can too.
+page. The user subscriptions page links to them, and a project can too.
 
 | View | URL name | Address | Method |
 |---|---|---|---|
@@ -258,7 +258,7 @@ person's subscription, or the portal's home when they have several. Both send th
 through the return view.
 
 `BillingReturnView` runs `Customer.sync()` for the signed-in person's customer, so a change made in
-the portal is already recorded, and redirects to the subscription page with `?returned=1`. It
+the portal is already recorded, and redirects to the user subscriptions page with `?returned=1`. It
 redirects whatever happens: a person with no customer is not sent to Stripe, and a Stripe failure
 is logged and leaves the page to wait for the webhook. A development server, which Stripe cannot
 reach, relies on this to show a change at once.

@@ -6,7 +6,7 @@
 
 `Page` carries a `view` field defaulting to `PaymentPageView`, and the URL configuration builds each
 route from it. A page needing context the generic view cannot supply names its own view there, as
-the subscription page does with `SubscriptionPageView`.
+the user subscriptions page does with `SubscriptionPageView`.
 
 ## Why
 

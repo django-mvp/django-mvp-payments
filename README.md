@@ -124,8 +124,8 @@ share markup or a data shape, because the things they are describing are not the
 wearing different names — a subscription in one library is a different record with different
 fields from a subscription in the next.
 
-Shipped today: `stripe`, built on the package's own Stripe app. It contributes a subscription page
-and a plans page, of which only the first is in the navigation. The subscription page lists every
+Shipped today: `stripe`, built on the package's own Stripe app. It contributes a user subscriptions page
+and a plans page, of which only the first is in the navigation. The user subscriptions page lists every
 subscription a person currently holds, reading the Stripe app's records, and hands the reader to
 Stripe's own billing portal and plan-change screen through views the app mounts. It also carries
 the way to the plans page, which is open to every visitor and mounts the provider's own pricing
@@ -133,7 +133,7 @@ table from two settings. Namespaces for other backends are welcome and do not ne
 agreement about anything: adding one is adding it beside the ones already installed, and changes
 nothing about their navigation entries, their card or their pages.
 
-[docs/subscription-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/subscription-page.md) covers the subscription page: what it puts
+[docs/user-subscriptions-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/user-subscriptions-page.md) covers the user subscriptions page: what it puts
 in the template context, the components it is built from, and how to replace it with your own.
 
 [docs/plans-page.md](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/plans-page.md) covers the plans page: the component it mounts, the
