@@ -78,3 +78,10 @@ Did: admin.py with CustomerAdmin and SubscriptionAdmin over a ReadOnlyAdmin base
 Verified: uv run pytest tests/test_stripe/test_admin.py (23 passed) and tests/test_app.py (13 passed). Red first: ImportError-free but every admin URL failed to reverse before admin.py existed. Mutation probes: emptying list_select_related fails the query-count test; making has_delete_permission always False fails the user-admin delete test.
 Next: T011 demo webhook forwarding docs.
 Watch: the query-count test warms the first request, which fills a per-process cache and adds a query.
+
+## 2026-10-22T09:03:32Z · Implementer US5 · T011
+
+Did: demo/.env.example and the README's demo section document `stripe listen --forward-to localhost:8020/account/billing/stripe/webhook/` (the path is the demo's account/billing/ mount plus stripe/webhook/), the events to forward, and putting the printed whsec_ value into STRIPE_TEST_WEBHOOK_SECRET. Two tests in tests/test_demo.py: the secret comes from the environment when given, and the demo still has a value without one.
+Verified: uv run pytest tests/test_demo.py (all passed). The demo settings already read the secret, so the first test passed on first run; probed by mutation: renaming the environment key in demo/settings.py fails it.
+Next: T012 secrets and changelog.
+Watch: US5 scenario 1 needs a real sandbox and is documented only; the tests show what settings can show.
