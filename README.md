@@ -34,8 +34,8 @@ Version 0.0.1. The `stripe` namespace contributes one entry to the Account Cente
 under a Billing group. That page shows a signed-in person every subscription they currently hold,
 the way to switch plans, and the way through to Stripe's billing portal. The plans page it leads
 to is open to every visitor and mounts Stripe's own pricing table, configured by two settings. It
-ties a signed-in person's purchase to them, tells a visitor who is not signed in to sign in
-first, and says so plainly when it has not been configured or when Stripe's library never arrived.
+ties a signed-in person's purchase to them, asks a visitor who is not signed in to sign in in
+place of the table, and says so plainly when it has not been configured or when Stripe's library never arrived.
 Nothing here is stable.
 
 ## Requirements

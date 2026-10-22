@@ -317,7 +317,6 @@ class TestSignInNotice:
         )
 
         assert 'href="/accounts/login/?next=/account/billing/plans/"' in html
-        assert "Sign in before choosing a plan" in html
 
     def test_given_no_address_it_renders_nothing_at_all(self, cotton_render):
         assert cotton_render("stripe.sign-in-notice", url=None).strip() == ""

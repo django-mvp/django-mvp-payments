@@ -12,7 +12,7 @@
 
 **Issue**: #24
 
-**Input**: A payment component in the Stripe namespace that renders the provider's own pricing table, placeable by a project on any page of its own and also filling the Plans page this package already contributes to the Account Center. Both routes render the same component, so there is one thing to override. The component emits the provider's pricing-table element and its attributes only, never the provider's script tag, which the host project loads however it already manages its frontend. The pricing table identifier and publishable key reach the component as attributes; the shipped Plans page reads both from the project's settings and passes them through, and says plainly when they are absent rather than emitting an element that cannot work. The Plans page is open to every visitor, signed in or not, in any subscription state. When a person is signed in, the page passes the pricing table a signed reference that ties the purchase to them, and, when they already have a Stripe customer, a customer session so the purchase lands on that customer. A visitor who is not signed in is told to sign in before choosing a plan. No plan selection is built from the Stripe app's records: a project that wants its own markup overrides the component or the page template.
+**Input**: A payment component in the Stripe namespace that renders the provider's own pricing table, placeable by a project on any page of its own and also filling the Plans page this package already contributes to the Account Center. Both routes render the same component, so there is one thing to override. The component emits the provider's pricing-table element and its attributes only, never the provider's script tag, which the host project loads however it already manages its frontend. The pricing table identifier and publishable key reach the component as attributes; the shipped Plans page reads both from the project's settings and passes them through, and says plainly when they are absent rather than emitting an element that cannot work. The Plans page is open to every visitor, signed in or not, in any subscription state. When a person is signed in, the page passes the pricing table a signed reference that ties the purchase to them, and, when they already have a Stripe customer, a customer session so the purchase lands on that customer. A visitor who is not signed in is asked to sign in, in place of the pricing table, because the table's own buttons would let them buy without an account. No plan selection is built from the Stripe app's records: a project that wants its own markup overrides the component or the page template.
 
 ## Clarifications
 
@@ -58,9 +58,11 @@ provider's published behaviour and the Stripe app's own source. Longer rationale
 
 - **Q: Does the Plans page require a signed-in person, or show the table to someone who already
   has a subscription?**
-  A: Neither. The plans the project offers are not private, and a person who is not signed in or
-  already subscribed has as much reason to read them as anyone. The page is open to every visitor
-  in every subscription state. The component carries no sign-in requirement either, which is what
+  A: The page is open to every visitor in every subscription state, and the pricing table is
+  given to every signed-in person, subscribed or not. A visitor who is not signed in reaches the
+  page and is asked to sign in in place of the table, because the table's buttons go straight to
+  checkout from inside the provider's frame and nothing on the page can stop a purchase that would
+  then be tied to no account. Showing the plans to that visitor without a way to buy is issue #61. The component carries no sign-in requirement either, which is what
   lets a project place it on a public landing page. Recorded as FR-008, FR-009 and FR-014.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -92,7 +94,7 @@ checkout.
 4. **Given** a person takes one of those ways, **When** they do, **Then** they arrive at the
    provider's own checkout without passing through any page of this package.
 5. **Given** a visitor who is not signed in, **When** they go to the Plans page's address directly,
-   **Then** they see the page and the pricing table, with a notice above it to sign in first.
+   **Then** they see the page, asking them to sign in, and no pricing table.
 6. **Given** the page renders, **When** its output is read, **Then** no amount, currency or billing
    frequency produced by this package appears anywhere on it. Every price a reader sees comes from
    the provider.
@@ -209,20 +211,20 @@ project's markup with no other change. Then override the page template and confi
 
 ---
 
-### User Story 6 - A visitor is told to sign in first (Priority: P2)
+### User Story 6 - A visitor signs in to choose a plan (Priority: P2)
 
-A visitor who is not signed in opens the Plans page. Above the table, a notice says to sign in
-before choosing a plan and links to the sign-in page, which returns them to the Plans page.
+A visitor who is not signed in opens the Plans page. In place of the table, a notice asks them to
+sign in and links to the sign-in page, which returns them to the Plans page.
 
-**Why this priority**: A purchase made without signing in is tied to nobody, so the visitor needs to
-know before they choose. It is second because the table works without it.
+**Why this priority**: A purchase made without signing in is tied to nobody, and the provider's
+table cannot be stopped from taking one, so a visitor who is not signed in is given no table.
 
 **Independent Test**: Open the Plans page signed out and follow the notice's link.
 
 **Acceptance Scenarios**:
 
-1. **Given** a visitor who is not signed in, **When** the page renders, **Then** a notice above the
-   table says to sign in before choosing a plan.
+1. **Given** a visitor who is not signed in, **When** the page renders, **Then** a notice asks them
+   to sign in, and no pricing table is rendered.
 2. **Given** that notice, **When** the visitor follows its link, **Then** they reach the sign-in
    page, and after signing in come back to the Plans page.
 3. **Given** a signed-in person, **When** the page renders, **Then** no such notice appears.
@@ -244,8 +246,9 @@ know before they choose. It is second because the table works without it.
   condition as the script not being loaded and reads the same way.
 - A current subscriber who reaches the Plans page. They see the table like anyone else, and a
   purchase they make lands on the Stripe customer they already have.
-- A purchase made by a visitor who ignored the sign-in notice. It is tied to nobody, and this
-  package does not try to recover it.
+- A purchase by a visitor who is not signed in cannot be started from the Plans page, because the
+  table is not rendered for them. A project that places the component on a page of its own for
+  such visitors accepts that a purchase made there is tied to nobody.
 
 ## Requirements *(mandatory)*
 
@@ -290,8 +293,8 @@ know before they choose. It is second because the table works without it.
   the provider's own plan-change screen through the Stripe app's plan-switch view: for their
   subscription when they hold one, and for the portal's home when they hold several. A person with
   no current subscription MUST be led to the Plans page.
-- **FR-016**: A visitor who is not signed in MUST be told, above the pricing table, to sign in
-  before choosing a plan, with a link to the sign-in page that returns to the Plans page. A signed-in
+- **FR-016**: A visitor who is not signed in MUST be asked to sign in, with a link to the sign-in
+  page that returns to the Plans page, and MUST NOT be given the pricing table. A signed-in
   person MUST NOT see that notice.
 - **FR-017**: A failure to create a customer session MUST NOT stop the Plans page rendering, and
   MUST be logged without Stripe's message.

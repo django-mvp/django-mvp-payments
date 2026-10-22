@@ -76,9 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `client-reference-id`, and for one who already has a Stripe customer also
   `customer-session-client-secret`, so a further purchase lands on the customer they have.
   `<c-stripe.pricing-table>` takes `client_reference_id` and `customer_session_client_secret`, and
-  drops `customer-email` when a customer session is passed. A visitor who is not signed in is told
-  to sign in first by the new `<c-stripe.sign-in-notice>`; a purchase made without signing in is
-  tied to nobody. New context names: `client_reference_id`, `customer_session_client_secret` and
+  drops `customer-email` when a customer session is passed. A visitor who is not signed in is asked
+  to sign in by the new `<c-stripe.sign-in-notice>`, in place of the pricing table, so nobody can
+  buy without an account. New context names: `client_reference_id`, `customer_session_client_secret` and
   `sign_in_url`.
 - `Page.login_required`, so a namespace can contribute a page open to everyone. It defaults to
   `True`.

@@ -6,9 +6,10 @@ URLs once, and the page is routed and reached from the user subscriptions page. 
 write. It has no entry in the Account Center's navigation, so it is drawn with the project's own
 sidebar.
 
-The page is open to everyone. A visitor who is not signed in sees it, a signed-in person sees it,
-and a person who already has a subscription sees it, with the same pricing table. Signing in
-changes what the table is given, not whether it is shown.
+The page is open to everyone. Every signed-in person gets the pricing table, whether or not they
+already have a subscription. A visitor who is not signed in is asked to sign in in place of the
+table, because the table's own buttons go straight to Stripe's checkout and a purchase made without
+an account would be tied to nobody.
 
 Unlike the user subscriptions page, this page shows nothing of the Stripe app's own records. It mounts
 the provider's own embeddable pricing table — [Stripe's pricing
@@ -68,9 +69,10 @@ session is passed. Where there is no address, the attribute is omitted rather th
                         :customer_session_client_secret="customer_session_client_secret" />
 ```
 
-A visitor who is not signed in gets none of these. A purchase made then is tied to nobody: the
+A visitor who is not signed in is not given the table at all (see below). If you place the
+component on a page of your own for such visitors, a purchase made there is tied to nobody: the
 Stripe app's webhook finds no reference to verify and records nothing, and the package does not
-try to match the buyer by email. The page says so before it happens (see below).
+try to match the buyer by email.
 
 ## The page
 
@@ -104,9 +106,8 @@ MVP_PAYMENTS = {
 ```
 
 The shipped page renders the component when both values are present, and a plain sentence in
-their place when either is absent. Above the component, a visitor who is not signed in gets
-`<c-stripe.sign-in-notice>`, which says to sign in before choosing a plan and links to
-`sign_in_url`. It takes one attribute, `url`, and renders nothing without it.
+their place when either is absent. A visitor who is not signed in gets `<c-stripe.sign-in-notice>`
+in place of the component, which asks them to sign in and links to `sign_in_url`. It takes one attribute, `url`, and renders nothing without it.
 
 Where a buyer goes after paying is set on the pricing table in the provider's dashboard. Send them
 to the user subscriptions page with `?returned=1` on the address, so the page waits for the payment to

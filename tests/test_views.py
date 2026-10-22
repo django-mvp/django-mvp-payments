@@ -310,18 +310,12 @@ class TestPlansPage:
         assert "client-reference-id" in content
         assert "customer-session-client-secret" not in content
 
-    def test_an_anonymous_visitor_sees_the_pricing_table_with_no_reference(
-        self, client, db, stripe_fake
-    ):
+    def test_an_anonymous_visitor_is_given_no_way_to_buy(self, client, db, stripe_fake):
         response = client.get(reverse("payments:stripe-plans"))
 
         content = _content_region(response.content.decode())
         assert response.status_code == 200
-        assert "<stripe-pricing-table" in content
-        assert 'pricing-table-id="prctbl_not_a_real_table"' in content
-        assert "client-reference-id" not in content
-        assert "customer-session-client-secret" not in content
-        assert "customer-email" not in content
+        assert "<stripe-pricing-table" not in content
         assert response.context["client_reference_id"] is None
         assert stripe_fake.requests == []
 
@@ -336,7 +330,6 @@ class TestPlansPage:
         assert response.context["sign_in_url"] == sign_in
         content = _content_region(response.content.decode())
         assert f'href="{sign_in}"' in content
-        assert content.index(sign_in) < content.index("<stripe-pricing-table")
 
     def test_a_signed_in_person_is_not_told_to_sign_in(self, logged_in_client):
         response = logged_in_client.get(reverse("payments:stripe-plans"))
