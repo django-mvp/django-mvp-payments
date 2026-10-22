@@ -26,6 +26,12 @@ Every setting lives in the `MVP_PAYMENTS` dictionary and is read only from there
 : How many seconds the list of plans read from Stripe is kept in your project's cache. Optional,
   `3600` (an hour) when not set. See [The catalogue](#the-catalogue).
 
+`STRIPE_TIMEOUT`
+: How many seconds one request to Stripe may take before the app gives up on it. Optional, `10`
+  when not set. A request that times out, cannot connect or meets an error on Stripe's side is
+  tried twice more before the app reports it as a failure. Stripe answers every call the app makes
+  in well under a second, and a worker left waiting is one a page cannot use.
+
 Neither secret value appears in a template, a log message or an error page. The webhook marks the
 signing secret as sensitive, so an error report Django builds with `DEBUG` off, such as the one
 `AdminEmailHandler` mails, shows it as stars. The app also never reads or
@@ -296,6 +302,7 @@ billing-portal session for the person's customer, which a script follows. They a
 |---|---|
 | 200 | A portal session was created |
 | 409 | The person has no Stripe customer, or, for the plan switch, nothing subscribed. Stripe is not asked and nothing is created |
+| 429 | The person has opened the portal or the plan switch ten times in the current minute, the two counted together. Stripe is not asked |
 | 502 | Stripe could not be asked or refused. The log names the kind of error and never Stripe's message |
 
 `CheckoutView` is where a plan's Choose button posts, with the `price` chosen and a `return_to`
@@ -317,12 +324,22 @@ the plans page.
 | The catalogue cannot be read | An error message |
 | The price is not on offer, or was not sent | A warning that the plan is no longer on offer |
 | The person already holds the price | A redirect to the user subscriptions page |
+| The person has started ten checkouts in the current minute | A warning to wait a moment. Stripe is not asked |
 | Stripe refuses or cannot be reached | An error message. The log names the kind of error and never Stripe's message |
 
 `Customer.start_checkout(user, price_id, success_url, cancel_url)` returns the address of the
 Checkout Session and raises `stripe.StripeError` when Stripe cannot be asked. The view builds
 `success_url` from the return view's absolute address with `?session_id={CHECKOUT_SESSION_ID}`
 appended, so Stripe fills the session's id in.
+
+Each of these creates something at Stripe for whoever posts, so each counts one person's requests
+in the project's default cache and refuses them past ten a minute. CSRF keeps another site from
+posting, but not the person themselves, and one account posting in a loop would otherwise spend
+the Stripe account's rate limit for everyone. A shared cache counts across processes, a
+local-memory one per process. The limits are `CheckoutView.rate_limit` and
+`BillingPortalView.rate_limit`, each a `mvp_payments.stripe.limits.RateLimit`, which a subclass can
+replace. A run of new accounts is not something one person's limit can stop: throttle sign-up for
+that.
 
 The portal view opens the portal's home. The plan-switch view opens the plan-change screen for the
 person's subscription, or the portal's home when they have several. Both send the reader back
@@ -402,8 +419,16 @@ These are importable but are not the app's interface. They are listed so that no
 undescribed.
 
 `mvp_payments.stripe.client.http_client`
-: `None` in normal use, so the SDK picks its own HTTP client. A test sets it to a
-  `stripe.HTTPClient` of its own to keep requests off the network.
+: `None` in normal use, so the app builds the SDK's `RequestsClient` with the configured timeout. A
+  test sets it to a `stripe.HTTPClient` of its own to keep requests off the network.
+
+`mvp_payments.stripe.client.TIMEOUT` and `MAX_NETWORK_RETRIES`
+: The timeout used when `STRIPE_TIMEOUT` is not set, ten seconds, and the two retries every request
+  gets.
+
+`mvp_payments.stripe.limits.RateLimit(name, limit, seconds)`
+: Counts one person's requests in fixed windows of `seconds`. `allows(user)` counts the request and
+  says whether it is within `limit`.
 
 `mvp_payments.stripe.models.from_epoch(seconds)`
 : Turns a Stripe timestamp in epoch seconds into an aware UTC datetime, or `None` when Stripe
