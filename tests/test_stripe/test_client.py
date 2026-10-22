@@ -34,7 +34,7 @@ class RecordingHTTPClient(stripe.HTTPClient):
 @pytest.fixture
 def recorder(monkeypatch):
     http_client = RecordingHTTPClient()
-    monkeypatch.setattr(client_module, "_http_client", http_client)
+    monkeypatch.setattr(client_module, "http_client", http_client)
     return http_client
 
 

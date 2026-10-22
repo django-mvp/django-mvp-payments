@@ -11,7 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 API_VERSION = "2026-09-30.endive"
 
 #: Replaced only by the test suite, to keep requests off the network.
-_http_client: stripe.HTTPClient | None = None
+http_client: stripe.HTTPClient | None = None
 
 
 def client() -> stripe.StripeClient:
@@ -32,5 +32,5 @@ def client() -> stripe.StripeClient:
             "MVP_PAYMENTS['STRIPE_SECRET_KEY'] must be set to use mvp_payments.stripe."
         )
     return stripe.StripeClient(
-        secret_key, stripe_version=API_VERSION, http_client=_http_client
+        secret_key, stripe_version=API_VERSION, http_client=http_client
     )

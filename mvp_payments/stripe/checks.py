@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.checks import CheckMessage, Error, register
 from django.utils.translation import gettext as _
 
-_REQUIRED = (
+REQUIRED = (
     ("STRIPE_SECRET_KEY", "mvp_payments_stripe.E001"),
     ("STRIPE_WEBHOOK_SECRET", "mvp_payments_stripe.E002"),
 )
@@ -30,6 +30,6 @@ def check_settings(app_configs, **kwargs) -> list[CheckMessage]:
             hint=_("Set it in the project's settings, from runtime configuration."),
             id=check_id,
         )
-        for name, check_id in _REQUIRED
+        for name, check_id in REQUIRED
         if not configured.get(name)
     ]

@@ -17,11 +17,11 @@ from django.utils.translation import gettext_lazy as _
 
 from .client import client
 
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 #: Keys the HMAC of a checkout reference to this app, so a signature made for another purpose
 #: from the same SECRET_KEY can never pass as one.
-_REFERENCE_SALT = "mvp_payments.stripe.client_reference"
+REFERENCE_SALT = "mvp_payments.stripe.client_reference"
 
 
 class Customer(models.Model):
@@ -74,11 +74,11 @@ class Customer(models.Model):
             The user's primary key and an HMAC of it, joined by ``_``. It holds only letters,
             digits and underscores, which is all the pricing table accepts.
         """
-        return f"{user.pk}_{cls._signature(user.pk)}"
+        return f"{user.pk}_{cls.signature(user.pk)}"
 
     @staticmethod
-    def _signature(pk) -> str:
-        return salted_hmac(_REFERENCE_SALT, str(pk), algorithm="sha256").hexdigest()
+    def signature(pk) -> str:
+        return salted_hmac(REFERENCE_SALT, str(pk), algorithm="sha256").hexdigest()
 
     @classmethod
     def from_checkout(cls, session_id: str) -> Customer | None:
@@ -102,8 +102,9 @@ class Customer(models.Model):
         stripe_id = session.customer
         if not stripe_id:
             return None
-        pk, _separator, signature = session.client_reference_id.rpartition("_")
-        if not constant_time_compare(signature, cls._signature(pk)):
+        parts = session.client_reference_id.rpartition("_")
+        pk, presented = parts[0], parts[2]
+        if not constant_time_compare(presented, cls.signature(pk)):
             return None
         user = get_user_model().objects.filter(pk=pk).first()
         if user is None:
@@ -112,7 +113,7 @@ class Customer(models.Model):
         if existing is not None:
             if existing.stripe_id == stripe_id:
                 return existing
-            _logger.error(
+            logger.error(
                 "Checkout %s names Stripe customer %s for user %s, who already has %s.",
                 session_id,
                 stripe_id,
@@ -121,7 +122,7 @@ class Customer(models.Model):
             )
             return None
         if cls.objects.filter(stripe_id=stripe_id).exists():
-            _logger.error(
+            logger.error(
                 "Checkout %s names Stripe customer %s for user %s, but it belongs to another user.",
                 session_id,
                 stripe_id,
@@ -184,12 +185,12 @@ class Customer(models.Model):
                         "currency": price["currency"],
                         "interval": price["recurring"]["interval"],
                         "interval_count": price["recurring"]["interval_count"],
-                        "current_period_start": _from_epoch(
+                        "current_period_start": from_epoch(
                             item["current_period_start"]
                         ),
-                        "current_period_end": _from_epoch(item["current_period_end"]),
+                        "current_period_end": from_epoch(item["current_period_end"]),
                         "cancel_at_period_end": subscription["cancel_at_period_end"],
-                        "ended_at": _from_epoch(subscription["ended_at"]),
+                        "ended_at": from_epoch(subscription["ended_at"]),
                     },
                 )
             customer.subscriptions.exclude(
@@ -199,7 +200,7 @@ class Customer(models.Model):
             ).delete()
 
 
-def _from_epoch(seconds: int | None) -> datetime | None:
+def from_epoch(seconds: int | None) -> datetime | None:
     """Convert a Stripe timestamp to an aware datetime.
 
     Args:

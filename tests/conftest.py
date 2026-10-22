@@ -77,5 +77,5 @@ def account_center_menu():
 def stripe_fake(monkeypatch):
     """Stand in for Stripe: the app's own client is built over this HTTP client."""
     fake = FakeStripe()
-    monkeypatch.setattr(stripe_client_module, "_http_client", fake)
+    monkeypatch.setattr(stripe_client_module, "http_client", fake)
     return fake

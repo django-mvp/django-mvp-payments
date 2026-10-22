@@ -5,7 +5,7 @@ from django.urls import resolve, reverse
 from mvp_payments.stripe.views import webhook
 from tests.probes import run_probe
 
-_WEBHOOK_ADDRESS_PROBE = """
+WEBHOOK_ADDRESS_PROBE = """
 import json
 
 import django
@@ -38,6 +38,6 @@ class TestWebhookAddress:
         assert resolve(url).func is webhook
 
     def test_without_the_app_installed_the_address_does_not_resolve(self):
-        result = run_probe(_WEBHOOK_ADDRESS_PROBE, "tests.settings_without_stripe_app")
+        result = run_probe(WEBHOOK_ADDRESS_PROBE, "tests.settings_without_stripe_app")
 
         assert result == {"reverses": False, "resolves": False}
