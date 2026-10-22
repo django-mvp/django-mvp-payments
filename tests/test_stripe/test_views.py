@@ -652,6 +652,70 @@ class TestBillingReturn:
         assert response.url.startswith(reverse("account_login"))
         assert stripe_fake.requests == []
 
+    def bought(self, stripe_fake, user, *, reference_user=None, customer="cus_new"):
+        reference = Customer.client_reference(reference_user or user)
+        stripe_fake.respond(
+            "GET",
+            "/v1/checkout/sessions/cs_1",
+            checkout_session_payload(
+                "cs_1", client_reference_id=reference, customer=customer
+            ),
+        )
+        stripe_now_holds(
+            stripe_fake, customer, subscription_payload("sub_new", customer)
+        )
+
+    def test_a_purchase_is_tied_to_the_person_and_synced_before_the_redirect(
+        self, stripe_fake, client, user
+    ):
+        self.bought(stripe_fake, user)
+        client.force_login(user)
+
+        response = client.get(self.url, {"session_id": "cs_1"})
+
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+        customer = Customer.objects.get(user=user)
+        assert customer.stripe_id == "cus_new"
+        assert list(customer.subscriptions.values_list("stripe_id", flat=True)) == [
+            "sub_new"
+        ]
+
+    def test_a_person_who_has_a_customer_does_not_ask_stripe_about_the_session(
+        self, stripe_fake, client, user
+    ):
+        StripeCustomerFactory(user=user, stripe_id="cus_mine")
+        stripe_now_holds(
+            stripe_fake, "cus_mine", subscription_payload("sub_new", "cus_mine")
+        )
+        client.force_login(user)
+
+        client.get(self.url, {"session_id": "cs_1"})
+
+        assert "/v1/checkout/sessions/cs_1" not in stripe_fake.paths()
+
+    def test_a_session_made_for_somebody_else_ties_nothing_to_this_person(
+        self, stripe_fake, client, user
+    ):
+        other = UserFactory()
+        self.bought(stripe_fake, user, reference_user=other)
+        client.force_login(user)
+
+        response = client.get(self.url, {"session_id": "cs_1"})
+
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+        assert not Customer.objects.filter(user=user).exists()
+        assert not Subscription.objects.exists()
+
+    def test_stripe_being_unreachable_for_the_session_still_sends_the_reader_on(
+        self, stripe_fake, client, user
+    ):
+        stripe_fake.become_unreachable("GET", "/v1/checkout/sessions/cs_1")
+        client.force_login(user)
+
+        response = client.get(self.url, {"session_id": "cs_1"})
+
+        assert response.url == reverse("payments:stripe-subscription") + "?returned=1"
+
 
 SESSIONS = "/v1/checkout/sessions"
 

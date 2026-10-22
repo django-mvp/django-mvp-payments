@@ -311,9 +311,14 @@ through the return view.
 
 `BillingReturnView` runs `Customer.sync()` for the signed-in person's customer, so a change made in
 the portal is already recorded, and redirects to the user subscriptions page with `?returned=1`. It
-redirects whatever happens: a person with no customer is not sent to Stripe, and a Stripe failure
-is logged and leaves the page to wait for the webhook. A development server, which Stripe cannot
-reach, relies on this to show a change at once.
+redirects whatever happens: a person with no customer and no `session_id` is not sent to Stripe,
+and a Stripe failure is logged and leaves the page to wait for the webhook. A development server,
+which Stripe cannot reach, relies on this to show a change at once.
+
+Checkout sends the reader back here with `?session_id=` set to the Checkout Session. When the
+person has no customer yet, the view ties the purchase to them with `Customer.from_checkout()`
+before it syncs, so a first purchase shows at once and does not wait for the webhook. A session
+made for another person ties nothing to this one.
 
 The views are classes with hooks `is_offered(customer)` and `get_flow_data(customer, return_url)`,
 so a project can subclass them.

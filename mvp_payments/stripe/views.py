@@ -206,23 +206,46 @@ class BillingReturnView(LoginRequiredMixin, View):
         """Bring the person's subscriptions up to date, then go back to the page.
 
         Args:
-            request: The signed-in person's GET.
+            request: The signed-in person's GET. Coming back from checkout it carries
+                ``session_id``, which ties a first purchase to the person when the webhook
+                has not yet done so.
 
         Returns:
             A redirect to the user subscriptions page. A Stripe failure does not stop it: the
             webhook is still coming.
         """
-        customer = Customer.for_user(request.user)
-        if customer is not None:
-            try:
+        try:
+            customer = self.get_customer(request)
+            if customer is not None:
                 customer.sync()
-            except stripe.StripeError as error:
-                logger.error(  # noqa: TRY400
-                    "Could not refresh user %s from Stripe: %s.",
-                    request.user.pk,
-                    type(error).__name__,
-                )
+        except stripe.StripeError as error:
+            logger.error(  # noqa: TRY400
+                "Could not refresh user %s from Stripe: %s.",
+                request.user.pk,
+                type(error).__name__,
+            )
         return redirect(reverse(f"{APP_NAMESPACE}:stripe-subscription") + "?returned=1")
+
+    def get_customer(self, request: HttpRequest) -> Customer | None:
+        """Find the customer to refresh, tying a checkout's purchase to the person if need be.
+
+        Args:
+            request: The signed-in person's GET.
+
+        Returns:
+            The person's customer. When they have none and the request names a checkout
+            session, the customer that session created, if it was made for this person.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused.
+        """
+        customer = Customer.for_user(request.user)
+        session_id = request.GET.get("session_id")
+        if customer is None and session_id:
+            customer = Customer.from_checkout(session_id)
+            if customer is not None and customer.user_id != request.user.pk:
+                return None
+        return customer
 
 
 class CheckoutView(LoginRequiredMixin, View):
