@@ -68,8 +68,10 @@ that cannot start returns the reader to this page with a message above it.
 
 The Stripe app reads the prices from Stripe and keeps them in your project's default cache for
 `MVP_PAYMENTS["STRIPE_CATALOGUE_TIMEOUT"]` seconds, an hour when it is not set. A visit while
-they are cached makes no request to Stripe. A price changed in Stripe's dashboard therefore shows
-on the page when the cached list expires. The catalogue, the cache key and the failure handling
+they are cached makes no request to Stripe. A price changed in Stripe's dashboard shows on the
+page when the cached list expires, or sooner when a product or price webhook arrives or
+`stripe_sync` runs. Those two clear the list from other processes, so they reach the page only
+when your default cache is shared across processes, not a local-memory or dummy one. The catalogue, the cache key and the failure handling
 are described in [the Stripe app reference](stripe-app.md#the-catalogue).
 
 ## The parts

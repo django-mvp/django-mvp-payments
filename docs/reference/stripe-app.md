@@ -97,6 +97,11 @@ the database. Your project's default cache decides how widely the list is shared
 cache keeps one copy per process, and a shared cache (Redis, Memcached, a database or file cache)
 keeps one copy for all of them.
 
+The list is forgotten when `STRIPE_CATALOGUE_TIMEOUT` seconds have passed, when a verified
+`product.*` or `price.*` webhook arrives, and when `stripe_sync` runs. The webhook and the command
+run in their own processes, so they reach the page only through a cache the processes share. With a
+local-memory or dummy cache, a change in Stripe's dashboard shows when each process's copy expires.
+
 A price is on offer when it is active, recurring, billed per unit with a fixed amount, licensed
 (not metered), and its product is active. Tiered, metered, one-off and no-amount prices are left
 out, because a page cannot show one honest amount for them.
@@ -195,6 +200,9 @@ secret or a changed address. Running it again straight away changes nothing.
 : The `USERNAME_FIELD` value of one user, such as their username. Only that user's customer is
   synced. A name no user has, or a user with no recorded customer, stops the command with an
   error before Stripe is asked anything.
+
+The command also clears the cached catalogue before it syncs, so the plans page reads Stripe
+again, whether or not any customer is recorded.
 
 A customer Stripe no longer has is removed with its subscriptions, as `sync()` does. Each customer
 is synced in a transaction of its own. When Stripe cannot be asked, the command stops with an
@@ -355,6 +363,11 @@ newer one about the same subscription therefore leaves the same records.
 | `customer.deleted` | The one whose `stripe_id` is the deleted customer |
 | Any other type | None |
 
+A verified `product.*` or `price.*` event also calls `Catalogue.clear()`, so the next read of the
+catalogue asks Stripe and the plans page shows the change. An event that does not verify clears
+nothing. The clearing reaches the plans page only when the cache is shared across processes; see
+[the catalogue](#the-catalogue).
+
 | Answer | When |
 |---|---|
 | 400 | The signature is missing, wrong or expired, or the body is not a Stripe event |
@@ -376,7 +389,8 @@ undescribed.
 : Turns a Stripe timestamp in epoch seconds into an aware UTC datetime, or `None` when Stripe
   reported none.
 
-`mvp_payments.stripe.views.BillingPortalView`, `PlanSwitchView` and `BillingReturnView`
+`mvp_payments.stripe.views.BillingPortalView`, `PlanSwitchView`, `BillingReturnView` and
+`CheckoutView`
 : The handoff views described above.
 
 `mvp_payments.stripe.views.customer_for(event)`

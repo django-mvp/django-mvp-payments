@@ -28,11 +28,12 @@ logger = logging.getLogger(__name__)
 @csrf_exempt
 @require_POST
 def webhook(request: HttpRequest) -> HttpResponse:
-    """Verify a Stripe webhook, then bring the affected customer's records into step.
+    """Verify a Stripe webhook, then bring the affected records into step.
 
     The signature is checked before anything in the body is read. A verified event is a
     prompt, not a payload to trust: the records are rewritten from what Stripe holds now,
-    so an event that arrives twice, late or out of order leaves the same rows. A function
+    so an event that arrives twice, late or out of order leaves the same rows. A product or
+    price event forgets the cached catalogue, so the plans page reads Stripe again. A function
     view, because nothing here is meant to be subclassed.
 
     Args:
@@ -55,6 +56,9 @@ def webhook(request: HttpRequest) -> HttpResponse:
     except (ValueError, stripe.SignatureVerificationError) as error:
         logger.warning("Refused a Stripe webhook: %s.", type(error).__name__)
         return HttpResponse(status=400)
+
+    if event.type.startswith(("product.", "price.")):
+        Catalogue.clear()
 
     try:
         with transaction.atomic():

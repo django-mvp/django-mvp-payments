@@ -18,10 +18,16 @@ reaches your database.
    - `customer.subscription.paused`
    - `customer.subscription.resumed`
    - `customer.deleted`
+   - `product.created`, `product.updated` and `product.deleted`
+   - `price.created`, `price.updated` and `price.deleted`
 
 4. Copy the endpoint's signing secret into `MVP_PAYMENTS["STRIPE_WEBHOOK_SECRET"]`.
 
-Stripe now calls your site for each of those events, and the records follow. What the webhook
+Stripe now calls your site for each of those events. The customer events bring the records
+into step, and the product and price events make the [plans page](../reference/plans-page.md)
+read Stripe again, so a change made in the dashboard shows on the page. That only reaches the page
+when your project's cache is shared across processes, as the
+[catalogue reference](../reference/stripe-app.md#the-catalogue) explains. What the webhook
 answers, and what it does with each event, is in the
 [webhook reference](../reference/stripe-app.md#the-webhook).
 

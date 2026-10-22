@@ -8,11 +8,15 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 
+from mvp_payments.stripe.catalogue import Catalogue
 from mvp_payments.stripe.models import Customer
 
 
 class Command(BaseCommand):
-    """Re-sync every recorded customer from Stripe, for when webhooks were missed."""
+    """Re-sync every recorded customer from Stripe, for when webhooks were missed.
+
+    Also forgets the cached catalogue, so the plans page reads Stripe again.
+    """
 
     help = "Bring every recorded Stripe customer's subscriptions into step with Stripe."
 
@@ -39,6 +43,7 @@ class Command(BaseCommand):
             CommandError: When the named user does not exist or has no customer, or when
                 Stripe could not be asked. Customers already synced stay synced.
         """
+        Catalogue.clear()
         customers = Customer.objects.order_by("pk")
         username = options["user"]
         if username is not None:

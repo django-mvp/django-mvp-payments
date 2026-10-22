@@ -4,8 +4,10 @@ import logging
 
 import pytest
 from django.contrib.messages import get_messages
+from django.core.cache import cache
 from django.urls import reverse
 
+from mvp_payments.stripe.catalogue import Catalogue
 from mvp_payments.stripe.models import Customer, Subscription
 from tests.factories import (
     StripeCustomerFactory,
@@ -345,6 +347,53 @@ class TestWebhookEvents:
 
         assert response.status_code == 500
         assert Customer.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestWebhookClearsTheCatalogue:
+    @pytest.fixture
+    def cached(self):
+        cache.set(Catalogue.KEY, [{"id": "price_1"}], 3600)
+
+    @pytest.mark.parametrize(
+        "event_type",
+        [
+            "product.created",
+            "product.updated",
+            "product.deleted",
+            "price.created",
+            "price.updated",
+            "price.deleted",
+        ],
+    )
+    def test_a_verified_product_or_price_event_makes_the_next_read_ask_stripe(
+        self, deliver, stripe_fake, cached, event_type
+    ):
+        response = deliver(event_payload(event_type, {"id": "x", "object": "price"}))
+
+        assert response.status_code == 200
+        assert cache.get(Catalogue.KEY) is None
+        assert stripe_fake.requests == []
+
+    def test_an_unverified_event_leaves_the_catalogue(
+        self, client, url, stripe_fake, cached
+    ):
+        response = client.post(
+            url,
+            data=event_payload("price.updated", {"id": "x", "object": "price"}),
+            content_type="application/json",
+            HTTP_STRIPE_SIGNATURE="t=1,v1=forged",
+        )
+
+        assert response.status_code == 400
+        assert cache.get(Catalogue.KEY) == [{"id": "price_1"}]
+
+    def test_an_event_that_is_neither_leaves_the_catalogue(
+        self, deliver, stripe_fake, cached
+    ):
+        deliver(event_payload("ping", {"object": "ping"}))
+
+        assert cache.get(Catalogue.KEY) == [{"id": "price_1"}]
 
 
 @pytest.mark.django_db
