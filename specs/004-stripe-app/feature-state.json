@@ -111,8 +111,19 @@
         },
         {
           "id": "T004",
-          "status": "todo",
-          "attempts": 0
+          "status": "done",
+          "attempts": 2,
+          "evidence": {
+            "tests": [
+              "tests/test_stripe_fake.py"
+            ],
+            "commands": [
+              "uv run pytest tests/test_stripe_fake.py"
+            ],
+            "code": [
+              "tests/stripe_fake.py:28"
+            ]
+          }
         },
         {
           "id": "T005",

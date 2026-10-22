@@ -22,3 +22,10 @@ Did: models.py with Customer, Subscription, Subscription.Status and an empty Sub
 Verified: uv run pytest tests/test_stripe tests/test_factories.py tests/test_app.py (64 passed). Tests: one parametrised field contract over every field, makemigrations --check, table names, user deletion cascade, one customer per user, several subscriptions, ordering, an unknown status and a JPY amount stored as given.
 Next: T004 fake Stripe HTTP client.
 Watch: the field-contract test reads field._verbose_name, because Django fills verbose_name in from the field name when none is given.
+
+## 2026-10-22T08:47:29Z · Implementer US1 · T004
+
+Did: tests/stripe_fake.py with FakeStripe (a stripe.HTTPClient subclass keyed by method and path, recording every request with its params, canned lists, canned errors, an unreachable route, and a loud failure for any request nobody canned), payload builders for customer, product, subscription (billing period on the first item, as the sandbox returns it), checkout session and event, and sign_webhook (hmac-sha256 over timestamp.payload). The stripe_fake fixture in conftest.py sets the client module's _http_client hook.
+Verified: uv run pytest tests/test_stripe_fake.py (9 passed): SDK parsing, auto-paging, recording, error mapping to InvalidRequestError.code, connection error, uncanned request, and the signed payload passing the real construct_event, failing for another secret and an old timestamp.
+Next: T005 Customer.sync().
+Watch: the SDK passes the method in lower case, so the fake upper-cases it before routing.

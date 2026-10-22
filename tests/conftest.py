@@ -4,12 +4,14 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from mvp_payments.stripe import client as stripe_client_module
 from tests.factories import (
     StripeUserFactory,
     SubscriptionFactory,
     SubscriptionItemFactory,
     UserFactory,
 )
+from tests.stripe_fake import FakeStripe
 
 
 @pytest.fixture
@@ -69,3 +71,11 @@ def account_center_menu():
     original = list(AccountCenterMenu.children)
     yield AccountCenterMenu
     AccountCenterMenu.children = original
+
+
+@pytest.fixture
+def stripe_fake(monkeypatch):
+    """Stand in for Stripe: the app's own client is built over this HTTP client."""
+    fake = FakeStripe()
+    monkeypatch.setattr(stripe_client_module, "_http_client", fake)
+    return fake
