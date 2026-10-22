@@ -17,7 +17,7 @@ them, and is tracked as issues rather than planned here in advance.
 | `0.1.0` | R1 and R2 delivered: Stripe fully supported by the package's own app. The first publish. |
 | `0.x` | Fixes and additions that projects using the package ask for. |
 | `1.0.0` | The package's settings, components and context names have held steady through at least one real project using it. |
-| `1.x` | Stable line: non-breaking fixes and additive features only. |
+| `1.x` | Stable line: non-breaking fixes and additive changes only. |
 | `2.0` | Next major, where breaking changes go. |
 
 A second provider (R3) is aspirational. It can arrive in any `0.x` or `1.x` release, since adding a

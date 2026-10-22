@@ -68,8 +68,8 @@ for, since the Stripe app records one price per subscription.
 | `period_start` | When the current billing period began, or `None` where nothing is recorded. |
 | `period_end` | When it ends, or `None`. |
 
-The Stripe app records no features, so there is nothing here about what a plan grants inside your
-application. If you keep that record yourself, look it up from `name` in a template of your own and
+The Stripe app records nothing about what a plan grants inside your application, so there is
+nothing here about it. If you keep that record yourself, look it up from `name` in a template of your own and
 place it beside the plan.
 
 ### `Money`
