@@ -249,7 +249,9 @@ The package does not mount the admin. Your project does, as it does for its own 
 `customer.erase()` deletes the customer at Stripe, which cancels every subscription it has at
 once, and then deletes the customer and its subscriptions here. A customer Stripe no longer has is
 deleted here all the same. Any other error from Stripe, including Stripe being unreachable, is
-raised as `stripe.StripeError` and changes nothing here.
+raised as `stripe.StripeError` and changes nothing here. The error names the kind of failure and
+never carries Stripe's message, which can repeat part of a key, so a project that logs it logs no
+secret.
 
 ```python
 from mvp_payments.stripe.models import Customer

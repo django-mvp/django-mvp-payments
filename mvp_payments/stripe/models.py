@@ -334,12 +334,21 @@ class Customer(models.Model):
 
         Raises:
             stripe.StripeError: When Stripe could not be asked, or refused. Nothing changes.
+                It names the kind of error and never carries Stripe's message, which can
+                repeat part of a key, because whoever deletes an account may log it.
         """
         try:
             client().v1.customers.delete(self.stripe_id)
-        except stripe.InvalidRequestError as error:
-            if error.code != "resource_missing":
-                raise
+        except stripe.StripeError as error:
+            gone = (
+                isinstance(error, stripe.InvalidRequestError)
+                and error.code == "resource_missing"
+            )
+            if not gone:
+                raise stripe.StripeError(
+                    f"Stripe did not delete customer {self.stripe_id}: "
+                    f"{type(error).__name__}."
+                ) from None
         self.delete()
 
     def sync(self) -> None:

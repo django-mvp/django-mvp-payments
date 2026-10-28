@@ -476,6 +476,19 @@ class TestCustomerErase:
 
         assert Subscription.objects.filter(pk=subscription.pk).exists()
 
+    def test_the_error_raised_never_carries_stripes_message(self, stripe_fake):
+        customer = StripeCustomerFactory(stripe_id="cus_1")
+        stripe_fake.respond_with_message_echoing(
+            "DELETE", "/v1/customers/cus_1", "sk_test_not_a_real_key"
+        )
+
+        with pytest.raises(stripe.StripeError) as raised:
+            customer.erase()
+
+        assert "sk_test" not in str(raised.value)
+        assert raised.value.__cause__ is None
+        assert raised.value.__suppress_context__
+
 
 @pytest.mark.django_db
 class TestCustomerClientReference:
