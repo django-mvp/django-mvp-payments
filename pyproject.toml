@@ -1,6 +1,6 @@
 [project]
 name = "django-mvp-payments"
-version = "0.1.0"
+version = "0.1.1"
 description = "Payment and subscription UI as Cotton components for django-mvp projects, one namespace per payment backend"
 authors = [
     { name = "Samuel Jennings", email = "samuel.scott.jennings@gmail.com" },

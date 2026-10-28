@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.1] - 2026-10-28
+
 ### Added
 
 - **`mvp_payments.stripe.personal_data`, the Stripe app's records as django-mvp-compliance
