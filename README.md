@@ -118,6 +118,22 @@ the rest of the setup, and the
 [Stripe app reference](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/reference/stripe-app.md)
 the settings, the records and the webhook.
 
+If your project uses [django-mvp-compliance](https://github.com/django-mvp/django-mvp-compliance)
+to give people a copy of their data and let them delete their account, add the Stripe app's
+records to it, so the copy includes them and deleting an account deletes the customer at Stripe,
+cancelling its subscriptions:
+
+```python
+MVP_COMPLIANCE_PERSONAL_DATA = [
+    ...,
+    "mvp_payments.stripe.personal_data.StripeCustomer",
+    "mvp_payments.stripe.personal_data.StripeSubscriptions",
+]
+```
+
+[How to include a person's Stripe records in their data copy and account deletion](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/how-to/declare-the-stripe-records-to-django-mvp-compliance.md)
+has the details.
+
 ## Namespaces
 
 Components are grouped by the backend they speak to, and the namespace is that backend's name:

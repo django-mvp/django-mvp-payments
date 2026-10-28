@@ -71,6 +71,10 @@ dev = [
     # The Stripe app's own SDK, through its extra, for the demo project and the
     # test suite.
     "django-mvp-payments[stripe-lite]",
+    # For the test suite only. A project that declares the Stripe app's records
+    # to django-mvp-compliance already has it installed, and nothing but
+    # mvp_payments/stripe/personal_data.py imports it.
+    "django-mvp-compliance>=0.5.0",
 ]
 
 [tool.uv.sources]
@@ -163,3 +167,8 @@ extend_exclude = ["tests/", "demo/", "docs/"]
 # supplies. Dropping the dependency would leave every component unstyled while
 # every import still resolved.
 DEP002 = ["django-mvp"]
+# django-mvp-compliance is imported only by mvp_payments/stripe/personal_data.py,
+# which nothing imports unless a project names its kinds in
+# MVP_COMPLIANCE_PERSONAL_DATA. Such a project has django-mvp-compliance
+# installed already, so declaring it here would only pull it into every other.
+DEP004 = ["mvp_compliance"]

@@ -198,13 +198,43 @@ user, and confirm the subscription is recorded.
 
 ---
 
+### User Story 6 - A developer lets people take their billing records with them and stop paying when they leave (Priority: P2)
+
+A developer whose project uses django-mvp-compliance to give people a copy of their data and to
+let them delete their account lists the Stripe app's two kinds in its setting. A person's copy
+then includes their Stripe customer and subscriptions, and deleting their account deletes the
+customer at Stripe, which cancels its subscriptions.
+
+**Why this priority**: Without it, deleting an account leaves the person billed with no page left
+to cancel from, and their copy of their data leaves out what the app keeps about them.
+
+**Independent Test**: Declare the kinds, record a subscribed user, delete their account through
+django-mvp-compliance against a stand-in for Stripe, and confirm Stripe was asked to delete the
+customer. Repeat with Stripe unreachable and confirm nothing was deleted.
+
+**Acceptance Scenarios**:
+
+1. **Given** the kinds are declared, **When** a person downloads a copy of their data, **Then** it
+   holds their Stripe customer and every subscription recorded for them, and nobody else's.
+2. **Given** a subscribed person, **When** their account is deleted, **Then** their customer is
+   deleted at Stripe once, and their customer and subscriptions are deleted here.
+3. **Given** a person with no Stripe customer, **When** their account is deleted, **Then** Stripe is
+   asked nothing.
+4. **Given** Stripe cannot be reached or refuses, **When** a person's account is deleted, **Then** the
+   deletion fails as a whole and nothing is deleted.
+5. **Given** Stripe no longer has the person's customer, **When** their account is deleted, **Then**
+   the deletion goes ahead.
+
+---
+
 ### Edge Cases
 
 - A webhook arrives for a customer who was never tied to a user: acknowledged, nothing recorded.
 - A user who already has a Stripe customer subscribes again: the same customer is reused and the
   new subscription is recorded beside the old one.
 - The user a customer is tied to is deleted from the project: the customer and its subscriptions
-  go with them. Nothing is changed on Stripe.
+  go with them. Nothing is changed on Stripe, unless the account is deleted through
+  django-mvp-compliance with the app's kinds declared (User Story 6).
 - Stripe reports a status the app does not recognise: it is stored as reported and does not count
   as subscribed.
 - An amount in a zero-decimal currency such as JPY: stored exactly as Stripe reports it, in the
@@ -276,6 +306,13 @@ user, and confirm the subscription is recorded.
 - **FR-021**: The app's settings, its webhook address, the subscribed check, the current
   subscription lookup, the sync command and the admin MUST be documented, and the README's install
   steps MUST describe the `stripe-lite` extra and the `INSTALLED_APPS` entry.
+- **FR-022**: The app MUST declare its customer and its subscriptions as django-mvp-compliance
+  kinds, in a module nothing else imports, so django-mvp-compliance is never a dependency of the
+  package.
+- **FR-023**: Erasing either kind MUST delete the person's customer at Stripe and then their records
+  here. Where Stripe cannot be reached or refuses, it MUST raise, so that the account's deletion
+  fails as a whole. A customer Stripe no longer has MUST count as deleted.
+- **FR-024**: How a project declares the kinds MUST be documented, in the README and as a how-to.
 
 ### Key Entities
 

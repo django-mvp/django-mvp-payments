@@ -424,6 +424,73 @@ class TestCustomerSync:
 
 
 @pytest.mark.django_db
+class TestCustomerErase:
+    def test_the_customer_is_deleted_at_stripe_and_then_here(self, stripe_fake):
+        subscription = StripeSubscriptionFactory(customer__stripe_id="cus_1")
+        other = StripeSubscriptionFactory()
+        stripe_fake.respond(
+            "DELETE",
+            "/v1/customers/cus_1",
+            customer_payload("cus_1", deleted=True),
+        )
+
+        subscription.customer.erase()
+
+        assert stripe_fake.paths() == ["/v1/customers/cus_1"]
+        assert list(Customer.objects.all()) == [other.customer]
+        assert list(Subscription.objects.all()) == [other]
+
+    def test_a_customer_stripe_no_longer_has_is_deleted_here(self, stripe_fake):
+        customer = StripeCustomerFactory(stripe_id="cus_1")
+        stripe_fake.respond_with_error(
+            "DELETE", "/v1/customers/cus_1", "resource_missing"
+        )
+
+        customer.erase()
+
+        assert not Customer.objects.exists()
+
+    @pytest.mark.parametrize(
+        "refuse",
+        [
+            pytest.param(
+                lambda fake: fake.become_unreachable("DELETE", "/v1/customers/cus_1"),
+                id="unreachable",
+            ),
+            pytest.param(
+                lambda fake: fake.respond_with_error(
+                    "DELETE", "/v1/customers/cus_1", "account_invalid", status=400
+                ),
+                id="refused",
+            ),
+        ],
+    )
+    def test_when_stripe_does_not_delete_the_customer_nothing_changes(
+        self, stripe_fake, refuse
+    ):
+        subscription = StripeSubscriptionFactory(customer__stripe_id="cus_1")
+        refuse(stripe_fake)
+
+        with pytest.raises(stripe.StripeError):
+            subscription.customer.erase()
+
+        assert Subscription.objects.filter(pk=subscription.pk).exists()
+
+    def test_the_error_raised_never_carries_stripes_message(self, stripe_fake):
+        customer = StripeCustomerFactory(stripe_id="cus_1")
+        stripe_fake.respond_with_message_echoing(
+            "DELETE", "/v1/customers/cus_1", "sk_test_not_a_real_key"
+        )
+
+        with pytest.raises(stripe.StripeError) as raised:
+            customer.erase()
+
+        assert "sk_test" not in str(raised.value)
+        assert raised.value.__cause__ is None
+        assert raised.value.__suppress_context__
+
+
+@pytest.mark.django_db
 class TestCustomerClientReference:
     def test_the_reference_uses_only_characters_the_pricing_table_accepts(self):
         reference = Customer.client_reference(UserFactory())
