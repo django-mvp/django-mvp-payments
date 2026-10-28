@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`mvp_payments.stripe.personal_data`, the Stripe app's records as django-mvp-compliance
+  kinds.** A project that lists `StripeCustomer` and `StripeSubscriptions` in
+  `MVP_COMPLIANCE_PERSONAL_DATA` gets a person's Stripe customer and subscriptions in their copy
+  of their data. Nothing imports the module unless a project names it, so django-mvp-compliance
+  stays optional.
+- **`Customer.erase()`** deletes a customer at Stripe, which cancels its subscriptions, and then
+  deletes its records here.
+
+### Fixed
+
+- **Deleting an account through django-mvp-compliance no longer leaves the person being billed
+  (#75).** With the kinds declared, deleting the account deletes the Stripe customer, cancelling
+  its subscriptions at once. When Stripe cannot be reached or refuses, the deletion fails as a
+  whole and nothing is removed.
+
 ## [v0.1.0] - 2026-10-23
 
 The first release. Nothing was published before it, so everything below is new.

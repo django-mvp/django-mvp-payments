@@ -325,6 +325,23 @@ class Customer(models.Model):
             },
         }
 
+    def erase(self) -> None:
+        """Delete this customer at Stripe, then here.
+
+        Stripe cancels a deleted customer's subscriptions at once, so nothing more is billed.
+        The row and its subscriptions are deleted only once Stripe has reported the customer
+        deleted, or that it no longer has it.
+
+        Raises:
+            stripe.StripeError: When Stripe could not be asked, or refused. Nothing changes.
+        """
+        try:
+            client().v1.customers.delete(self.stripe_id)
+        except stripe.InvalidRequestError as error:
+            if error.code != "resource_missing":
+                raise
+        self.delete()
+
     def sync(self) -> None:
         """Bring this customer's subscriptions into step with what Stripe holds now.
 

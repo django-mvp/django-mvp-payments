@@ -40,6 +40,10 @@ MVP_PAYMENTS = {
     "STRIPE_WEBHOOK_SECRET": "whsec_not_a_real_secret",
 }
 
+# The Stripe app declares its records to django-mvp-compliance in a module only
+# a project that uses it imports, and the suite imports it to test them.
+INSTALLED_APPS = [*INSTALLED_APPS, "mvp_compliance"]  # noqa: F405
+
 # The demo's routes, behind a urlconf of the suite's own so a route that exists
 # only to exercise a component has somewhere to go.
 ROOT_URLCONF = "tests.urls"

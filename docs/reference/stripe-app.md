@@ -67,7 +67,8 @@ Both tables carry the `mvp_payments_stripe` label.
 One row per user who has a Stripe customer, tied to the user by `user` (reverse name
 `stripe_customer`). The customer is made when the user first starts a checkout, so a row says
 nothing about whether they ever paid. Deleting the user deletes the customer and its subscriptions here. Nothing is
-changed on Stripe.
+changed on Stripe, unless the account is deleted through django-mvp-compliance with the app's
+kinds declared ([Personal data](#personal-data)).
 
 | Field | Holds |
 |---|---|
@@ -242,6 +243,40 @@ a deletion that cascades to a record asks that record's admin whether it may go.
 delete pages are refused. Nothing is changed on Stripe.
 
 The package does not mount the admin. Your project does, as it does for its own models.
+
+## `Customer.erase()`
+
+`customer.erase()` deletes the customer at Stripe, which cancels every subscription it has at
+once, and then deletes the customer and its subscriptions here. A customer Stripe no longer has is
+deleted here all the same. Any other error from Stripe, including Stripe being unreachable, is
+raised as `stripe.StripeError` and changes nothing here.
+
+```python
+from mvp_payments.stripe.models import Customer
+
+Customer.objects.get(stripe_id="cus_123").erase()
+```
+
+## Personal data
+
+`mvp_payments.stripe.personal_data` declares the app's records as
+[django-mvp-compliance](https://github.com/django-mvp/django-mvp-compliance) kinds, for a project
+that gives people a copy of their data and lets them delete their account. Nothing imports it
+unless `MVP_COMPLIANCE_PERSONAL_DATA` names it, so django-mvp-compliance is not a dependency of
+this package.
+
+`StripeCustomer`
+: The person's customer, as one record: `stripe_id` and `created`.
+
+`StripeSubscriptions`
+: Every subscription recorded for the person, ended ones included: `stripe_id`, `product_name`,
+  `status`, `amount`, `currency`, `interval`, `interval_count`, `current_period_start`,
+  `current_period_end`, `cancel_at_period_end` and `ended_at`.
+
+Both kinds' `erase(user)` calls `Customer.erase()` on the person's customer, so deleting an
+account deletes the customer at Stripe and fails as a whole when Stripe does not. See
+[how to include a person's Stripe records in their data copy and account
+deletion](../how-to/declare-the-stripe-records-to-django-mvp-compliance.md).
 
 ## `Customer.for_user()`
 
