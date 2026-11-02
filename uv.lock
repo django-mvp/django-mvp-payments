@@ -603,7 +603,7 @@ wheels = [
 
 [[package]]
 name = "django-mvp"
-version = "0.31.0"
+version = "0.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "daisy-cotton" },
@@ -616,14 +616,14 @@ dependencies = [
     { name = "django-mvp-forms" },
     { name = "mergedeep" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/77/4d/31d6bf7241a86a90b9bd36a2c20a9e408cea65d083057793fa8084947e00/django_mvp-0.31.0.tar.gz", hash = "sha256:8e227165164c26331566d4e204b3ef680271bcaa1700903ab4a9472c1388c87a", size = 313789, upload-time = "2026-10-22T15:47:18.603Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dd/fb/0d8f4ad4ec41c8268c0a9bf002867e055fa4f20d984cae8407f15e30042d/django_mvp-0.32.0.tar.gz", hash = "sha256:4722c51e5f0fe238437ca4baa69499755acf538a5a0af65cfa49f0e34fc6fa45", size = 318437, upload-time = "2026-10-28T21:33:21.165Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/11/643b1f322d7ef657fb1227f56106e03c910ee440f7ecf9d47e5f7a39414a/django_mvp-0.31.0-py3-none-any.whl", hash = "sha256:1ff4c0c178477be733c1b5b49041a802a3f724cb6363cd36bd9466334e7a8873", size = 367334, upload-time = "2026-10-22T15:47:16.671Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/9e/3f80d6c141508da801c6fa8e22710e5f69aed57a3a43584c24460f1b292a/django_mvp-0.32.0-py3-none-any.whl", hash = "sha256:de20466a0f5064a95ffd6aa154638f6dd23b39a7ba161260e1091523c7a142b5", size = 375229, upload-time = "2026-10-28T21:33:19.518Z" },
 ]
 
 [[package]]
 name = "django-mvp-compliance"
-version = "0.5.0"
+version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
@@ -632,9 +632,9 @@ dependencies = [
     { name = "markdown" },
     { name = "nh3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/71/23/1a510d4336c747698b8a2089ee5a06d73d4fe6bdd514fb207c857737b733/django_mvp_compliance-0.5.0.tar.gz", hash = "sha256:bcead250325744b65d6e58599d9bae167287319377b8bebecbf5c83c7a95ef7d", size = 196897, upload-time = "2026-10-28T07:17:44.703Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/3b/e4024140bfa6156cb418e69f7caf240900d3900a99bb50374e44e72a0add/django_mvp_compliance-0.5.1.tar.gz", hash = "sha256:44f2d6552108b20d2baf1f1209e130b773e30518239c9de2b82b79dcb9c18073", size = 196902, upload-time = "2026-10-28T22:03:22.374Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/7f/1b70840a137a9e7fe92546fd753a04c269797b879a63ae771ffc1e0af977/django_mvp_compliance-0.5.0-py3-none-any.whl", hash = "sha256:1a14984153b9214cfc66640cf26b5c4e3bdac17fab84aee2b7457b87ff0e8c76", size = 209852, upload-time = "2026-10-28T07:17:43.218Z" },
+    { url = "https://files.pythonhosted.org/packages/77/26/edc6f73e36b6f76bacda4bf0c755c100eede8093a087f4c430f35be973a0/django_mvp_compliance-0.5.1-py3-none-any.whl", hash = "sha256:bedb708272c7d784cba317db465cda1c1a99a11528559cd8dedd0c6193f90045", size = 209869, upload-time = "2026-10-28T22:03:20.543Z" },
 ]
 
 [[package]]
@@ -1932,15 +1932,15 @@ wheels = [
 
 [[package]]
 name = "stripe"
-version = "16.0.0"
+version = "16.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/a7/4a8546b293a09f39a2b55ca8a11539ae9654126df59065868c5d3993f0dd/stripe-16.0.0.tar.gz", hash = "sha256:5016068d54aebb43e61b3c377ef45bede4e0b4eb1817d7a12af81630c55a23d2", size = 1665584, upload-time = "2026-10-01T00:42:03.388Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/2d/f105dfd56ada798dc698a13a992d9153802cbdabf7a6bab8084c0c187e3f/stripe-16.1.0.tar.gz", hash = "sha256:21e72b6779b8cff337ca8d2b8d30138f2d68f6a8d739701076f06a418ad75b8c", size = 1624677, upload-time = "2026-10-29T19:53:41.12Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b5/de/5141ae3990862cc3d61a1cdd4acff72bcb587afb7b4d31c52eaddbb6bc8f/stripe-16.0.0-py3-none-any.whl", hash = "sha256:6a401baf2fc19c59ccb59005e674f8da8fa256e8db319ad8c50292f4cddf8c26", size = 2543794, upload-time = "2026-10-01T00:42:01.65Z" },
+    { url = "https://files.pythonhosted.org/packages/94/50/4ecff21d2ff5f867aa05c48b5f4338c80bae51d9dcbd943b373cb52ca71c/stripe-16.1.0-py3-none-any.whl", hash = "sha256:3798e07a0603c8923710414cd1942ae847ed43cebbf34c3258417c189711ea70", size = 2645741, upload-time = "2026-10-29T19:53:39.094Z" },
 ]
 
 [[package]]
