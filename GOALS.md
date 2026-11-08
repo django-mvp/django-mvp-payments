@@ -19,5 +19,7 @@ Importance is a tag on each goal, not a ranking:
 | G1 | A project using a supported payment provider gets that provider's pages, looking like the rest of its django-mvp site, without building them | Essential | | |
 | G2 | At least one payment provider is supported, with the records behind its pages kept by this package | Essential | | Stripe, through the package's own `mvp_payments.stripe` app ([ADR 0010](docs/adr/0010-the-package-ships-its-own-stripe-app.md)) |
 | G3 | More than one payment provider is supported | Aspirational | | Which one waits for a project that needs it. It arrives as another provider app, or as a third-party package shipping its own templates |
+| G4 | An organisation can pay once for a number of places for its members, and hand out codes that give someone one of those places | Aspirational | | The places are the quantity on the organisation's Stripe subscription ([ADR 0016](docs/adr/0016-an-organisations-places-are-its-subscriptions-quantity.md)). Organisations come from django-organizations, presented by django-mvp-accounts |
+| G5 | A person can refer a friend, who gets a discount, and the project learns when the friend subscribes so it can reward the referrer | Aspirational | | Built on pinax-referrals and Stripe promotion codes ([ADR 0017](docs/adr/0017-the-package-records-referrals-and-the-project-rewards-them.md)) |
 
 _Written 2026-09-24. Revise as the goals change._

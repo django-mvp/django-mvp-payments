@@ -1,12 +1,12 @@
 # Roadmap — django-mvp-payments
 
-**Date:** 2026-10-20
+**Date:** 2026-11-08
 
 This document was designed against [GOALS.md](../GOALS.md). See also [CONTEXT.md](../CONTEXT.md)
 for domain terminology and [CONSTITUTION.md](../CONSTITUTION.md) for project standards.
 
-The roadmap is deliberately short. It says which providers are supported and in what order, not
-which pages each one gets. What a provider's pages need to do is decided by the projects that use
+The roadmap is deliberately short. It says which providers are supported and in what order, and
+which ways of paying go beyond one person's own subscription, not which pages each one gets. What a provider's pages need to do is decided by the projects that use
 them, and is tracked as issues rather than planned here in advance.
 
 ## Versioning
@@ -21,7 +21,8 @@ them, and is tracked as issues rather than planned here in advance.
 | `2.0` | Next major, where breaking changes go. |
 
 A second provider (R3) is aspirational. It can arrive in any `0.x` or `1.x` release, since adding a
-namespace changes nothing about an existing one.
+namespace changes nothing about an existing one. Organisations' places (R4) and referrals (R5) are
+aspirational too, and start only once R2 is delivered and running in a project.
 
 ## Essential goals: v0.1.0
 
@@ -37,7 +38,7 @@ still runs, on obviously fake values, which is what a fresh clone and CI see.
 
 ### R2 — The first backend: the package's own Stripe app
 
-*advances G1, G2*
+*delivered in [#6](https://github.com/django-mvp/django-mvp-payments/issues/6), [#16](https://github.com/django-mvp/django-mvp-payments/issues/16), [#24](https://github.com/django-mvp/django-mvp-payments/issues/24), [#25](https://github.com/django-mvp/django-mvp-payments/issues/25), [#37](https://github.com/django-mvp/django-mvp-payments/issues/37), [#52](https://github.com/django-mvp/django-mvp-payments/issues/52), [#61](https://github.com/django-mvp/django-mvp-payments/issues/61) · advances G1, G2*
 
 Everything a subscriber needs, for projects using Stripe, looking like the rest of their
 django-mvp site, with the records behind it kept by `mvp_payments.stripe`.
@@ -72,3 +73,35 @@ project that needs it. It arrives as another provider app inside this package, o
 third-party package that ships its own templates built from this package's components. The
 choice weighs what ADR 0010 weighed: how much the provider leaves to its own hosted pages, and so
 how little has to be built and kept here.
+
+### R4 — Places an organisation pays for
+
+*multi-feature · advances G4*
+
+An organisation pays once for a number of places and gives them to its members: a family sharing
+one plan, a school paying for its students. The places are the quantity on the organisation's own
+Stripe subscription, which is bought and changed on Stripe's checkout and portal like any other
+([ADR 0016](adr/0016-an-organisations-places-are-its-subscriptions-quantity.md)). Organisations
+come from django-organizations, presented by django-mvp-accounts, and none of this appears in a
+project without them.
+
+**Done when:**
+
+- an organisation's owner can buy places, and add or remove places, on Stripe's own pages
+- its owner and admins can see who holds each place, give a free one to a member and take one
+  back
+- the organisation can hand out a code that gives whoever uses it a free place, and a discount
+  code works through Stripe's own promotion codes at checkout
+- a developer asking whether a person is subscribed gets yes for someone holding a place
+
+Joining an organisation without a place is an invitation, which is django-mvp-accounts'.
+
+### R5 — Referrals
+
+*feature · advances G5*
+
+A person has a referral link to share. A friend who comes through it gets a discount, as a Stripe
+promotion code at checkout, and the host project is told when the friend first subscribes, so it
+can reward the referrer however it chooses. Who came through whose link is recorded by
+pinax-referrals. The package never credits anyone itself
+([ADR 0017](adr/0017-the-package-records-referrals-and-the-project-rewards-them.md)).

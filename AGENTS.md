@@ -17,7 +17,7 @@ The package has two kinds of part, and `CONSTITUTION.md` Article XI sets the rul
 - **A provider app**, such as `mvp_payments.stripe`: the local copy of one provider's customers
   and subscriptions, its webhook endpoint, and the views that hand a reader to the provider's
   hosted pages and bring them back. The provider is the source of truth. Records change only
-  from what the provider reports, a webhook is verified and then answered by fetching from the
+  from what the provider reports, except which members hold an organisation's places, a webhook is verified and then answered by fetching from the
   provider, and nothing here takes a payment, holds a card or decides what anyone is charged or
   may access.
 
