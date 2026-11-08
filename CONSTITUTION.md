@@ -134,12 +134,19 @@ The package has two kinds of part, and the rules differ between them.
   a product or a price clears it, and it also expires on its own.
 - **The provider is the source of truth.** A provider app keeps the smallest local copy that lets
   a page show a person where they stand and lets the host project ask whether someone is
-  subscribed: who the provider's customer is, and that customer's subscription with its status,
-  price and period. It adds nothing the provider did not say. Where the copy and the provider
+  subscribed: who the provider's customer is, a person or an organisation, and that customer's
+  subscription with its status, price, quantity and period. It adds nothing the provider did not
+  say. Where the copy and the provider
   disagree, the provider is right and the copy is refreshed.
 - **Local records change only from the provider.** A record is written when the provider reports
   something, never by hand and never as a guess about what the provider will do. Any admin a
   provider app ships is read-only.
+- **Except who holds an organisation's places.** Where an organisation's subscription pays for a
+  number of places, which of its members hold them is the one record the provider does not keep.
+  The organisation's owner or admins give and take back places, and a member can take a free one
+  with a code the organisation handed out. The number of places is the subscription's quantity
+  and changes only on the provider's pages, so giving someone a place never changes what anyone
+  pays.
 - **A webhook is a prompt, not a payload to trust.** The signature is verified before anything
   in the request is read, with the provider's own SDK. A verified event is then a reason to fetch
   the current state from the provider, rather than the state itself, so events that arrive late,
@@ -153,8 +160,10 @@ The package has two kinds of part, and the rules differ between them.
 - **No payment logic.** What a subscription costs, when a trial ends, what a proration comes to
   and whether a card is about to expire are the provider's to decide, and the package only shows
   the answer. Whether a subscribed person may see a page is the host project's decision, made in
-  its own views. A provider app can answer "is this person subscribed?". It never decides what
-  that grants.
+  its own views. A provider app can answer "is this person subscribed?", counting a place an
+  organisation pays for. It never decides what that grants. Rewarding a referral is the host
+  project's too: a provider app says when a referred person first subscribes, and never writes to
+  a customer's balance or issues a credit itself.
 - **No card details, ever.** A card number is typed into the provider's own iframe or on the
   provider's own page, never into markup written here.
 - **Secret keys stay in settings.** A provider app reads its API key and webhook signing secret
@@ -177,6 +186,11 @@ The package depends on no third-party payment backend, such as dj-stripe, and im
 provider's own SDK is a dependency of its provider app only: it is declared in that app's extra,
 `stripe-lite` for `mvp_payments.stripe`, and imported nowhere outside that app. A project that installs the package without the extra gets the interface and
 no provider library. `tests/test_app.py` asserts the dependency list for this reason.
+
+Packages a provider app uses for something other than payment, such as django-organizations for
+an organisation's places and pinax-referrals for referrals, are declared in extras of their own and
+imported only where those features are. A project that installs neither gets a provider app that
+works as before.
 
 A third-party package that wants pages that look like the rest of a django-mvp site ships its own
 templates built from this package's components. It does not become a dependency, and this package
@@ -328,4 +342,4 @@ first. Do not cite it as an enforced standard until it runs in CI.
 
 ---
 
-**Version**: 3.1.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-10-22
+**Version**: 4.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-11-08

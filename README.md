@@ -197,6 +197,16 @@ state, rather than trusting what the webhook says. It is installed with
 `django-mvp-payments[stripe-lite]`
 ([ADR 0010](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/adr/0010-the-package-ships-its-own-stripe-app.md)).
 
+Where a project groups people into organisations, such as a family sharing one plan or a school
+paying for its students, an organisation needs to pay once for a number of places and give them to
+its members. Those places are the quantity on the organisation's own Stripe subscription, bought and
+changed on Stripe's pages like any other subscription. Which members hold them is the one record
+kept here that Stripe does not report
+([ADR 0016](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/adr/0016-an-organisations-places-are-its-subscriptions-quantity.md)).
+Organisations themselves come from
+[django-organizations](https://github.com/bennylope/django-organizations), presented by
+[django-mvp-accounts](https://github.com/django-mvp/django-mvp-accounts).
+
 The standing directions this package works toward are in [GOALS.md](https://github.com/django-mvp/django-mvp-payments/blob/main/GOALS.md).
 
 **What this deliberately is not.**
@@ -206,7 +216,10 @@ The standing directions this package works toward are in [GOALS.md](https://gith
   [dj-stripe](https://github.com/dj-stripe/dj-stripe) is built for it.
 - **Not a decider.** Nothing here computes a price, a proration or a trial, and nothing decides
   what a subscription grants. The Stripe app can tell your views whether someone is subscribed.
-  What that lets them see is your project's call, enforced in your views.
+  What that lets them see is your project's call, enforced in your views. The same goes for a
+  referral: the package records who came through whose link and tells your project when that
+  person subscribes, and what the referrer gets for it is yours to give
+  ([ADR 0017](https://github.com/django-mvp/django-mvp-payments/blob/main/docs/adr/0017-the-package-records-referrals-and-the-project-rewards-them.md)).
 - **Not a place card details pass through.** Cards are typed into the provider's own pages and
   iframes, never into markup written here.
 - **Not a way to run two backends at once.** Whose subscription a person is looking at stops
