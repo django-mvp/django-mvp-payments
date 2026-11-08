@@ -38,7 +38,7 @@ still runs, on obviously fake values, which is what a fresh clone and CI see.
 
 ### R2 — The first backend: the package's own Stripe app
 
-*advances G1, G2*
+*delivered in [#6](https://github.com/django-mvp/django-mvp-payments/issues/6), [#16](https://github.com/django-mvp/django-mvp-payments/issues/16), [#24](https://github.com/django-mvp/django-mvp-payments/issues/24), [#25](https://github.com/django-mvp/django-mvp-payments/issues/25), [#37](https://github.com/django-mvp/django-mvp-payments/issues/37), [#52](https://github.com/django-mvp/django-mvp-payments/issues/52), [#61](https://github.com/django-mvp/django-mvp-payments/issues/61) · advances G1, G2*
 
 Everything a subscriber needs, for projects using Stripe, looking like the rest of their
 django-mvp site, with the records behind it kept by `mvp_payments.stripe`.
