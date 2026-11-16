@@ -33,7 +33,7 @@ classifiers = [
 [project.optional-dependencies]
 # What `mvp_payments.stripe` needs, and nothing else: Stripe's own SDK, for
 # signature checks and API calls. Imported only under mvp_payments/stripe/.
-stripe-lite = ["stripe>=16,<17"]
+stripe-lite = ["stripe>=16,<18"]
 
 [project.urls]
 Homepage = "https://github.com/django-mvp/django-mvp-payments"
